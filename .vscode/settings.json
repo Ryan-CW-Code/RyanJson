@@ -1,0 +1,23 @@
+{
+    "files.associations": {
+        "valloc.h": "c",
+        "json.h": "c",
+        "jansson.h": "c",
+        "jansson_private.h": "c",
+        "jansson_config.h": "c",
+        "hashtable.h": "c",
+        "stddef.h": "c",
+        "stdlib.h": "c",
+        "string.h": "c",
+        "cstdarg": "c",
+        "type_traits": "c",
+        "limits.h": "c",
+        "cmath": "c",
+        "ryanjson.h": "c",
+        "cjson.h": "c",
+        "unity.h": "c",
+        "unity_config.h": "c",
+        "common.h": "c"
+    },
+    "commentTranslate.source": "Google"
+}

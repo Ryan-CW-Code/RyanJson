@@ -1,0 +1,12 @@
+# Prerequisites
+# SConscript
+
+# 平台移植层
+*.exe
+
+# cJSON/
+# yyjson/
+tests/
+jsonGetByStructDemo.c
+
+null
