@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "./RyanJson/RyanJson.h"
+#include "./valloc/valloc.h"
 
 void printfTitle(char *title)
 {
@@ -25,11 +26,12 @@ int main(void)
     printfTitle("RyanJson 接口测试程序");
     RyanJsonTest();
 
-    printfTitle("RyanJson / cJSON 内存对比程序");
+    printfTitle("RyanJson / cJSON / yyjson 内存对比程序");
     RyanJsonMemoryFootprintTest();
 
-    printfTitle("RyanJson / cJSON RFC8259标准测试");
+    printfTitle("RyanJson / cJSON / yyjson RFC8259标准测试");
     RFC8259JsonTest();
 
+    displayMem();
     return 0;
 }

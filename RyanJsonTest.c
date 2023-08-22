@@ -63,6 +63,7 @@ static int rootNodeCheckTest(RyanJson_t json)
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
         return 0;
     }
+
     return 1;
 }
 
@@ -74,6 +75,7 @@ int itemNodeCheckTest(RyanJson_t json)
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
         return 0;
     }
+    
     return 1;
 }
 
@@ -549,14 +551,14 @@ int changeJsonTest()
     if (RyanJsonGetObjectToKey(json, "inter"))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        goto err;
     }
 
     RyanJsonDeleteByKey(json, "double");
     if (RyanJsonGetObjectToKey(json, "double"))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        goto err;
     }
 
     /**
@@ -567,7 +569,7 @@ int changeJsonTest()
     if (RyanJsonGetSize(RyanJsonGetObjectToKey(json, "array")) != 5)
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        goto err;
     }
 
     // str = RyanJsonPrint(json, 1024, RyanJsonTrue, NULL);

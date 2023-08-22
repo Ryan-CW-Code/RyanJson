@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include "./RyanJson/RyanJson.h"
+#include "./valloc/valloc.h"
 
 /**
  * @brief 生成json示例
@@ -115,9 +116,11 @@ int loadJsonExample()
     {
         printf("%s:%d 序列化与反序列化后的数据不对应\r\n", __FILE__, __LINE__);
         RyanJsonFree(str);
+        RyanJsonDelete(jsonRoot);
         return 0;
     }
-
+    RyanJsonFree(str);
+    
     // 将序列化的数据以有格式样式打印出来
     uint32_t len = 0;
     str = RyanJsonPrint(jsonRoot, 250, RyanJsonTrue, &len);
@@ -132,6 +135,8 @@ int loadJsonExample()
 
 int RyanJsonExample(void)
 {
+    RyanJsonInitHooks(v_malloc, v_free, v_realloc);
+
     printf("\r\n--------------------------- RyanJson 生成示例 --------------------------\r\n");
     createJsonExample();
 

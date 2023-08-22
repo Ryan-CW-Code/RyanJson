@@ -7,9 +7,7 @@
 
 RyanJson是一个小巧的c语言json解析器，包含json文本文件解析 / 生成，**专门针对内存占用进行优化**。
 
-在内存占用减少40% - 60%的前提下，实现了大部分cJSON接口。
-
-运行速度和cJSON差不多，在json文本数据小于80k / 嵌套深度3000以下的json数据，RyanJson和cJSON因为小巧的设计速度要比别的json库快得多。
+相比cJSON内存占用减少30% - 60%，运行速度和cJSON差不多，在json文本数据小于80k / 嵌套深度3000以下的json数据，RyanJson和cJSON因为小巧的设计速度要比别的json库快得多。
 
 - **低内存占用**：使用动态扩展技术，在32位系统下，一个基础json节点仅占用8字节。
 - **开发人员友好**：仅有一个c文件和头文件轻松集成，hook函数方便自定义内存钩子。类cJSON的api，迁移成本低。
@@ -25,19 +23,19 @@ RyanJson是一个小巧的c语言json解析器，包含json文本文件解析 / 
 
 测试代码可在本项目根目录查看。
 
+#### 内存占用测试
+
+![image-20230822200726742](docs/assert/README.assert/image-20230822200726742.png)
+
 #### RFC 8295 标准测试，大部分嵌入式场景不会出现复杂的特殊json结构
 
 ***RyanJson和cJSON都不适合处理复杂的UTF-16字符集，如果项目需要兼容Unicode字符集，可以考虑yyjson / json-c***
 
-![image-20230822112554099](docs/assert/README.assert/image-20230822112554099.png)
-
-#### 内存占用测试
-
-![image-20230822112757872](docs/assert/README.assert/image-20230822112757872.png)
+![image-20230822200717809](docs/assert/README.assert/image-20230822200717809.png)
 
 ## 4、文档
 
-文档可在 [Ryan组件库](http://localhost:8000/ryan-json)获取
+文档可在 [Ryan文档中心](https://ryan-cw-code.github.io/RyanDocs/)获取
 
 ## 5、联系
 
