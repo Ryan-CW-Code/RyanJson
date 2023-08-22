@@ -72,3 +72,10 @@ int v_mcheck(int *_count, int *_use)
 
     return 0;
 }
+
+void displayMem()
+{
+    int area = 0, use = 0;
+    v_mcheck(&area, &use);
+    printf("|||----------->>> area = %d, size = %d\r\n", area, use);
+}

@@ -16,7 +16,7 @@ extern "C"
 #include <float.h>
 #include <math.h>
 
-    enum
+    typedef enum
     {
         // 类型标志 占用8字节,剩余一个备用
         RyanJsonTypeUnknow = 1 << 0,
@@ -26,12 +26,15 @@ extern "C"
         RyanJsonTypeString = 1 << 4,
         RyanJsonTypeArray = 1 << 5,
         RyanJsonTypeObject = 1 << 6,
+    } RyanjsonType_e;
 
+    typedef enum
+    {
         // flag标志
         RyanJsonValueBoolTrueFlag = 1 << 8,
         RyanJsonValueNumberIntFlag = 1 << 9,
         RyanJsonWithKeyFlag = 1 << 10
-    };
+    } RyanJsonInfoFlag_e;
 
     typedef enum
     {
@@ -61,7 +64,7 @@ extern "C"
 // RyanJson使用递归 序列化/反序列化 json
 // 请根据单片机资源合理设置以防止堆栈溢出。
 #ifndef RyanJsonNestingLimit
-#define RyanJsonNestingLimit 30000000
+#define RyanJsonNestingLimit 30000
 #endif
 
 /**
@@ -74,14 +77,17 @@ extern "C"
     RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, int32_t index, ...);
     RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, char *key, ...);
     RyanJsonBool RyanJsonReapplyString(char **dst, const char *src);
-    RyanJson_t RyanJsonCreateItem(char *key, RyanJson_t item);
+    RyanJson_t RyanJsonCreateItem(const char *key, RyanJson_t item);
 
     /**
      * @brief json对象函数
      */
     RyanJsonBool RyanJsonInitHooks(malloc_t _malloc, free_t _free, realloc_t _realloc);
     RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool require_null_terminated, const char **return_parse_end); // 需用户释放内存
-#define RyanJsonParse(text) RyanJsonParseOptions(text, strlen(text), RyanJsonFalse, NULL)                                                  // 需用户释放内存                                               // 需用户释放内存
+    static inline RyanJson_t RyanJsonParse(char *text)                                                                                     // 需用户释放内存
+    {
+        return RyanJsonParseOptions(text, strlen(text), RyanJsonFalse, NULL);
+    }
 
     char *RyanJsonPrint(RyanJson_t pJson, uint32_t preset, RyanJsonBool format, uint32_t *len); // 需用户释放内存
     char *RyanJsonPrintPreallocated(RyanJson_t pJson, char *buffer, uint32_t length, RyanJsonBool format, uint32_t *len);
@@ -89,9 +95,12 @@ extern "C"
     RyanJson_t RyanJsonDuplicate(RyanJson_t pJson); // 需用户释放内存
     uint32_t RyanJsonGetSize(RyanJson_t pJson);
     void RyanJsonMinify(char *text);
+
     void RyanJsonDelete(RyanJson_t pJson);
-    RyanJsonBool RyanJsonCompare(RyanJson_t a, RyanJson_t b);
     void RyanJsonFree(void *block);
+
+    RyanJsonBool RyanJsonCompare(RyanJson_t a, RyanJson_t b);
+    RyanJsonBool RyanJsonCompareOnlyKey(RyanJson_t a, RyanJson_t b);
 
     /**
      * @brief 添加 / 删除相关函数
@@ -179,7 +188,6 @@ extern "C"
     RyanJsonBool RyanJsonReplaceByKey(RyanJson_t pJson, const char *key, RyanJson_t item);
     RyanJsonBool RyanJsonReplaceByIndex(RyanJson_t pJson, int32_t index, RyanJson_t item); // object对象也可以使用，但是不推荐
 
-    RyanJsonBool RyanJsonCompare2(RyanJson_t a, RyanJson_t b);
 #ifdef __cplusplus
 }
 #endif

@@ -14,7 +14,7 @@
     }
 
 // 是否还有可读的待解析文本
-#define parseCanRead(buf, num) ((buf)->size >= (num))
+#define parseCanRead(buf, num) ((buf)->size >= (uint32_t)(num))
 
 // 偏移几个字节
 #define parseBufAddOffset(buf, num) \
@@ -71,7 +71,7 @@ static free_t jsonFree = free;
 static realloc_t jsonRealloc = realloc;
 
 static RyanJsonBool RyanJsonParseValue(parseBuffer *buf, char *key, RyanJson_t *out);
-static RyanJsonBool RyanJsonPrintValue(RyanJson_t pJson, printBuffer *buf, int32_t depth, RyanJsonBool format);
+static RyanJsonBool RyanJsonPrintValue(RyanJson_t pJson, printBuffer *buf, uint32_t depth, RyanJsonBool format);
 
 static void *temp_realloc(void *block, size_t size)
 {
@@ -201,7 +201,7 @@ static char *RyanJsonStrdup(const char *str)
  * @param key 带key的对象将动态添加key子项, 没有的传null，由调用者保证key的时间有效性
  * @return RyanJson_t 新json节点句柄
  */
-static RyanJson_t RyanJsonNewNode(int32_t info, char *key)
+RyanJson_t RyanJsonNewNode(int32_t info, char *key)
 {
 
     RyanJson_t pJson = NULL;
@@ -290,7 +290,7 @@ void RyanJsonDelete(RyanJson_t pJson)
  *
  * @param block
  */
-void inline RyanJsonFree(void *block)
+inline void RyanJsonFree(void *block)
 {
     jsonFree(block);
 }
@@ -1014,7 +1014,7 @@ static inline RyanJsonBool RyanJsonPrintString(RyanJson_t pJson, printBuffer *bu
  * @param format
  * @return RyanJsonBool
  */
-static RyanJsonBool RyanJsonPrintArray(RyanJson_t pJson, printBuffer *buf, int32_t depth, RyanJsonBool format)
+static RyanJsonBool RyanJsonPrintArray(RyanJson_t pJson, printBuffer *buf, uint32_t depth, RyanJsonBool format)
 {
     int32_t count = 0;
     RyanJson_t child = RyanJsonGetObjectValue(pJson);
@@ -1106,7 +1106,7 @@ static RyanJsonBool RyanJsonPrintArray(RyanJson_t pJson, printBuffer *buf, int32
  * @param format
  * @return RyanJsonBool
  */
-static RyanJsonBool RyanJsonPrintObject(RyanJson_t pJson, printBuffer *buf, int32_t depth, RyanJsonBool format)
+static RyanJsonBool RyanJsonPrintObject(RyanJson_t pJson, printBuffer *buf, uint32_t depth, RyanJsonBool format)
 {
     RyanJson_t child = RyanJsonGetObjectValue(pJson);
 
@@ -1173,7 +1173,7 @@ static RyanJsonBool RyanJsonPrintObject(RyanJson_t pJson, printBuffer *buf, int3
     return RyanJsonTrue;
 }
 
-static RyanJsonBool RyanJsonPrintValue(RyanJson_t pJson, printBuffer *buf, int32_t depth, RyanJsonBool format)
+static RyanJsonBool RyanJsonPrintValue(RyanJson_t pJson, printBuffer *buf, uint32_t depth, RyanJsonBool format)
 {
     if (NULL == pJson)
         return RyanJsonFalse;
@@ -1340,7 +1340,7 @@ char *RyanJsonPrintPreallocated(RyanJson_t pJson, char *buffer, uint32_t length,
 }
 
 /**
- * @brief 获取json的大小，json对象必须为obj / arr
+ * @brief 获取 json 的子项个数
  *
  * @param pJson
  * @return uint32_t
@@ -1354,7 +1354,7 @@ uint32_t RyanJsonGetSize(RyanJson_t pJson)
         return RyanJsonFalse;
 
     if (!_checkType(pJson->info, RyanJsonTypeArray) && !_checkType(pJson->info, RyanJsonTypeObject))
-        return RyanJsonFalse;
+        return 1;
 
     nextItem = RyanJsonGetObjectValue(pJson);
 
@@ -1381,8 +1381,8 @@ RyanJsonBool RyanJsonReapplyString(char **dst, const char *src)
     if (NULL == dst || NULL == src)
         return RyanJsonFalse;
 
-    if (NULL != *dst && 0 == strcmp(*dst, src))
-        return RyanJsonTrue;
+    // if (0 == strcmp(*dst, src))
+    //     return RyanJsonTrue;
 
     k = RyanJsonStrdup(src);
     if (NULL == k)
@@ -1983,7 +1983,7 @@ RyanJson_t RyanJsonCreateObject()
  * @param item
  * @return RyanJson_t
  */
-RyanJson_t RyanJsonCreateItem(char *key, RyanJson_t item)
+RyanJson_t RyanJsonCreateItem(const char *key, RyanJson_t item)
 {
     RyanJson_t newItem = NULL;
     char *k = NULL;
@@ -2307,7 +2307,7 @@ RyanJsonBool RyanJsonCompare(RyanJson_t a, RyanJson_t b)
         if (RyanJsonGetSize(a) != RyanJsonGetSize(b))
             return RyanJsonFalse;
 
-        for (int32_t count = 0; count < RyanJsonGetSize(a); count++)
+        for (uint32_t count = 0; count < RyanJsonGetSize(a); count++)
         {
             if (RyanJsonTrue != RyanJsonCompare(RyanJsonGetObjectToIndex(a, count), RyanJsonGetObjectToIndex(b, count)))
                 return RyanJsonFalse;
@@ -2363,7 +2363,7 @@ RyanJsonBool RyanJsonCompare(RyanJson_t a, RyanJson_t b)
  * @param b
  * @return RyanJsonBool
  */
-RyanJsonBool RyanJsonCompare2(RyanJson_t a, RyanJson_t b)
+RyanJsonBool RyanJsonCompareOnlyKey(RyanJson_t a, RyanJson_t b)
 {
     if (NULL == a || NULL == b)
         return RyanJsonFalse;
@@ -2391,9 +2391,9 @@ RyanJsonBool RyanJsonCompare2(RyanJson_t a, RyanJson_t b)
         if (RyanJsonGetSize(a) != RyanJsonGetSize(b))
             return RyanJsonFalse;
 
-        for (int32_t count = 0; count < RyanJsonGetSize(a); count++)
+        for (uint32_t count = 0; count < RyanJsonGetSize(a); count++)
         {
-            if (RyanJsonTrue != RyanJsonCompare2(RyanJsonGetObjectToIndex(a, count), RyanJsonGetObjectToIndex(b, count)))
+            if (RyanJsonTrue != RyanJsonCompareOnlyKey(RyanJsonGetObjectToIndex(a, count), RyanJsonGetObjectToIndex(b, count)))
                 return RyanJsonFalse;
         }
         return RyanJsonTrue;
@@ -2414,7 +2414,7 @@ RyanJsonBool RyanJsonCompare2(RyanJson_t a, RyanJson_t b)
             if (NULL == b_element)
                 return RyanJsonFalse;
 
-            if (RyanJsonTrue != RyanJsonCompare2(a_element, b_element))
+            if (RyanJsonTrue != RyanJsonCompareOnlyKey(a_element, b_element))
                 return RyanJsonFalse;
         }
 
@@ -2425,7 +2425,7 @@ RyanJsonBool RyanJsonCompare2(RyanJson_t a, RyanJson_t b)
             if (NULL == a_element)
                 return RyanJsonFalse;
 
-            if (RyanJsonTrue != RyanJsonCompare2(b_element, a_element))
+            if (RyanJsonTrue != RyanJsonCompareOnlyKey(b_element, a_element))
                 return RyanJsonFalse;
         }
         return RyanJsonTrue;
@@ -2437,31 +2437,4 @@ RyanJsonBool RyanJsonCompare2(RyanJson_t a, RyanJson_t b)
     }
 
     return RyanJsonTrue;
-}
-
-RyanJson_t RyanJsonCreateItem2(char *key, RyanJson_t item)
-{
-    RyanJson_t newItem = NULL;
-    char *k = NULL;
-
-    if (NULL == item)
-        return NULL;
-
-    if (NULL != key)
-    {
-        k = strdup(key);
-        if (NULL == k)
-            return RyanJsonFalse;
-    }
-
-    newItem = RyanJsonNewNode(_checkType(item->info, RyanJsonTypeArray) ? RyanJsonTypeArray : RyanJsonTypeObject, k);
-    if (NULL == newItem)
-    {
-        jsonFree(k);
-        return NULL;
-    }
-
-    RyanJsonGetObjectValue(newItem) = RyanJsonGetObjectValue(item);
-
-    return newItem;
 }

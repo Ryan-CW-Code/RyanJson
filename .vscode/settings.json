@@ -17,7 +17,8 @@
         "cjson.h": "c",
         "unity.h": "c",
         "unity_config.h": "c",
-        "common.h": "c"
+        "common.h": "c",
+        "stdio.h": "c"
     },
     "commentTranslate.source": "Google"
 }

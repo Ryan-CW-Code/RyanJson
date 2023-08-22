@@ -14,7 +14,7 @@
 #include "./yyjson/yyjson.h"
 #include "./valloc/valloc.h"
 
-#define PrintfStrCmpEnable
+// #define PrintfStrCmpEnable
 
 typedef int (*jsonParseData)(char *file_name, char *data, uint32_t len);
 
@@ -266,7 +266,6 @@ next:
 // https://github.com/nst/JSONTestSuite
 int RFC8259JsonTest(void)
 {
-    printf("开始 RFC 8259 JSON 测试\r\n");
     RyanJsonInitHooks(v_malloc, v_free, v_realloc);
 
     cJSON_Hooks hooks = {
@@ -274,10 +273,8 @@ int RFC8259JsonTest(void)
         .free_fn = v_free};
     cJSON_InitHooks(&hooks);
 
-    /**
-     * @brief 其余常用功能测试
-     *
-     */
+    printf("开始 RFC 8259 JSON 测试");
+
     printf("\r\n--------------------------- RFC8259  RyanJson --------------------------\r\n");
     testFile("./RFC8259JsonData", RyanJsonParseData);
 
