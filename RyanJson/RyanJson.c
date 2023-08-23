@@ -1223,15 +1223,13 @@ static RyanJsonBool RyanJsonPrintValue(RyanJson_t pJson, printBuffer *buf, uint3
  * @brief pJson 文本解析器
  *
  * @param text 文本地址
- * @param require_null_terminated 检查解析后的文本后面是否有无意义的字符pJson
- * @param return_parse_end 输出解析后的文本地址
+ * @param require_null_terminated 是否允许解析的文本后面有无意义的字符
+ * @param return_parse_end 输出解析终止的字符位置
  * @return RyanJson_t
  */
 RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool require_null_terminated, const char **return_parse_end)
 {
-    const char *end = NULL;
     RyanJson_t pJson = NULL;
-
     parseBuffer buf = {0};
 
     if (NULL == text)
@@ -1255,11 +1253,15 @@ RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool re
         }
     }
 
-    // 解析后返回文本地址
     if (return_parse_end)
-        *return_parse_end = end;
+        *return_parse_end = buf.address;
 
     return pJson;
+
+__exit:
+    if (return_parse_end)
+        *return_parse_end = buf.address;
+    return NULL;
 }
 
 /**

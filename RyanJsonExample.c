@@ -100,7 +100,7 @@ int loadJsonExample()
 {
     char *str = NULL;
     RyanJson_t jsonRoot;
-    char jsonstr[] = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}";
+    const char jsonstr[] = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}";
 
     // 解析json数据
     jsonRoot = RyanJsonParse(jsonstr);
@@ -120,7 +120,48 @@ int loadJsonExample()
         return 0;
     }
     RyanJsonFree(str);
-    
+
+    // 将序列化的数据以有格式样式打印出来
+    uint32_t len = 0;
+    str = RyanJsonPrint(jsonRoot, 250, RyanJsonTrue, &len);
+    printf("strLen: %d, data: %s\r\n", len, str);
+    RyanJsonFree(str);
+
+    // 删除json对象
+    RyanJsonDelete(jsonRoot);
+
+    return 1;
+}
+
+/**
+ * @brief 修改json示例
+ *
+ * @return int
+ */
+int changeJsonExample()
+{
+    char *str = NULL;
+    RyanJson_t jsonRoot;
+    const char *jsonstr = "{\"name\":\"Mash\",\"star\":4,\"hits\":[2,2,1,3]}";
+
+    // 解析json数据
+    jsonRoot = RyanJsonParse(jsonstr);
+    if (jsonRoot == NULL)
+    {
+        printf("%s:%d 序列化失败\r\n", __FILE__, __LINE__);
+        return 0;
+    }
+
+    RyanJsonChangeStringValue(RyanJsonGetObjectByKey(jsonRoot, "name"), "Ryan");
+    if (0 != strcmp("Ryan", RyanJsonGetStringValue(RyanJsonGetObjectByKey(jsonRoot, "name"))))
+    {
+        printf("%s:%d 修改失败\r\n", __FILE__, __LINE__);
+        RyanJsonDelete(jsonRoot);
+        return 0;
+    }
+
+    RyanJsonReplaceByKey(jsonRoot, "star", RyanJsonCreateString("", "123456"));
+
     // 将序列化的数据以有格式样式打印出来
     uint32_t len = 0;
     str = RyanJsonPrint(jsonRoot, 250, RyanJsonTrue, &len);
@@ -142,6 +183,9 @@ int RyanJsonExample(void)
 
     printf("\r\n--------------------------- RyanJson 序列化json文本示例 --------------------------\r\n");
     loadJsonExample();
+
+    printf("\r\n--------------------------- RyanJson 修改json示例 --------------------------\r\n");
+    changeJsonExample();
 
     return 0;
 }

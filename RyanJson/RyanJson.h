@@ -84,7 +84,7 @@ extern "C"
      */
     RyanJsonBool RyanJsonInitHooks(malloc_t _malloc, free_t _free, realloc_t _realloc);
     RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool require_null_terminated, const char **return_parse_end); // 需用户释放内存
-    static inline RyanJson_t RyanJsonParse(char *text)                                                                                     // 需用户释放内存
+    static inline RyanJson_t RyanJsonParse(const char *text)                                                                               // 需用户释放内存
     {
         return RyanJsonParseOptions(text, strlen(text), RyanJsonFalse, NULL);
     }
