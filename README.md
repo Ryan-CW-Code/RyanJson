@@ -52,12 +52,12 @@ bits  low --> high
 ---------------------------------------------------------------------
 \______________________________/  |   |   |
              low 8bits            |   |   |
-			    |                 |   |   |
-				V                 |   |   |
+                |                 |   |   |
+                V                 |   |   |
    RyanJsonTypeUnknow    (bit0)   |   |   |
    RyanJsonTypeNull      (bit1)   |   |   |
    RyanJsonTypeBool      (bit2)   |   |   +----> RyanJsonWithKeyFlag			(1 << 10)
-   RyanJsonTypeNumber    (bit3)   |   |    
+   RyanJsonTypeNumber    (bit3)   |   |
    RyanJsonTypeString    (bit4)   |   +--------> RyanJsonValueNumberIntFlag		(1 << 9)
    RyanJsonTypeArray     (bit5)   |
    RyanJsonTypeObject    (bit6)   +------------> RyanJsonValueBoolTrueFlag 		(1 << 8)
@@ -70,13 +70,13 @@ bits  low --> high
 {
 	  "name": "RyanJson",
 next (
-	  "version":     "xxx",
+	  "version": "xxx",
 next (
-	  "repository":  "https://github.com/Ryan-CW-Code/RyanJson",
+	  "repository": "https://github.com/Ryan-CW-Code/RyanJson",
 next (
-	  "keywords":    ["json", "streamlined", "parser"],
-next (        \__item__/ \__next__/     \__next__/
-	  "others":	{
+	  "keywords": ["json", "streamlined", "parser"],
+next (      \__item__/  \__next__/    \__next__/
+	  "others": {
 		    ...
 	  }
 }
