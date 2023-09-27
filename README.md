@@ -1,4 +1,6 @@
 # RyanJson
+### *希望有兴趣的大佬多试试，找找bug、提提意见*
+
 ***一个针对资源受限的嵌入式设备优化的Json库，内存占用极小的通用Json库，简洁高效！***
 
 *初衷：项目进行重构json结构变复杂了很多，cJSON内存占用太高，已经满足不了需求。*
@@ -92,9 +94,17 @@ next (      \__item__/  \__next__/    \__next__/
 
 测试代码可在本项目根目录查看。
 
+#### 性能测试
+
+**请移步文末的 RyanDocs 文档中心查看，是基于 [yyjson_benchmark](https://github.com/ibireme/yyjson_benchmark) 的测试结果**
+
+
+
 #### 内存占用测试
 
 ![image-20230822200726742](docs/assert/README.assert/image-20230822200726742.png)
+
+
 
 #### RFC 8295 标准测试，大部分嵌入式场景不会出现复杂的特殊json结构
 
@@ -116,3 +126,6 @@ next (      \__item__/  \__next__/    \__next__/
 Email：1831931681@qq.com
 
 wx：17513216936
+
+
+
