@@ -3,11 +3,11 @@
 
 ***一个针对资源受限的嵌入式设备优化的Json库，内存占用极小的通用Json库，简洁高效！***
 
-*初衷：项目进行重构json结构变复杂了很多，cJSON内存占用太高，已经满足不了需求。*
+*初衷：项目进行重构Json结构变复杂了很多，cJSON内存占用太高，已经满足不了需求。*
 
 ## 1、介绍
 
-RyanJson是一个小巧的c语言json解析器，包含json文本文件解析 / 生成，**专门针对内存占用进行优化**，相比cJSON内存占用减少30% - 60%，运行速度和cJSON差不多。
+RyanJson是一个小巧的C语言Json解析器，包含json文本文件解析 / 生成，**专门针对内存占用进行优化**，相比cJSON内存占用减少30% - 60%，运行速度和cJSON差不多。
 
 - **低内存占用**：使用动态扩展技术，在32位系统下，一个基础json节点仅占用8字节。
 - **开发人员友好**：仅有一个c文件和头文件轻松集成，hook函数方便自定义内存钩子。类cJSON的api，迁移成本低。
@@ -18,13 +18,13 @@ RyanJson是一个小巧的c语言json解析器，包含json文本文件解析 / 
 
 **RyanJson设计时大量借鉴了 [json](https://api.gitee.com/Lamdonn/json) 和 [cJSON](https://github.com/DaveGamble/cJSON) ! 是从 [json](https://api.gitee.com/Lamdonn/json) 的基础上修改来的**
 
-json语法是**JavaScript**对象语法的子集，可通过下面两个连接学习json语法。
+Json语法是**JavaScript**对象语法的子集，可通过下面两个连接学习json语法。
 
 [JSON规范](https://www.json.org/json-en.html)
 
 [Parsing JSON is a Minefield 建议看看](https://seriot.ch/projects/parsing_json.html)
 
-在json语法中，数据以键值对的形式存储（数组没有key）
+在json语法中，数据以**键值对**的形式存储（数组的子项没有key）
 
 在RyanJson解析器中，**使用结构体来表示一个键值对，是存储的最小单元**，结构如下：
 
@@ -34,9 +34,9 @@ struct RyanJsonNode
     uint32_t info;             // 包含类型，key等标志
     struct RyanJsonNode *next; // 单链表node节点
 
-    // [char *key] 有key的json节点, 会动态创建指针
+    // [char *key] 有key的json节点, 会动态申请内存
 
-    // 有value值的节点, 会动态创建指针
+    // 有value值的节点, 会动态申请内存
     // [int32_t value / double value / char* value / RyanJson_t item]
 };
 
@@ -58,41 +58,41 @@ bits  low --> high
                 V                 |   |   |
    RyanJsonTypeUnknow    (bit0)   |   |   |
    RyanJsonTypeNull      (bit1)   |   |   |
-   RyanJsonTypeBool      (bit2)   |   |   +----> RyanJsonWithKeyFlag			(1 << 10)
+   RyanJsonTypeBool      (bit2)   |   |   +----> RyanJsonWithKeyFlag            (1 << 10)
    RyanJsonTypeNumber    (bit3)   |   |
-   RyanJsonTypeString    (bit4)   |   +--------> RyanJsonValueNumberIntFlag		(1 << 9)
+   RyanJsonTypeString    (bit4)   |   +--------> RyanJsonValueNumberIntFlag     (1 << 9)
    RyanJsonTypeArray     (bit5)   |
-   RyanJsonTypeObject    (bit6)   +------------> RyanJsonValueBoolTrueFlag 		(1 << 8)
-   spare				 (bit7)
+   RyanJsonTypeObject    (bit6)   +------------> RyanJsonValueBoolTrueFlag      (1 << 8)
+   spare                 (bit7)
 ```
 
 **next**：指针指向链表下一个节点
 
 ```
 {
-	  "name": "RyanJson",
+      "name": "RyanJson",
 next (
-	  "version": "xxx",
+      "version": "xxx",
 next (
-	  "repository": "https://github.com/Ryan-CW-Code/RyanJson",
+      "repository": "https://github.com/Ryan-CW-Code/RyanJson",
 next (
-	  "keywords": ["json", "streamlined", "parser"],
+      "keywords": ["json", "streamlined", "parser"],
 next (      \__item__/  \__next__/    \__next__/
-	  "others": {
-		    ...
-	  }
+      "others": {
+            ...
+      }
 }
 ```
 
 **此结构体还包括两个可能动态创建的成员 key 和 value；**
 
-**key**：存储键值对的 key 信息，当存在key时会在申请RyanJsonNode内存时，动态添加。
+**key**：存储JSON键值对的 key 信息，当存在key时会在申请RyanJsonNode内存时动态添加。
 
-**value**：存储键值对的 value 信息，会根据不同节点类型创建不同的value值。会在申请RyanJsonNode内存时，动态添加。
+**value**：存储JSON键值对的 value 信息，会根据不同节点类型创建不同的value值。会在申请RyanJsonNode内存时动态添加。
 
 ## 3、测试
 
-测试代码可在本项目根目录查看。
+*测试代码可在本项目根目录 RyanJsonTest.c 查看。*
 
 #### 性能测试
 
@@ -101,7 +101,7 @@ next (      \__item__/  \__next__/    \__next__/
 
 
 #### 内存占用测试
-
+*内存占用测试文件位于根目录 RyanJsonMemoryFootprintTest.c*
 ![image-20230822200726742](docs/assert/README.assert/image-20230822200726742.png)
 
 
@@ -109,6 +109,8 @@ next (      \__item__/  \__next__/    \__next__/
 #### RFC 8295 标准测试，大部分嵌入式场景不会出现复杂的特殊json结构
 
 ***RyanJson和cJSON都不适合处理复杂的UTF-16字符集，如果项目需要兼容Unicode字符集，可以考虑yyjson / json-c***
+
+*内存占用测试文件位于根目录 RFC8259JsonTest.c*
 
 ![image-20230822200717809](docs/assert/README.assert/image-20230822200717809.png)
 
