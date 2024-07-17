@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "./RyanJson/RyanJson.h"
-#include "./valloc/valloc.h"
+#include "RyanJson.h"
+#include "valloc.h"
 
 void printfTitle(char *title)
 {

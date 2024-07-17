@@ -5,12 +5,12 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <dirent.h>
-#include <intrin.h>
+// #include <intrin.h>
 
-#include "./RyanJson/RyanJson.h"
-#include "./cJSON/cJSON.h"
-#include "./yyjson/yyjson.h"
-#include "./valloc/valloc.h"
+#include "RyanJson.h"
+#include "cJSON.h"
+#include "yyjson.h"
+#include "valloc.h"
 
 static void *yy_malloc(void *ctx, size_t size)
 {
@@ -92,7 +92,7 @@ static void printfJsonCompera(char *jsonstr)
     RyanJsonCount = RyanJsonMemoryFootprint(jsonstr);
     cJSONCount = cJSONMemoryFootprint(jsonstr);
     yyjsonCount = yyjsonMemoryFootprint(jsonstr);
-    printf("json原始文本长度为 %d, 序列化后RyanJson内存占用: %d, cJSON内存占用: %d, yyjson内存占用: %d\r\n",
+    printf("json原始文本长度为 %ld, 序列化后RyanJson内存占用: %d, cJSON内存占用: %d, yyjson内存占用: %d\r\n",
            strlen(jsonstr), RyanJsonCount, cJSONCount, yyjsonCount);
 
     printf("比cJSON节省: %d%% 内存占用, 比yyjson节省: %d%% 内存占用\r\n",

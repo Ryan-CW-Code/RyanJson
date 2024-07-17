@@ -1,12 +1,14 @@
 # Prerequisites
 # SConscript
 
-# 平台移植层
+null
+.vscode
+
+# 忽略编译生成的文件
+*.o
+*.out
 *.exe
 
-# cJSON/
-# yyjson/
-tests/
-jsonGetByStructDemo.c
+# 忽略
+core
 
-null

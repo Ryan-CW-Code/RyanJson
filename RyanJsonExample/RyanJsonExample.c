@@ -5,8 +5,8 @@
 #include <math.h>
 #include <time.h>
 
-#include "./RyanJson/RyanJson.h"
-#include "./valloc/valloc.h"
+#include "RyanJson.h"
+#include "valloc.h"
 
 /**
  * @brief 生成json示例

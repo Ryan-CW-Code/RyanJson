@@ -7,12 +7,12 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <dirent.h>
-#include <intrin.h>
+// #include <intrin.h>
 
-#include "./RyanJson/RyanJson.h"
-#include "./cJSON/cJSON.h"
-#include "./yyjson/yyjson.h"
-#include "./valloc/valloc.h"
+#include "RyanJson.h"
+#include "cJSON.h"
+#include "yyjson.h"
+#include "valloc.h"
 
 // #define PrintfStrCmpEnable
 
@@ -40,31 +40,22 @@ static yyjson_alc yyalc = {
 /* Read a file, parse, render back, etc. */
 int testFile(const char *path, jsonParseData jsonParseDataHandle)
 {
-    struct _finddata_t entry;
-    intptr_t handle;
+
+    DIR *dir = NULL;
+    struct dirent *entry;
     int idx = 0, alc = 0;
-    char *search;
+    char **names = NULL, **names_tmp;
+
     int path_len = strlen(path);
     int count = 0;
     int used_count = 0;
-
-    search = malloc(path_len + 3);
-    if (!search)
-        return 0;
-
-    memcpy(search, path, path_len);
-    if (search[path_len - 1] == '\\')
-        path_len--;
-
-    memcpy(search + path_len, "\\*\0", 3);
-
-    handle = _findfirst(search, &entry);
-    if (handle == -1)
+    if (!path || !path_len || !(dir = opendir(path)))
         goto fail;
 
-    do
+    while ((entry = readdir(dir)))
     {
-        char *name = (char *)entry.name;
+
+        char *name = (char *)entry->d_name;
 
         if (!name || !strlen(name))
             continue;
@@ -96,14 +87,14 @@ int testFile(const char *path, jsonParseData jsonParseDataHandle)
             if (1 == status)
                 count++;
             else
-                printf("应该成功，但是失败: %s, len: %d\n", data, len);
+                printf("应该成功，但是失败: %s, len: %ld\n", data, len);
         }
         else if (0 == strncmp("n_", name, 2))
         {
             if (0 == status)
                 count++;
             else
-                printf("应该失败，但是成功: %s, len: %d\n", data, len);
+                printf("应该失败，但是成功: %s, len: %ld\n", data, len);
         }
         else if (0 == strncmp("i_", name, 2))
         {
@@ -112,33 +103,27 @@ int testFile(const char *path, jsonParseData jsonParseDataHandle)
 
         int area = 0, use = 0;
         v_mcheck(&area, &use);
-        if (use != (path_len + 3 + len + 10))
+        if (use != (len + 10))
         {
             free(data);
-            printf("内存泄漏 %s len: %d\r\n", data, len);
-            printf("内存泄漏 %x len: %d\r\n", data, len);
-            printf("内存泄漏 %c len: %d\r\n", data, len);
+            printf("内存泄漏 %s len: %ld\r\n", data, len);
+            printf("内存泄漏 %x len: %ld\r\n", data, len);
+            printf("内存泄漏 %c len: %ld\r\n", data, len);
             printf("|||----------->>> area = %d, size = %d\r\n", area, use);
             break;
         }
-
         free(data);
+    }
 
-    } while (_findnext(handle, &entry) == 0);
-
-    _findclose(handle);
-
-    if (search)
-        free(search);
+    closedir(dir);
 
     printf("RFC 8259 JSON: (%d/%d)\r\n", count, used_count);
     return 1;
 
 fail:
-    if (handle != -1)
-        _findclose(handle);
-    if (search)
-        free(search);
+    if (dir)
+        closedir(dir);
+
     return 0;
 }
 
@@ -276,13 +261,13 @@ int RFC8259JsonTest(void)
     printf("开始 RFC 8259 JSON 测试");
 
     printf("\r\n--------------------------- RFC8259  RyanJson --------------------------\r\n");
-    testFile("./RFC8259JsonData", RyanJsonParseData);
+    testFile("./RyanJsonExample/RFC8259JsonData", RyanJsonParseData);
 
     printf("\r\n--------------------------- RFC8259  cJSON --------------------------\r\n");
-    testFile("./RFC8259JsonData", cJSONParseData);
+    testFile("./RyanJsonExample/RFC8259JsonData", cJSONParseData);
 
     printf("\r\n--------------------------- RFC8259  yyjson --------------------------\r\n");
-    testFile("./RFC8259JsonData", yyjsonParseData);
+    testFile("./RyanJsonExample/RFC8259JsonData", yyjsonParseData);
 
     displayMem();
     return 0;

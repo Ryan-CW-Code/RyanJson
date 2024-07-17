@@ -4,13 +4,10 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <intrin.h>
 
-#include "./RyanJson/RyanJson.h"
-#include "./cJSON/cJSON.h"
-#include "./valloc/valloc.h"
+#include "RyanJson.h"
+#include "cJSON.h"
+#include "valloc.h"
 
 /* --------------------------------------- jsonTest ------------------------------------------- */
 // !(fabs(RyanJsonGetDoubleValue(RyanJsonGetObjectToKey(json, "double")) - 16.89) < 1e-6)
@@ -75,7 +72,7 @@ int itemNodeCheckTest(RyanJson_t json)
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
         return 0;
     }
-    
+
     return 1;
 }
 
@@ -602,6 +599,87 @@ void compareJsonTest()
 
     RyanJsonDelete(json2);
     json2 = RyanJsonParse(jsonstr);
+    RyanJsonAddStringToObject(json2, "test", "hello");
+    if (RyanJsonFalse != RyanJsonCompare(json, json2))
+    {
+        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
+        goto err;
+    }
+
+    RyanJsonDelete(json2);
+    json2 = RyanJsonParse(jsonstr);
+    RyanJsonAddIntToObject(json2, "test", 1);
+    if (RyanJsonFalse != RyanJsonCompare(json, json2))
+    {
+        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
+        goto err;
+    }
+
+    RyanJsonDelete(json2);
+    json2 = RyanJsonParse(jsonstr);
+    RyanJsonAddDoubleToObject(json2, "test", 2.0);
+    if (RyanJsonFalse != RyanJsonCompare(json, json2))
+    {
+        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
+        goto err;
+    }
+
+    RyanJsonDelete(json2);
+    json2 = RyanJsonParse(jsonstr);
+    RyanJsonAddBoolToObject(json2, "test", RyanJsonTrue);
+    if (RyanJsonFalse != RyanJsonCompare(json, json2))
+    {
+        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
+        goto err;
+    }
+
+    RyanJsonDelete(json2);
+    json2 = RyanJsonParse(jsonstr);
+    RyanJsonAddNullToObject(json2, "test");
+    if (RyanJsonFalse != RyanJsonCompare(json, json2))
+    {
+        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
+        goto err;
+    }
+
+    RyanJsonDelete(json2);
+    json2 = RyanJsonParse(jsonstr);
+    RyanJsonAddIntToArray(RyanJsonGetObjectToKey(json2, "arrayInt"), 2);
+    if (RyanJsonFalse != RyanJsonCompare(json, json2))
+    {
+        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
+        goto err;
+    }
+
+    RyanJsonDelete(json2);
+    json2 = RyanJsonParse(jsonstr);
+    RyanJsonAddDoubleToArray(RyanJsonGetObjectToKey(json2, "arrayDouble"), 2.0);
+    if (RyanJsonFalse != RyanJsonCompare(json, json2))
+    {
+        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
+        goto err;
+    }
+
+    RyanJsonDelete(json2);
+    json2 = RyanJsonParse(jsonstr);
+    RyanJsonAddStringToArray(RyanJsonGetObjectToKey(json2, "arrayString"), "hello");
+    if (RyanJsonFalse != RyanJsonCompare(json, json2))
+    {
+        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
+        goto err;
+    }
+
+    RyanJsonDelete(json2);
+    json2 = RyanJsonParse(jsonstr);
+    RyanJsonAddItemToArray(RyanJsonGetObjectToKey(json2, "arrayItem"), RyanJsonCreateString("test", "hello"));
+    if (RyanJsonFalse != RyanJsonCompare(json, json2))
+    {
+        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
+        goto err;
+    }
+
+    RyanJsonDelete(json2);
+    json2 = RyanJsonParse(jsonstr);
     RyanJsonChangeKey(RyanJsonGetObjectToKey(json2, "inter"), "int2");
     if (RyanJsonFalse != RyanJsonCompare(json, json2))
     {
@@ -750,7 +828,7 @@ void duplicateTest()
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "inter"));
     RyanJsonAddItemToObject(json, "test", dupItem);
-    RyanJsonDelete(RyanJsonGetObjectByKey(json, "test"));
+    RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "inter"));
     RyanJsonAddItemToObject(json, "test", dupItem);
@@ -759,8 +837,7 @@ void duplicateTest()
     json = RyanJsonParse(jsonstr);
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "inter"));
     RyanJsonAddItemToObject(json, "test", dupItem);
-    item = RyanJsonDetachByKey(json, "test");
-    RyanJsonDelete(item);
+    RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
     RyanJsonDelete(json);
 
     /**
@@ -773,7 +850,7 @@ void duplicateTest()
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "item"));
     RyanJsonAddItemToObject(json, "test", dupItem);
-    RyanJsonDelete(RyanJsonGetObjectByKey(json, "test"));
+    RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "item"));
     RyanJsonAddItemToObject(json, "test", dupItem);
@@ -782,8 +859,7 @@ void duplicateTest()
     json = RyanJsonParse(jsonstr);
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "item"));
     RyanJsonAddItemToObject(json, "test", dupItem);
-    item = RyanJsonDetachByKey(json, "test");
-    RyanJsonDelete(item);
+    RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
     RyanJsonDelete(json);
 
     /**
@@ -796,7 +872,7 @@ void duplicateTest()
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "arrayItem"));
     RyanJsonAddItemToObject(json, "test", dupItem);
-    RyanJsonDelete(RyanJsonGetObjectByKey(json, "test"));
+    RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "arrayItem"));
     RyanJsonAddItemToObject(json, "test", dupItem);
@@ -805,8 +881,7 @@ void duplicateTest()
     json = RyanJsonParse(jsonstr);
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "arrayItem"));
     RyanJsonAddItemToObject(json, "test", dupItem);
-    item = RyanJsonDetachByKey(json, "test");
-    RyanJsonDelete(item);
+    RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
     RyanJsonDelete(json);
 
     json = RyanJsonParse(jsonstr);
