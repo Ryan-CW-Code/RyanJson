@@ -2292,10 +2292,10 @@ RyanJsonBool RyanJsonCompare(RyanJson_t a, RyanJson_t b)
 
     case RyanJsonTypeNumber:
     {
-        if (RyanJsonIsInt(a) == RyanJsonIsInt(b))
+        if (RyanJsonTrue == RyanJsonIsInt(a) && RyanJsonTrue == RyanJsonIsInt(b))
             return RyanJsonGetIntValue(a) == RyanJsonGetIntValue(b) ? RyanJsonTrue : RyanJsonFalse;
 
-        else if (RyanJsonIsDouble(a) == RyanJsonIsDouble(b))
+        else if (RyanJsonTrue == RyanJsonIsDouble(a) && RyanJsonTrue == RyanJsonIsDouble(b))
             return compare_double(RyanJsonGetDoubleValue(a), RyanJsonGetDoubleValue(b));
 
         return RyanJsonFalse;
