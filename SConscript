@@ -9,6 +9,6 @@ src = Glob('RyanJson/*.c')
 path = [cwd + '/RyanJson']
 
 group = DefineGroup('RyanJson', src, depend=[
-                    "PKG_USING_RYANJSON"], CPPPATH=path)
+                    "PKG_USING_RYAN_JSON"], CPPPATH=path)
 
 Return('group')
