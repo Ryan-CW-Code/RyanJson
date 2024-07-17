@@ -1,4 +1,3 @@
-
 #include "RyanJson.h"
 
 #define _checkType(info, type) ((info) & (type))
@@ -2166,16 +2165,15 @@ RyanJson_t RyanJsonDuplicate(RyanJson_t pJson)
     case RyanJsonTypeNumber:
         if (RyanJsonIsInt(pJson))
             RyanJsonChangeIntValue(newitem, RyanJsonGetIntValue(pJson));
-        else
+        else if (RyanJsonIsDouble(pJson))
             RyanJsonChangeDoubleValue(newitem, RyanJsonGetDoubleValue(pJson));
+        else
+            goto err;
         break;
 
     case RyanJsonTypeString:
         if (RyanJsonTrue != RyanJsonChangeStringValue(newitem, RyanJsonGetStringValue(pJson)))
-        {
-            RyanJsonDelete(newitem);
-            return NULL;
-        }
+            goto err;
         break;
 
     case RyanJsonTypeArray:
@@ -2185,10 +2183,7 @@ RyanJson_t RyanJsonDuplicate(RyanJson_t pJson)
         {
             item = RyanJsonDuplicate(temp);
             if (NULL == item)
-            {
-                RyanJsonDelete(newitem);
-                return NULL;
-            }
+                goto err;
 
             if (NULL != prev)
             {
@@ -2207,11 +2202,14 @@ RyanJson_t RyanJsonDuplicate(RyanJson_t pJson)
         break;
 
     default:
-        RyanJsonDelete(newitem);
-        return NULL;
+        goto err;
     }
 
     return newitem;
+
+err:
+    RyanJsonDelete(newitem);
+    return NULL;
 }
 
 /**
