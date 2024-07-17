@@ -2290,6 +2290,7 @@ RyanJsonBool RyanJsonCompare(RyanJson_t a, RyanJson_t b)
 
     case RyanJsonTypeNumber:
     {
+
         if (RyanJsonTrue == RyanJsonIsInt(a) && RyanJsonTrue == RyanJsonIsInt(b))
             return RyanJsonGetIntValue(a) == RyanJsonGetIntValue(b) ? RyanJsonTrue : RyanJsonFalse;
 
@@ -2325,23 +2326,11 @@ RyanJsonBool RyanJsonCompare(RyanJson_t a, RyanJson_t b)
 
         RyanJsonObjectForEach(a, a_element)
         {
-            // TODO This has O(n^2) runtime, which is horrible!
             b_element = RyanJsonGetObjectByKey(b, RyanJsonGetKey(a_element));
             if (NULL == b_element)
                 return RyanJsonFalse;
 
             if (RyanJsonTrue != RyanJsonCompare(a_element, b_element))
-                return RyanJsonFalse;
-        }
-
-        RyanJsonObjectForEach(b, b_element)
-        {
-            // TODO This has O(n^2) runtime, which is horrible!
-            a_element = RyanJsonGetObjectByKey(a, RyanJsonGetKey(b_element));
-            if (NULL == a_element)
-                return RyanJsonFalse;
-
-            if (RyanJsonTrue != RyanJsonCompare(b_element, a_element))
                 return RyanJsonFalse;
         }
 
@@ -2409,7 +2398,6 @@ RyanJsonBool RyanJsonCompareOnlyKey(RyanJson_t a, RyanJson_t b)
 
         RyanJsonObjectForEach(a, a_element)
         {
-            // TODO This has O(n^2) runtime, which is horrible!
             b_element = RyanJsonGetObjectByKey(b, RyanJsonGetKey(a_element));
             if (NULL == b_element)
                 return RyanJsonFalse;
@@ -2418,16 +2406,6 @@ RyanJsonBool RyanJsonCompareOnlyKey(RyanJson_t a, RyanJson_t b)
                 return RyanJsonFalse;
         }
 
-        RyanJsonObjectForEach(b, b_element)
-        {
-            // TODO This has O(n^2) runtime, which is horrible!
-            a_element = RyanJsonGetObjectByKey(a, RyanJsonGetKey(b_element));
-            if (NULL == a_element)
-                return RyanJsonFalse;
-
-            if (RyanJsonTrue != RyanJsonCompareOnlyKey(b_element, a_element))
-                return RyanJsonFalse;
-        }
         return RyanJsonTrue;
     }
 
