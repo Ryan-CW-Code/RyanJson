@@ -59,12 +59,6 @@ typedef struct
     char *address;        // 反序列化后的字符串地址
 } printBuffer;
 
-typedef union
-{
-    int32_t int_;
-    double double_;
-} jsonNumber;
-
 static malloc_t jsonMalloc = malloc;
 static free_t jsonFree = free;
 static realloc_t jsonRealloc = realloc;
@@ -207,7 +201,7 @@ RyanJson_t RyanJsonNewNode(int32_t info, char *key)
     int32_t size = sizeof(struct RyanJsonNode);
 
     if (_checkType(info, RyanJsonTypeNumber))
-        size += sizeof(jsonNumber);
+        size += sizeof(RyanJsonNumber);
     else if (_checkType(info, RyanJsonTypeString))
         size += sizeof(char *);
     else if (_checkType(info, RyanJsonTypeArray) || _checkType(info, RyanJsonTypeObject))
@@ -347,7 +341,7 @@ static uint32_t RyanJsonParseHex(const char *text)
 /**
  * @brief 解析文本中的数字，添加到json节点中
  *
- * @param text 带有jsonNumber的文本
+ * @param text 带有RyanJsonNumber的文本
  * @param key 对应的key
  * @param out 用于接收解析后的pJson对象的地址
  * @return const char* 转换后文本的新地址
@@ -861,7 +855,7 @@ static RyanJsonBool RyanJsonPrintNumber(RyanJson_t pJson, printBuffer *buf)
     double f = 0;
     int32_t len = 0;
 
-    // jsonNumber 类型是一个整数
+    // RyanJsonNumber 类型是一个整数
     if (pJson->info & RyanJsonValueNumberIntFlag)
     {
         // if (!printBufAppend(buf,buf, 11))     // 32 位整数最多包含 10 个数字字符、符号
@@ -871,7 +865,7 @@ static RyanJsonBool RyanJsonPrintNumber(RyanJson_t pJson, printBuffer *buf)
         len = sprintf(printBufEnd(buf), "%d", RyanJsonGetIntValue(pJson));
         buf->end += len;
     }
-    else // jsonNumber 的类型是浮点型
+    else // RyanJsonNumber 的类型是浮点型
     {
         // if (!printBufAppend(buf,25))
         if (!printBufAppend(buf, 64))

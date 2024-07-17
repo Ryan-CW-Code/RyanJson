@@ -16,6 +16,12 @@ extern "C"
 #include <float.h>
 #include <math.h>
 
+    typedef union
+    {
+        int32_t _int;
+        double _double;
+    } RyanJsonNumber;
+
     typedef enum
     {
         // 类型标志 占用8字节,剩余一个备用
@@ -154,8 +160,8 @@ extern "C"
 #define RyanJsonIsNull(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeNull)
 #define RyanJsonIsBool(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeBool)
 #define RyanJsonIsNumber(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeNumber)
-#define RyanJsonIsInt(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeNumber && RyanJsonGetInfo(pJson) & RyanJsonValueNumberIntFlag)
-#define RyanJsonIsDouble(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeNumber && !(RyanJsonGetInfo(pJson) & RyanJsonValueNumberIntFlag))
+#define RyanJsonIsInt(pJson) returnJsonBool(RyanJsonIsNumber(pJson) && (RyanJsonGetInfo(pJson) & RyanJsonValueNumberIntFlag))
+#define RyanJsonIsDouble(pJson) returnJsonBool(RyanJsonIsNumber(pJson) && !(RyanJsonGetInfo(pJson) & RyanJsonValueNumberIntFlag))
 #define RyanJsonIsString(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeString)
 #define RyanJsonIsArray(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeArray)
 #define RyanJsonIsObject(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeObject)
