@@ -2,14 +2,14 @@
 CFLAGS_INC = -I RyanJson
 CFLAGS_INC +=  -I cJSON
 CFLAGS_INC +=  -I yyjson
-CFLAGS_INC +=  -I valloc
+CFLAGS_INC +=  -I RyanJsonExample/valloc
 CFLAGS_INC +=  -I RyanJsonExample
 
 
 src = $(wildcard ./RyanJson/*.c)
 src += $(wildcard ./cJSON/*.c)
 src += $(wildcard ./yyjson/*.c)
-src += $(wildcard ./valloc/*.c)
+src += $(wildcard ./RyanJsonExample/valloc/*.c)
 src += $(wildcard ./RyanJsonExample/*.c)
 
 obj = $(patsubst %.c, %.o, $(src))
