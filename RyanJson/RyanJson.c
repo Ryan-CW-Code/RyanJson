@@ -858,8 +858,8 @@ static RyanJsonBool RyanJsonPrintNumber(RyanJson_t pJson, printBuffer *buf)
     // RyanJsonNumber 类型是一个整数
     if (pJson->info & RyanJsonValueNumberIntFlag)
     {
-        // if (!printBufAppend(buf,buf, 11))     // 32 位整数最多包含 10 个数字字符、符号
-        if (!printBufAppend(buf, 20)) // 64 位整数最多包含 19 个数字字符、符号
+        // if (!printBufAppend(buf, 21)) // 64 位整数最多包含  20 个数字字符、1 符号
+        if (!printBufAppend(buf, 11)) // 32 位整数最多包含  10 个数字字符、1 符号
             return RyanJsonFalse;
 
         len = sprintf(printBufEnd(buf), "%d", RyanJsonGetIntValue(pJson));
