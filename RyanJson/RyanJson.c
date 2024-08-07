@@ -32,10 +32,10 @@
         else                                       \
         {                                          \
             errCode                                \
-        };                                         \
+        }                                          \
     }
 
-#define printBufAppend(buf, n) expansion(buf, (n))
+#define printBufAppend(buf, n) expansion(buf, ((uint32_t)(n)))
 #define printBufPutc(buf, c) ((buf)->address[(buf)->end++] = (c))
 #define printBufPuts(buf, s, len)           \
     {                                       \
@@ -141,10 +141,10 @@ static int32_t pow2gt(int32_t x)
  * @param needed
  * @return RyanJsonBool
  */
-static RyanJsonBool expansion(printBuffer *buf, int32_t needed)
+static RyanJsonBool expansion(printBuffer *buf, uint32_t needed)
 {
     char *address = NULL;
-    int32_t size = 0;
+    uint32_t size = 0;
 
     if (NULL == buf || NULL == buf->address)
         return RyanJsonFalse;
@@ -1250,11 +1250,6 @@ RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool re
         *return_parse_end = buf.address;
 
     return pJson;
-
-__exit:
-    if (return_parse_end)
-        *return_parse_end = buf.address;
-    return NULL;
 }
 
 /**
