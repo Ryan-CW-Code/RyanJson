@@ -873,15 +873,18 @@ static RyanJsonBool RyanJsonPrintNumber(RyanJson_t pJson, printBuffer *buf)
 
         f = RyanJsonGetDoubleValue(pJson);
 
+        // use full transformation within bounded space
         if (fabs(floor(f) - f) <= DBL_EPSILON && fabs(f) < 1.0e60)
             len = sprintf(printBufEnd(buf), "%.1lf", f);
 
+        // use exponential form conversion beyond the limited range
         else if (fabs(f) < 1.0e-6 || fabs(f) > 1.0e9)
             len = sprintf(printBufEnd(buf), "%e", f);
+
+        // default conversion
         else
         {
             len = sprintf(printBufEnd(buf), "%lf", f);
-
             while (len > 0 && printBufEnd(buf)[len - 1] == '0' && printBufEnd(buf)[len - 2] != '.') // 删除小数部分中无效的 0
                 len--;
         }
@@ -1921,6 +1924,9 @@ RyanJson_t RyanJsonCreateString(char *key, const char *string)
     RyanJson_t item = NULL;
     char *k = NULL;
     char *s = NULL;
+
+    if (NULL == string)
+        return NULL;
 
     if (NULL != key)
     {
