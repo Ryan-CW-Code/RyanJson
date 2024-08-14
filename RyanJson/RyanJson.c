@@ -1991,7 +1991,7 @@ RyanJson_t RyanJsonCreateItem(const char *key, RyanJson_t item)
     {
         k = RyanJsonStrdup(key);
         if (NULL == k)
-            return RyanJsonFalse;
+            return NULL;
     }
 
     newItem = RyanJsonNewNode(_checkType(item->info, RyanJsonTypeArray) ? RyanJsonTypeArray : RyanJsonTypeObject, k);
