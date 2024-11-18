@@ -102,6 +102,7 @@ next (      \__item__/  \__next__/    \__next__/
 
 
 #### 内存占用测试
+*此测试结果为(2023.08.22)时测试，测试代码可在本项目根目录`RyanJsonExample`文件夹查看。新版本内存占用更低!*
 ![image-20230822200726742](docs/assert/README.assert/image-20230822200726742.png)
 
 

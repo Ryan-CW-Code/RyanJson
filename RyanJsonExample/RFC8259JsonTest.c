@@ -84,14 +84,14 @@ int testFile(const char *path, jsonParseData jsonParseDataHandle)
         used_count++;
         if (0 == strncmp("y_", name, 2))
         {
-            if (1 == status)
+            if (0 == status)
                 count++;
             else
                 printf("应该成功，但是失败: %s, len: %ld\n", data, len);
         }
         else if (0 == strncmp("n_", name, 2))
         {
-            if (0 == status)
+            if (0 != status)
                 count++;
             else
                 printf("应该失败，但是成功: %s, len: %ld\n", data, len);
@@ -118,13 +118,13 @@ int testFile(const char *path, jsonParseData jsonParseDataHandle)
     closedir(dir);
 
     printf("RFC 8259 JSON: (%d/%d)\r\n", count, used_count);
-    return 1;
+    return 0;
 
 fail:
     if (dir)
         closedir(dir);
 
-    return 0;
+    return -1;
 }
 
 /**
@@ -141,18 +141,18 @@ int RyanJsonParseData(char *file_name, char *data, uint32_t len)
     if (strcmp(file_name, "n_structure_100000_opening_arrays.json") == 0 ||
         strcmp(file_name, "n_structure_open_array_object.json") == 0 ||
         strcmp(file_name, "n_structure_100000_opening_arrays.json") == 0)
-        return 0;
+        return -1;
 
     RyanJson_t json = RyanJsonParseOptions(data, len, RyanJsonTrue, NULL);
     if (NULL == json)
-        return 0;
+        return -1;
 
 #ifdef PrintfStrCmpEnable
     char *str = RyanJsonPrint(json, 60, RyanJsonFalse, NULL);
     if (NULL == str)
     {
         printf("反序列化失败: [%s]\n", data);
-        goto next;
+        goto err;
     }
 
     RyanJsonMinify(data);
@@ -162,9 +162,11 @@ int RyanJsonParseData(char *file_name, char *data, uint32_t len)
     RyanJsonFree(str);
 #endif
 
-next:
     RyanJsonDelete(json);
-    return 1;
+    return 0;
+err:
+    RyanJsonDelete(json);
+    return -1;
 }
 
 /**
@@ -181,18 +183,18 @@ int cJSONParseData(char *file_name, char *data, uint32_t len)
     if (strcmp(file_name, "n_structure_100000_opening_arrays.json") == 0 ||
         strcmp(file_name, "n_structure_open_array_object.json") == 0 ||
         strcmp(file_name, "n_structure_100000_opening_arrays.json") == 0)
-        return 0;
+        return -1;
 
     cJSON *json = cJSON_ParseWithLengthOpts(data, len + sizeof(""), NULL, RyanJsonTrue);
     if (NULL == json)
-        return 0;
+        return -1;
 
 #ifdef PrintfStrCmpEnable
     char *str = cJSON_PrintBuffered(json, 60, RyanJsonFalse);
     if (NULL == str)
     {
         printf("反序列化失败: [%s]\n", data);
-        goto next;
+        goto err;
     }
 
     cJSON_Minify(data);
@@ -202,9 +204,11 @@ int cJSONParseData(char *file_name, char *data, uint32_t len)
     cJSON_free(str);
 #endif
 
-next:
     cJSON_Delete(json);
-    return 1;
+    return 0;
+err:
+    cJSON_Delete(json);
+    return -1;
 }
 
 /**
@@ -221,18 +225,18 @@ int yyjsonParseData(char *file_name, char *data, uint32_t len)
     if (strcmp(file_name, "n_structure_100000_opening_arrays.json") == 0 ||
         strcmp(file_name, "n_structure_open_array_object.json") == 0 ||
         strcmp(file_name, "n_structure_100000_opening_arrays.json") == 0)
-        return 0;
+        return -1;
 
     yyjson_doc *doc = yyjson_read_opts(data, len, YYJSON_READ_NOFLAG, &yyalc, NULL);
     if (NULL == doc)
-        return 0;
+        return -1;
 
 #ifdef PrintfStrCmpEnable
     char *str = yyjson_write_opts(doc, YYJSON_WRITE_NOFLAG, &yyalc, NULL, NULL);
     if (NULL == str)
     {
         printf("反序列化失败: [%s]\n", data);
-        goto next;
+        goto err;
     }
 
     cJSON_Minify(data);
@@ -242,15 +246,18 @@ int yyjsonParseData(char *file_name, char *data, uint32_t len)
     free(str);
 #endif
 
-next:
     yyjson_doc_free(doc);
-    return 1;
+    return 0;
+err:
+    yyjson_doc_free(doc);
+    return -1;
 }
 
 // RFC 8259 JSON Test Suite
 // https://github.com/nst/JSONTestSuite
 int RFC8259JsonTest(void)
 {
+    int result = 0;
     RyanJsonInitHooks(v_malloc, v_free, v_realloc);
 
     cJSON_Hooks hooks = {
@@ -261,14 +268,33 @@ int RFC8259JsonTest(void)
     printf("开始 RFC 8259 JSON 测试");
 
     printf("\r\n--------------------------- RFC8259  RyanJson --------------------------\r\n");
-    testFile("./RyanJsonExample/RFC8259JsonData", RyanJsonParseData);
+    result = testFile("./RyanJsonExample/RFC8259JsonData", RyanJsonParseData);
+    if (0 != result)
+    {
+        printf("%s:%d RyanJson RFC8259JsonTest fail\r\n", __FILE__, __LINE__);
+        goto err;
+    }
 
     printf("\r\n--------------------------- RFC8259  cJSON --------------------------\r\n");
-    testFile("./RyanJsonExample/RFC8259JsonData", cJSONParseData);
+    result = testFile("./RyanJsonExample/RFC8259JsonData", cJSONParseData);
+    if (0 != result)
+    {
+        printf("%s:%d cJSON RFC8259JsonTest fail\r\n", __FILE__, __LINE__);
+        goto err;
+    }
 
     printf("\r\n--------------------------- RFC8259  yyjson --------------------------\r\n");
-    testFile("./RyanJsonExample/RFC8259JsonData", yyjsonParseData);
+    result = testFile("./RyanJsonExample/RFC8259JsonData", yyjsonParseData);
+    if (0 != result)
+    {
+        printf("%s:%d yyjson RFC8259JsonTest fail\r\n", __FILE__, __LINE__);
+        goto err;
+    }
 
     displayMem();
     return 0;
+
+err:
+    displayMem();
+    return -1;
 }

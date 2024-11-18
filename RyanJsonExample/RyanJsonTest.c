@@ -28,52 +28,52 @@ static int rootNodeCheckTest(RyanJson_t json)
     if (!RyanJsonIsInt(RyanJsonGetObjectToKey(json, "inter")) || 16 != RyanJsonGetIntValue(RyanJsonGetObjectToKey(json, "inter")))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     if (!RyanJsonIsDouble(RyanJsonGetObjectToKey(json, "double")) || !compare_double(RyanJsonGetDoubleValue(RyanJsonGetObjectToKey(json, "double")), 16.89))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     if (!RyanJsonIsString(RyanJsonGetObjectToKey(json, "string")) || strcmp(RyanJsonGetStringValue(RyanJsonGetObjectToKey(json, "string")), "hello"))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     if (!RyanJsonIsBool(RyanJsonGetObjectToKey(json, "boolTrue")) || RyanJsonGetBoolValue(RyanJsonGetObjectToKey(json, "boolTrue")) != RyanJsonTrue)
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     if (!RyanJsonIsBool(RyanJsonGetObjectToKey(json, "boolFalse")) || RyanJsonGetBoolValue(RyanJsonGetObjectToKey(json, "boolFalse")) != RyanJsonFalse)
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     if (!RyanJsonIsNull(RyanJsonGetObjectToKey(json, "null")))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
-    return 1;
+    return 0;
 }
 
 int itemNodeCheckTest(RyanJson_t json)
 {
     RyanJson_t item = RyanJsonGetObjectToKey(json, "item");
-    if (0 == rootNodeCheckTest(item))
+    if (0 != rootNodeCheckTest(item))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
-    return 1;
+    return 0;
 }
 
 int arrayNodeCheckTest(RyanJson_t json)
@@ -84,25 +84,25 @@ int arrayNodeCheckTest(RyanJson_t json)
     if (!RyanJsonIsArray(RyanJsonGetObjectToKey(json, "arrayInt")))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     if (!RyanJsonIsArray(RyanJsonGetObjectToKey(json, "arrayDouble")))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     if (!RyanJsonIsArray(RyanJsonGetObjectToKey(json, "arrayString")))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     if (!RyanJsonIsArray(RyanJsonGetObjectToKey(json, "array")))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     /**
@@ -113,37 +113,37 @@ int arrayNodeCheckTest(RyanJson_t json)
     if (!RyanJsonIsInt(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 0)) || 16 != RyanJsonGetIntValue(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 0)))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     if (!RyanJsonIsDouble(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 1)) || !compare_double(RyanJsonGetDoubleValue(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 1)), 16.89))
     {
         printf("%s:%d 解析失败 %f\r\n", __FILE__, __LINE__, RyanJsonGetDoubleValue(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 1)));
-        return 0;
+        return -1;
     }
 
     if (!RyanJsonIsString(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 2)) || strcmp(RyanJsonGetStringValue(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 2)), "hello"))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     if (!RyanJsonIsBool(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 3)) || RyanJsonGetBoolValue(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 3)) != RyanJsonTrue)
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     if (!RyanJsonIsBool(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 4)) || RyanJsonGetBoolValue(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 4)) != RyanJsonFalse)
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     if (!RyanJsonIsNull(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 5)))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     /**
@@ -156,7 +156,7 @@ int arrayNodeCheckTest(RyanJson_t json)
         if (!RyanJsonIsInt(item) || 16 != RyanJsonGetIntValue(item))
         {
             printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-            return 0;
+            return -1;
         }
     }
 
@@ -166,7 +166,7 @@ int arrayNodeCheckTest(RyanJson_t json)
         if (!RyanJsonIsDouble(item) || fabs(RyanJsonGetDoubleValue(item) - 16.8) < 0.001)
         {
             printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-            return 0;
+            return -1;
         }
     }
 
@@ -176,17 +176,17 @@ int arrayNodeCheckTest(RyanJson_t json)
         if (!RyanJsonIsString(item) || strcmp(RyanJsonGetStringValue(item), "hello"))
         {
             printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-            return 0;
+            return -1;
         }
     }
 
     if (6 != RyanJsonGetSize(RyanJsonGetObjectToKey(json, "array")))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
-    return 1;
+    return 0;
 }
 
 int arrayItemNodeCheckTest(RyanJson_t json)
@@ -194,21 +194,21 @@ int arrayItemNodeCheckTest(RyanJson_t json)
     if (!RyanJsonIsArray(RyanJsonGetObjectToKey(json, "arrayItem")))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
-    if (0 == rootNodeCheckTest(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json, "arrayItem"), 0)))
+    if (0 != rootNodeCheckTest(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json, "arrayItem"), 0)))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
-    if (0 == rootNodeCheckTest(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json, "arrayItem"), 1)))
+    if (0 != rootNodeCheckTest(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json, "arrayItem"), 1)))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
-    return 1;
+    return 0;
 }
 
 /* --------------------------------------------------------------------- */
@@ -223,7 +223,7 @@ int loadJsonTest()
     if (json == NULL)
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     str = RyanJsonPrint(json, 250, RyanJsonFalse, NULL);
@@ -232,26 +232,51 @@ int loadJsonTest()
         printf("%s:%d 序列化与反序列化后的数据不对应\r\n", __FILE__, __LINE__);
         RyanJsonFree(str);
         RyanJsonDelete(json);
-        return 0;
+        return -1;
     }
 
     RyanJsonFree(str);
 
-    rootNodeCheckTest(json);
-    itemNodeCheckTest(json);
-    arrayNodeCheckTest(json);
-    arrayItemNodeCheckTest(json);
+    if (0 != rootNodeCheckTest(json))
+    {
+        RyanJsonDelete(json);
+        printf("%s:%d rootNodeCheckTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
+
+    if (0 != itemNodeCheckTest(json))
+    {
+        RyanJsonDelete(json);
+        printf("%s:%d itemNodeCheckTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
+
+    if (0 != arrayNodeCheckTest(json))
+    {
+        RyanJsonDelete(json);
+        printf("%s:%d arrayNodeCheckTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
+
+    if (0 != arrayItemNodeCheckTest(json))
+    {
+        RyanJsonDelete(json);
+        printf("%s:%d arrayItemNodeCheckTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
     RyanJsonDelete(json);
 
-    // 测试序列化错误json结构
-
+    /**
+     * @brief 测试序列化错误json结构
+     *
+     */
     // \"inter\":16poi,  无效数字
     json = RyanJsonParse("{\"inter\":16poi,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}");
     if (json != NULL)
     {
         RyanJsonDelete(json);
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     // \"double\":16.8yu9,,  无效浮点数
@@ -260,7 +285,7 @@ int loadJsonTest()
     {
         RyanJsonDelete(json);
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     // boolTrue 设置为 tru
@@ -269,43 +294,7 @@ int loadJsonTest()
     {
         RyanJsonDelete(json);
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
-    }
-
-    // null 设置为 nul
-    json = RyanJsonParse("{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":nul,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}");
-    if (json != NULL)
-    {
-        RyanJsonDelete(json);
-        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
-    }
-
-    // null 设置为 NULL
-    json = RyanJsonParse("{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":NULL,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}");
-    if (json != NULL)
-    {
-        RyanJsonDelete(json);
-        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
-    }
-
-    // \"inter\":16后面少个,
-    json = RyanJsonParse("{\"inter\":16\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}");
-    if (json != NULL)
-    {
-        RyanJsonDelete(json);
-        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
-    }
-
-    // array数组项少一个,
-    json = RyanJsonParse("{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}");
-    if (json != NULL)
-    {
-        RyanJsonDelete(json);
-        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     // boolFalse 设置为 fale
@@ -314,7 +303,43 @@ int loadJsonTest()
     {
         RyanJsonDelete(json);
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
+    }
+
+    // null 设置为 nul
+    json = RyanJsonParse("{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":nul,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}");
+    if (json != NULL)
+    {
+        RyanJsonDelete(json);
+        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
+        return -1;
+    }
+
+    // null 设置为 NULL
+    json = RyanJsonParse("{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":NULL,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}");
+    if (json != NULL)
+    {
+        RyanJsonDelete(json);
+        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
+        return -1;
+    }
+
+    // \"inter\":16后面少个,
+    json = RyanJsonParse("{\"inter\":16\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}");
+    if (json != NULL)
+    {
+        RyanJsonDelete(json);
+        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
+        return -1;
+    }
+
+    // array数组项少一个,
+    json = RyanJsonParse("{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}");
+    if (json != NULL)
+    {
+        RyanJsonDelete(json);
+        printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
+        return -1;
     }
 
     // \"item:{\"inter\":16,\"  少一个"
@@ -323,7 +348,7 @@ int loadJsonTest()
     {
         RyanJsonDelete(json);
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     // \"item\":{\"inter\":16,double\"  少一个"
@@ -332,7 +357,7 @@ int loadJsonTest()
     {
         RyanJsonDelete(json);
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     // \"item\":{\"inter\":16,\"\"double\"  多一个"
@@ -341,7 +366,7 @@ int loadJsonTest()
     {
         RyanJsonDelete(json);
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     // \"item\":{\"inter\":16\",\"double\"  多一个"
@@ -350,7 +375,7 @@ int loadJsonTest()
     {
         RyanJsonDelete(json);
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     // \"arrayInt\":[16,16,16m,16,16]  无效数组数字
@@ -359,9 +384,9 @@ int loadJsonTest()
     {
         RyanJsonDelete(json);
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
-    return 1;
+    return 0;
 }
 
 int createJsonTest()
@@ -442,17 +467,36 @@ int createJsonTest()
 
     RyanJsonAddItemToObject(jsonRoot, "arrayItem", arrayItem);
 
-    // str = RyanJsonPrint(jsonRoot, 250, RyanJsonTrue, NULL);
-    // printf("aa %s\r\n", str);
-    // RyanJsonFree(str);
+    if (0 != rootNodeCheckTest(jsonRoot))
+    {
+        RyanJsonDelete(jsonRoot);
+        printf("%s:%d rootNodeCheckTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
 
-    rootNodeCheckTest(jsonRoot);
-    itemNodeCheckTest(jsonRoot);
-    arrayNodeCheckTest(jsonRoot);
-    arrayItemNodeCheckTest(jsonRoot);
+    if (0 != itemNodeCheckTest(jsonRoot))
+    {
+        RyanJsonDelete(jsonRoot);
+        printf("%s:%d itemNodeCheckTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
 
+    if (0 != arrayNodeCheckTest(jsonRoot))
+    {
+        RyanJsonDelete(jsonRoot);
+        printf("%s:%d arrayNodeCheckTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
+
+    if (0 != arrayItemNodeCheckTest(jsonRoot))
+    {
+        RyanJsonDelete(jsonRoot);
+        printf("%s:%d arrayItemNodeCheckTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
     RyanJsonDelete(jsonRoot);
-    return 1;
+
+    return 0;
 }
 
 int changeJsonTest()
@@ -465,7 +509,7 @@ int changeJsonTest()
     if (json == NULL)
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     /**
@@ -533,7 +577,7 @@ int changeJsonTest()
 
     // 修改数组节点为对象节点
     RyanJsonReplaceByKey(json, "arrayDouble", RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "item")));
-    if (!RyanJsonIsObject(RyanJsonGetObjectToKey(json, "arrayDouble")) || !rootNodeCheckTest(RyanJsonGetObjectToKey(json, "arrayDouble")))
+    if (!RyanJsonIsObject(RyanJsonGetObjectToKey(json, "arrayDouble")) || -1 == rootNodeCheckTest(RyanJsonGetObjectToKey(json, "arrayDouble")))
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
 
@@ -573,14 +617,14 @@ int changeJsonTest()
     // printf("aa %s\r\n", str);
     // RyanJsonFree(str);
     RyanJsonDelete(json);
-    return 1;
+    return 0;
 
 err:
     RyanJsonDelete(json);
-    return 0;
+    return -1;
 }
 
-void compareJsonTest()
+int compareJsonTest()
 {
 
     char *str = NULL;
@@ -804,12 +848,17 @@ void compareJsonTest()
         goto err;
     }
 
+    RyanJsonDelete(json);
+    RyanJsonDelete(json2);
+    return 0;
+
 err:
     RyanJsonDelete(json);
     RyanJsonDelete(json2);
+    return -1;
 }
 
-void duplicateTest()
+int duplicateTest()
 {
 
     char *str = NULL;
@@ -824,19 +873,35 @@ void duplicateTest()
      */
     json = RyanJsonParse(jsonstr);
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "inter"));
+    if (RyanJsonFalse == RyanJsonCompare(dupItem, RyanJsonGetObjectToKey(json, "inter")))
+    {
+        goto err;
+    }
     RyanJsonDelete(dupItem);
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "inter"));
     RyanJsonAddItemToObject(json, "test", dupItem);
+    if (RyanJsonFalse == RyanJsonCompare(RyanJsonHasObjectByKey(json, "test"), RyanJsonHasObjectByKey(json, "inter")))
+    {
+        goto err;
+    }
     RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "inter"));
     RyanJsonAddItemToObject(json, "test", dupItem);
+    if (RyanJsonFalse == RyanJsonCompare(RyanJsonHasObjectByKey(json, "test"), RyanJsonHasObjectByKey(json, "inter")))
+    {
+        goto err;
+    }
     RyanJsonDelete(json);
 
     json = RyanJsonParse(jsonstr);
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "inter"));
     RyanJsonAddItemToObject(json, "test", dupItem);
+    if (RyanJsonFalse == RyanJsonCompare(RyanJsonHasObjectByKey(json, "test"), RyanJsonHasObjectByKey(json, "inter")))
+    {
+        goto err;
+    }
     RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
     RyanJsonDelete(json);
 
@@ -846,19 +911,35 @@ void duplicateTest()
      */
     json = RyanJsonParse(jsonstr);
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "item"));
+    if (RyanJsonFalse == RyanJsonCompare(dupItem, RyanJsonGetObjectToKey(json, "item")))
+    {
+        goto err;
+    }
     RyanJsonDelete(dupItem);
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "item"));
     RyanJsonAddItemToObject(json, "test", dupItem);
+    if (RyanJsonFalse == RyanJsonCompare(RyanJsonGetObjectToKey(json, "test"), RyanJsonGetObjectToKey(json, "item")))
+    {
+        goto err;
+    }
     RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "item"));
     RyanJsonAddItemToObject(json, "test", dupItem);
+    if (RyanJsonFalse == RyanJsonCompare(RyanJsonGetObjectToKey(json, "test"), RyanJsonGetObjectToKey(json, "item")))
+    {
+        goto err;
+    }
     RyanJsonDelete(json);
 
     json = RyanJsonParse(jsonstr);
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "item"));
     RyanJsonAddItemToObject(json, "test", dupItem);
+    if (RyanJsonFalse == RyanJsonCompare(RyanJsonGetObjectToKey(json, "test"), RyanJsonGetObjectToKey(json, "item")))
+    {
+        goto err;
+    }
     RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
     RyanJsonDelete(json);
 
@@ -868,19 +949,35 @@ void duplicateTest()
      */
     json = RyanJsonParse(jsonstr);
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "arrayItem"));
+    if (RyanJsonFalse == RyanJsonCompare(dupItem, RyanJsonGetObjectToKey(json, "arrayItem")))
+    {
+        goto err;
+    }
     RyanJsonDelete(dupItem);
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "arrayItem"));
     RyanJsonAddItemToObject(json, "test", dupItem);
+    if (RyanJsonFalse == RyanJsonCompare(RyanJsonGetObjectToKey(json, "test"), RyanJsonGetObjectToKey(json, "arrayItem")))
+    {
+        goto err;
+    }
     RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "arrayItem"));
     RyanJsonAddItemToObject(json, "test", dupItem);
+    if (RyanJsonFalse == RyanJsonCompare(RyanJsonGetObjectToKey(json, "test"), RyanJsonGetObjectToKey(json, "arrayItem")))
+    {
+        goto err;
+    }
     RyanJsonDelete(json);
 
     json = RyanJsonParse(jsonstr);
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "arrayItem"));
     RyanJsonAddItemToObject(json, "test", dupItem);
+    if (RyanJsonFalse == RyanJsonCompare(RyanJsonGetObjectToKey(json, "test"), RyanJsonGetObjectToKey(json, "arrayItem")))
+    {
+        goto err;
+    }
     RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
     RyanJsonDelete(json);
 
@@ -892,7 +989,15 @@ void duplicateTest()
     {
         dupItem = RyanJsonParse(jsonstr);
         RyanJsonReplaceByKey(jsonRoot, "arrayItem", RyanJsonDuplicate(dupItem));
+        if (RyanJsonFalse == RyanJsonCompare(RyanJsonGetObjectToKey(jsonRoot, "arrayItem"), dupItem))
+        {
+            goto err;
+        }
         RyanJsonReplaceByKey(json, "arrayItem", RyanJsonDuplicate(RyanJsonGetObjectByKey(dupItem, "item")));
+        if (RyanJsonFalse == RyanJsonCompare(RyanJsonGetObjectToKey(json, "arrayItem"), RyanJsonGetObjectByKey(dupItem, "item")))
+        {
+            goto err;
+        }
         RyanJsonDelete(dupItem);
 
         int newuse = 0;
@@ -900,18 +1005,22 @@ void duplicateTest()
         if (i != 0 && newuse != use)
         {
             printf("%s:%d 内存泄漏\r\n", __FILE__, __LINE__);
-            break;
+            goto err;
         }
         use = newuse;
-        // displayMem();
-        // _sleep(1000)
     }
 
     RyanJsonDelete(json);
     RyanJsonDelete(jsonRoot);
+    return 0;
+
+err:
+    RyanJsonDelete(json);
+    RyanJsonDelete(jsonRoot);
+    return -1;
 }
 
-void likeReferenceTest()
+int likeReferenceTest()
 {
 
     // char *str = NULL;
@@ -946,9 +1055,11 @@ void likeReferenceTest()
     // RyanJsonFree(str);
 
     // RyanJsonDelete(json);
+
+    return 0;
 }
 
-void forEachTest()
+int forEachTest()
 {
     char *str = NULL;
     char jsonstr[] = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}";
@@ -958,9 +1069,19 @@ void forEachTest()
     printf("arrayDouble: ");
     RyanJsonArrayForEach(RyanJsonGetObjectToKey(json, "arrayDouble"), item)
     {
-        printf("%lf ", RyanJsonGetDoubleValue(item));
+        if (!RyanJsonIsDouble(item) || 16.89 != RyanJsonGetDoubleValue(item))
+        {
+            goto err;
+        }
     }
-    printf("\r\n");
+
+    RyanJsonArrayForEach(RyanJsonGetObjectToKey(json, "arrayInt"), item)
+    {
+        if (!RyanJsonIsInt(item) || 16 != RyanJsonGetIntValue(item))
+        {
+            goto err;
+        }
+    }
 
     int strLen;
     RyanJsonObjectForEach(RyanJsonGetObjectToKey(json, "item"), item)
@@ -969,27 +1090,68 @@ void forEachTest()
         printf("item { %s : %s }  %d\r\n", RyanJsonGetKey(item), str, strLen);
         RyanJsonFree(str);
     }
+
     RyanJsonDelete(json);
+    return 0;
+
+err:
+    RyanJsonDelete(json);
+    return -1;
 }
 
 int RyanJsonTest(void)
 {
-
+    int result = 0;
     RyanJsonInitHooks(v_malloc, v_free, v_realloc);
 
-    loadJsonTest(); // 从文本解析json测试
+    result = loadJsonTest(); // 从文本解析json测试
+    if (0 != result)
+    {
+        printf("%s:%d loadJsonTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
 
-    createJsonTest(); // 生成json节点树测试
+    result = createJsonTest(); // 生成json节点树测试
+    if (0 != result)
+    {
+        printf("%s:%d loadJsonTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
 
-    changeJsonTest(); // 修改json节点测试,包含删除、分离
+    result = changeJsonTest(); // 修改json节点测试,包含删除、分离
+    if (0 != result)
+    {
+        printf("%s:%d loadJsonTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
 
-    compareJsonTest(); // 比较json节点树测试
+    result = compareJsonTest(); // 比较json节点树测试
+    if (0 != result)
+    {
+        printf("%s:%d loadJsonTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
 
-    duplicateTest(); // 复制测试
+    result = duplicateTest(); // 复制测试
+    if (0 != result)
+    {
+        printf("%s:%d loadJsonTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
 
-    forEachTest();
+    result = forEachTest();
+    if (0 != result)
+    {
+        printf("%s:%d loadJsonTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
 
-    likeReferenceTest(); // 模仿 引用类型实现 示例
+    result = likeReferenceTest(); // 模仿 引用类型实现 示例
+    if (0 != result)
+    {
+        printf("%s:%d loadJsonTest fail\r\n", __FILE__, __LINE__);
+        return -1;
+    }
 
     displayMem();
 

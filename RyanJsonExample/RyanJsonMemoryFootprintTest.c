@@ -39,7 +39,7 @@ int RyanJsonMemoryFootprint(char *jsonstr)
     if (json == NULL)
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     int area = 0, use = 0;
@@ -60,7 +60,7 @@ int cJSONMemoryFootprint(char *jsonstr)
     if (json == NULL)
     {
         printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     int area = 0, use = 0;
@@ -75,7 +75,7 @@ int yyjsonMemoryFootprint(char *jsonstr)
 
     yyjson_doc *doc = yyjson_read_opts(jsonstr, strlen(jsonstr), YYJSON_READ_NOFLAG, &yyalc, NULL);
     if (NULL == doc)
-        return 0;
+        return -1;
 
     int area = 0, use = 0;
     v_mcheck(&area, &use);
@@ -128,5 +128,5 @@ int RyanJsonMemoryFootprintTest()
      *
      */
 
-    return 1;
+    return 0;
 }

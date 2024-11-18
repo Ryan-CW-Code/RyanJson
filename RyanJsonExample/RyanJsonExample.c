@@ -88,7 +88,7 @@ int createJsonExample()
 
     RyanJsonDelete(jsonRoot);
 
-    return 1;
+    return 0;
 }
 
 /**
@@ -107,7 +107,7 @@ int loadJsonExample()
     if (jsonRoot == NULL)
     {
         printf("%s:%d 序列化失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     // 将序列化的数据以无格式样式打印出来，并和原始数据进行对比
@@ -117,7 +117,7 @@ int loadJsonExample()
         printf("%s:%d 序列化与反序列化后的数据不对应\r\n", __FILE__, __LINE__);
         RyanJsonFree(str);
         RyanJsonDelete(jsonRoot);
-        return 0;
+        return -1;
     }
     RyanJsonFree(str);
 
@@ -130,7 +130,7 @@ int loadJsonExample()
     // 删除json对象
     RyanJsonDelete(jsonRoot);
 
-    return 1;
+    return 0;
 }
 
 /**
@@ -149,7 +149,7 @@ int changeJsonExample()
     if (jsonRoot == NULL)
     {
         printf("%s:%d 序列化失败\r\n", __FILE__, __LINE__);
-        return 0;
+        return -1;
     }
 
     RyanJsonChangeStringValue(RyanJsonGetObjectByKey(jsonRoot, "name"), "Ryan");
@@ -157,7 +157,7 @@ int changeJsonExample()
     {
         printf("%s:%d 修改失败\r\n", __FILE__, __LINE__);
         RyanJsonDelete(jsonRoot);
-        return 0;
+        return -1;
     }
 
     RyanJsonReplaceByKey(jsonRoot, "star", RyanJsonCreateString("", "123456"));
@@ -171,7 +171,7 @@ int changeJsonExample()
     // 删除json对象
     RyanJsonDelete(jsonRoot);
 
-    return 1;
+    return 0;
 }
 
 int RyanJsonExample(void)
@@ -187,5 +187,5 @@ int RyanJsonExample(void)
     printf("\r\n--------------------------- RyanJson 修改json示例 --------------------------\r\n");
     changeJsonExample();
 
-    return 0;
+    return -1;
 }
