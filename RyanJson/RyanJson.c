@@ -196,14 +196,15 @@ static char *RyanJsonStrdup(const char *str)
  */
 RyanJson_t RyanJsonNewNode(int32_t info, char *key)
 {
-
     RyanJson_t pJson = NULL;
     int32_t size = sizeof(struct RyanJsonNode);
 
-    if (_checkType(info, RyanJsonTypeNumber))
-        size += sizeof(RyanJsonNumber);
-    else if (_checkType(info, RyanJsonTypeString))
+    if (_checkType(info, RyanJsonTypeString))
         size += sizeof(char *);
+    else if (_checkType(info, RyanJsonTypeNumber) && !_checkType(info, RyanJsonValueNumberIntFlag))
+        size += sizeof(double);
+    else if (_checkType(info, RyanJsonTypeNumber) && _checkType(info, RyanJsonValueNumberIntFlag))
+        size += sizeof(int32_t);
     else if (_checkType(info, RyanJsonTypeArray) || _checkType(info, RyanJsonTypeObject))
         size += sizeof(RyanJson_t);
 
@@ -413,20 +414,23 @@ static RyanJsonBool RyanJsonParseNumber(parseBuffer *buf, char *key, RyanJson_t 
         isint = RyanJsonFalse;
     }
 
-    newItem = RyanJsonNewNode(RyanJsonTypeNumber, key);
-    if (NULL == newItem)
-        return RyanJsonFalse;
-    *out = newItem;
-
-    number = (double)sign * number * pow(10.0, (scale + e_scale * e_sign));
-
-    if (RyanJsonTrue == isint && INT_MIN <= number && number <= INT_MAX)
+    if (RyanJsonTrue == isint && number >= INT_MIN && number <= INT_MAX)
     {
-        newItem->info |= RyanJsonValueNumberIntFlag;
-        RyanJsonGetIntValue(newItem) = (int32_t)number;
+        newItem = RyanJsonNewNode(RyanJsonTypeNumber | RyanJsonValueNumberIntFlag, key);
+        if (NULL == newItem)
+            return RyanJsonFalse;
+
+        RyanJsonGetIntValue(newItem) = (int32_t)sign * number;
     }
     else
-        RyanJsonGetDoubleValue(newItem) = number;
+    {
+        newItem = RyanJsonNewNode(RyanJsonTypeNumber, key);
+        if (NULL == newItem)
+            return RyanJsonFalse;
+        RyanJsonGetDoubleValue(newItem) = (double)sign * number * pow(10.0, (scale + e_scale * e_sign));
+    }
+
+    *out = newItem;
 
     return RyanJsonTrue;
 }

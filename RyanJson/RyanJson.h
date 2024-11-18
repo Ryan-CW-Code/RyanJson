@@ -16,12 +16,6 @@ extern "C"
 #include <float.h>
 #include <math.h>
 
-    typedef union
-    {
-        int32_t _int;
-        double _double;
-    } RyanJsonNumber;
-
     typedef enum
     {
         // 类型标志 占用8字节,剩余一个备用
