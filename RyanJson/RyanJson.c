@@ -860,7 +860,7 @@ static RyanJsonBool RyanJsonPrintNumber(RyanJson_t pJson, printBuffer *buf)
     int32_t len = 0;
 
     // RyanJsonNumber 类型是一个整数
-    if (pJson->info & RyanJsonValueNumberIntFlag)
+    if (_checkType(pJson->info, RyanJsonValueNumberIntFlag))
     {
         // if (!printBufAppend(buf, 21)) // 64 位整数最多包含  20 个数字字符、1 符号
         if (!printBufAppend(buf, 11)) // 32 位整数最多包含  10 个数字字符、1 符号
@@ -1191,7 +1191,7 @@ static RyanJsonBool RyanJsonPrintValue(RyanJson_t pJson, printBuffer *buf, uint3
     }
     case RyanJsonTypeBool:
     {
-        if (pJson->info & RyanJsonValueBoolTrueFlag)
+        if (_checkType(pJson->info, RyanJsonValueBoolTrueFlag))
         {
             if (RyanJsonFalse == printBufAppend(buf, 4))
                 return RyanJsonFalse;
@@ -2151,7 +2151,7 @@ RyanJson_t RyanJsonDuplicate(RyanJson_t pJson)
         return NULL;
     }
 
-    switch ((char)pJson->info)
+    switch (RyanJsonGetType(pJson))
     {
     case RyanJsonTypeUnknow:
     case RyanJsonTypeNull:
