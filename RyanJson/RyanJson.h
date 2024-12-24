@@ -94,7 +94,7 @@ extern "C"
     char *RyanJsonPrintPreallocated(RyanJson_t pJson, char *buffer, uint32_t length, RyanJsonBool format, uint32_t *len);
 
     RyanJson_t RyanJsonDuplicate(RyanJson_t pJson); // 需用户释放内存
-    uint32_t RyanJsonGetSize(RyanJson_t pJson);
+    uint32_t RyanJsonGetSize(RyanJson_t pJson);     // 获取Json中子项个数
     void RyanJsonMinify(char *text);
 
     void RyanJsonDelete(RyanJson_t pJson);
@@ -114,9 +114,9 @@ extern "C"
     RyanJson_t RyanJsonCreateString(char *key, const char *string); // 如果没有添加到父json, 则需释放内存
 
     RyanJson_t RyanJsonCreateArray();                                           // 如果没有添加到父json, 则需释放内存
-    RyanJson_t RyanJsonCreateIntArray(const int32_t *numbers, int32_t count);   // 如果没有添加到父json, 则需释放内存
-    RyanJson_t RyanJsonCreateDoubleArray(const double *numbers, int32_t count); // 如果没有添加到父json, 则需释放内存
-    RyanJson_t RyanJsonCreateStringArray(const char **strings, int32_t count);  // 如果没有添加到父json, 则需释放内存
+    RyanJson_t RyanJsonCreateIntArray(const int32_t *numbers, int32_t count);   // 语法糖，根据传入的numbers数组创建一个int类型的数组。如果没有添加到父json, 则需释放内存
+    RyanJson_t RyanJsonCreateDoubleArray(const double *numbers, int32_t count); // 语法糖，根据传入的numbers数组创建一个double类型的数组。如果没有添加到父json, 则需释放内存
+    RyanJson_t RyanJsonCreateStringArray(const char **strings, int32_t count);  // 语法糖，根据传入的strings数组创建一个string类型的数组。如果没有添加到父json, 则需释放内存
 
     RyanJson_t RyanJsonDetachByIndex(RyanJson_t pJson, int32_t index); // 需用户释放内存
     RyanJson_t RyanJsonDetachByKey(RyanJson_t pJson, const char *key); // 需用户释放内存
