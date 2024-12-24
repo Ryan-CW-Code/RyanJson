@@ -14,7 +14,7 @@
 #include "yyjson.h"
 #include "valloc.h"
 
-// #define PrintfStrCmpEnable
+#define PrintfStrCmpEnable
 
 typedef int (*jsonParseData)(char *file_name, char *data, uint32_t len);
 
@@ -43,8 +43,6 @@ int testFile(const char *path, jsonParseData jsonParseDataHandle)
 
     DIR *dir = NULL;
     struct dirent *entry;
-    int idx = 0, alc = 0;
-    char **names = NULL, **names_tmp;
 
     int path_len = strlen(path);
     int count = 0;
@@ -107,8 +105,8 @@ int testFile(const char *path, jsonParseData jsonParseDataHandle)
         {
             free(data);
             printf("内存泄漏 %s len: %ld\r\n", data, len);
-            printf("内存泄漏 %x len: %ld\r\n", data, len);
-            printf("内存泄漏 %c len: %ld\r\n", data, len);
+            // printf("内存泄漏 %x len: %ld\r\n", (unsigned int)data, len);
+            // printf("内存泄漏 %c len: %ld\r\n", (int)data, len);
             printf("|||----------->>> area = %d, size = %d\r\n", area, use);
             break;
         }
@@ -164,6 +162,7 @@ int RyanJsonParseData(char *file_name, char *data, uint32_t len)
 
     RyanJsonDelete(json);
     return 0;
+
 err:
     RyanJsonDelete(json);
     return -1;

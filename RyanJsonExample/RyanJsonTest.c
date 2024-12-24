@@ -17,12 +17,6 @@ static RyanJsonBool compare_double(double a, double b)
     return (fabs(a - b) <= maxVal * DBL_EPSILON);
 }
 
-static uint64_t start;
-uint64_t getClock()
-{
-    return clock();
-}
-
 static int rootNodeCheckTest(RyanJson_t json)
 {
     if (!RyanJsonIsInt(RyanJsonGetObjectToKey(json, "inter")) || 16 != RyanJsonGetIntValue(RyanJsonGetObjectToKey(json, "inter")))
@@ -391,8 +385,6 @@ int loadJsonTest()
 
 int createJsonTest()
 {
-
-    char *str = NULL;
     RyanJson_t jsonRoot, item;
 
     // 对象生成测试
@@ -502,7 +494,6 @@ int createJsonTest()
 int changeJsonTest()
 {
 
-    char *str = NULL;
     char jsonstr[] = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}";
 
     RyanJson_t json = RyanJsonParse(jsonstr);
@@ -626,8 +617,6 @@ err:
 
 int compareJsonTest()
 {
-
-    char *str = NULL;
     char jsonstr[] = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}";
     // char jsonstr[] = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}";
 
@@ -860,12 +849,8 @@ err:
 
 int duplicateTest()
 {
-
-    char *str = NULL;
-    RyanJson_t json, item, dupItem;
+    RyanJson_t json, dupItem, jsonRoot = NULL;
     char jsonstr[] = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}";
-
-    // 内存泄漏测试
 
     /**
      * @brief 普通类型
@@ -881,7 +866,7 @@ int duplicateTest()
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "inter"));
     RyanJsonAddItemToObject(json, "test", dupItem);
-    if (RyanJsonFalse == RyanJsonCompare(RyanJsonHasObjectByKey(json, "test"), RyanJsonHasObjectByKey(json, "inter")))
+    if (RyanJsonFalse == RyanJsonCompare(RyanJsonGetObjectToKey(json, "test", "inter"), RyanJsonGetObjectToKey(json, "inter")))
     {
         goto err;
     }
@@ -889,7 +874,7 @@ int duplicateTest()
 
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "inter"));
     RyanJsonAddItemToObject(json, "test", dupItem);
-    if (RyanJsonFalse == RyanJsonCompare(RyanJsonHasObjectByKey(json, "test"), RyanJsonHasObjectByKey(json, "inter")))
+    if (RyanJsonFalse == RyanJsonCompare(RyanJsonGetObjectToKey(json, "test", "inter"), RyanJsonGetObjectToKey(json, "inter")))
     {
         goto err;
     }
@@ -898,7 +883,7 @@ int duplicateTest()
     json = RyanJsonParse(jsonstr);
     dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "inter"));
     RyanJsonAddItemToObject(json, "test", dupItem);
-    if (RyanJsonFalse == RyanJsonCompare(RyanJsonHasObjectByKey(json, "test"), RyanJsonHasObjectByKey(json, "inter")))
+    if (RyanJsonFalse == RyanJsonCompare(RyanJsonGetObjectToKey(json, "test", "inter"), RyanJsonGetObjectToKey(json, "inter")))
     {
         goto err;
     }
@@ -982,7 +967,7 @@ int duplicateTest()
     RyanJsonDelete(json);
 
     json = RyanJsonParse(jsonstr);
-    RyanJson_t jsonRoot = RyanJsonCreateObject();
+    jsonRoot = RyanJsonCreateObject();
     RyanJsonAddBoolToObject(jsonRoot, "arrayItem", RyanJsonTrue);
     int use = 0;
     for (uint8_t i = 0; i < 10; i++)
@@ -1083,7 +1068,7 @@ int forEachTest()
         }
     }
 
-    int strLen;
+    uint32_t strLen;
     RyanJsonObjectForEach(RyanJsonGetObjectToKey(json, "item"), item)
     {
         str = RyanJsonPrint(item, 50, RyanJsonTrue, &strLen);
