@@ -1348,7 +1348,7 @@ uint32_t RyanJsonGetSize(RyanJson_t pJson)
     uint32_t i = 0;
 
     if (NULL == pJson)
-        return RyanJsonFalse;
+        return 0;
 
     if (!_checkType(pJson->info, RyanJsonTypeArray) && !_checkType(pJson->info, RyanJsonTypeObject))
         return 1;
