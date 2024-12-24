@@ -15,12 +15,13 @@ src += $(wildcard ./RyanJsonExample/*.c)
 obj = $(patsubst %.c, %.o, $(src))
 target = app.o
 CC = gcc
+C_FLAGS = -Wall -Wextra -Wno-unused-parameter -Wformat=2
 
 $(target): $(obj)
-	$(CC) $(CFLAGS_INC) $(obj) -o $(target) -lm
+	$(CC) $(CFLAGS_INC) $(obj) $(C_FLAGS) -o $(target) -lm
 
 %.o: %.c
-	$(CC) $(CFLAGS_INC) -c $< -o $@ -lm
+	$(CC) $(CFLAGS_INC)  $(C_FLAGS) -c $< -o $@ -lm
 
 .PHONY: clean
 clean:

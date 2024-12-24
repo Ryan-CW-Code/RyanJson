@@ -171,6 +171,8 @@ extern "C"
 #define RyanJsonGetArrayValue(pJson) (*(RyanJson_t *)RyanJsonGetValue(pJson))
 #define RyanJsonGetObjectValue(pJson) (*(RyanJson_t *)RyanJsonGetValue(pJson))
 
+#define RyanJsonGetArraySize(pJson) RyanJsonGetSize(pJson)
+
 #define RyanJsonArrayForEach(pJson, item) for ((item) = RyanJsonGetArrayValue(pJson); NULL != (item); (item) = (item)->next)
 #define RyanJsonObjectForEach(pJson, item) for ((item) = RyanJsonGetObjectValue(pJson); NULL != (item); (item) = (item)->next)
 
