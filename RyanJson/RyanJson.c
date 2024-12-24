@@ -866,7 +866,7 @@ static RyanJsonBool RyanJsonPrintNumber(RyanJson_t pJson, printBuffer *buf)
         if (!printBufAppend(buf, 11)) // 32 位整数最多包含  10 个数字字符、1 符号
             return RyanJsonFalse;
 
-        len = sprintf(printBufEnd(buf), "%d", RyanJsonGetIntValue(pJson));
+        len = sprintf(printBufEnd(buf), "%" PRId32, RyanJsonGetIntValue(pJson));
         buf->end += len;
     }
     else // RyanJsonNumber 的类型是浮点型

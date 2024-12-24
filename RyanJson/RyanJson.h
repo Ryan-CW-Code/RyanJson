@@ -15,6 +15,7 @@ extern "C"
 #include <limits.h>
 #include <float.h>
 #include <math.h>
+#include <inttypes.h>
 
     typedef enum
     {
