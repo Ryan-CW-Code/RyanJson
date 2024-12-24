@@ -1506,7 +1506,6 @@ RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, char *key, ...)
         nextItem = RyanJsonGetObjectByKey(nextItem, s);
         s = va_arg(args, char *);
     }
-
     va_end(args);
 
     return nextItem;
@@ -1874,12 +1873,12 @@ RyanJson_t RyanJsonCreateInt(char *key, int32_t number)
     }
 
     item = RyanJsonNewNode(RyanJsonTypeNumber | RyanJsonValueNumberIntFlag, k);
-
     if (NULL == item)
     {
         jsonFree(k);
         return NULL;
     }
+
     RyanJsonGetIntValue(item) = number;
 
     return item;
@@ -1966,12 +1965,7 @@ RyanJson_t RyanJsonCreateString(char *key, const char *string)
  */
 RyanJson_t RyanJsonCreateObject()
 {
-    RyanJson_t item = NULL;
-    item = RyanJsonNewNode(RyanJsonTypeObject, NULL);
-    if (NULL == item)
-        return NULL;
-
-    return item;
+    return RyanJsonNewNode(RyanJsonTypeObject, NULL);
 }
 
 /**
@@ -2264,7 +2258,6 @@ void RyanJsonMinify(char *text)
  */
 RyanJsonBool RyanJsonCompare(RyanJson_t a, RyanJson_t b)
 {
-
     if (NULL == a || NULL == b)
         return RyanJsonFalse;
 
