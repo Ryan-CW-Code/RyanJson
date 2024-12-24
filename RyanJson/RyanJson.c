@@ -1287,7 +1287,7 @@ char *RyanJsonPrint(RyanJson_t pJson, uint32_t preset, RyanJsonBool format, uint
 
     if (RyanJsonFalse == RyanJsonPrintValue(pJson, &buf, 0, format))
     {
-        free(buf.address);
+        jsonFree(buf.address);
         return NULL;
     }
 
@@ -1325,7 +1325,7 @@ char *RyanJsonPrintPreallocated(RyanJson_t pJson, char *buffer, uint32_t length,
 
     if (RyanJsonFalse == RyanJsonPrintValue(pJson, &buf, 0, format))
     {
-        free(buf.address);
+        jsonFree(buf.address);
         return NULL;
     }
 
