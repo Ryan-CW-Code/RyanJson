@@ -123,20 +123,6 @@ extern "C"
     RyanJsonBool RyanJsonDeleteByIndex(RyanJson_t pJson, int32_t index);
     RyanJsonBool RyanJsonDeleteByKey(RyanJson_t pJson, const char *key);
 
-#define RyanJsonAddNullToObject(pJson, key) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateNull(key))
-#define RyanJsonAddBoolToObject(pJson, key, boolean) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateBool(key, boolean))
-#define RyanJsonAddIntToObject(pJson, key, number) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateInt(key, number))
-#define RyanJsonAddDoubleToObject(pJson, key, number) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateDouble(key, number))
-#define RyanJsonAddStringToObject(pJson, key, string) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateString(key, string))
-#define RyanJsonAddItemToObject(pJson, key, item) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateItem(key, item))
-
-#define RyanJsonAddNullToArray(pJson) RyanJsonAddNullToObject(pJson, NULL)
-#define RyanJsonAddBoolToArray(pJson, boolean) RyanJsonAddBoolToObject(pJson, NULL, boolean)
-#define RyanJsonAddIntToArray(pJson, number) RyanJsonAddIntToObject(pJson, NULL, number)
-#define RyanJsonAddDoubleToArray(pJson, number) RyanJsonAddDoubleToObject(pJson, NULL, number)
-#define RyanJsonAddStringToArray(pJson, string) RyanJsonAddStringToObject(pJson, NULL, string)
-#define RyanJsonAddItemToArray(pJson, item) RyanJsonAddItemToObject(pJson, NULL, item)
-
     /**
      * @brief 查询函数
      */
@@ -161,7 +147,7 @@ extern "C"
 #define RyanJsonIsArray(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeArray)
 #define RyanJsonIsObject(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeObject)
 
-//! get函数使用前建议RyanJsonIsXXXX宏做好判断
+//! get value函数使用前建议RyanJsonIsXXXX宏做好判断
 #define RyanJsonGetKey(pJson) (*(char **)((RyanJson_t)(pJson) + 1))
 #define RyanJsonGetNullValue(pJson) (NULL)
 #define RyanJsonGetBoolValue(pJson) (RyanJsonGetInfo(pJson) & RyanJsonValueBoolTrueFlag ? RyanJsonTrue : RyanJsonFalse)
@@ -173,6 +159,22 @@ extern "C"
 
 #define RyanJsonGetArraySize(pJson) RyanJsonGetSize(pJson)
 
+//! add函数使用前建议RyanJsonIsXXXX宏判断是否是对象 / 数组
+#define RyanJsonAddNullToObject(pJson, key) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateNull(key))
+#define RyanJsonAddBoolToObject(pJson, key, boolean) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateBool(key, boolean))
+#define RyanJsonAddIntToObject(pJson, key, number) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateInt(key, number))
+#define RyanJsonAddDoubleToObject(pJson, key, number) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateDouble(key, number))
+#define RyanJsonAddStringToObject(pJson, key, string) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateString(key, string))
+#define RyanJsonAddItemToObject(pJson, key, item) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateItem(key, item))
+
+#define RyanJsonAddNullToArray(pJson) RyanJsonAddNullToObject(pJson, NULL)
+#define RyanJsonAddBoolToArray(pJson, boolean) RyanJsonAddBoolToObject(pJson, NULL, boolean)
+#define RyanJsonAddIntToArray(pJson, number) RyanJsonAddIntToObject(pJson, NULL, number)
+#define RyanJsonAddDoubleToArray(pJson, number) RyanJsonAddDoubleToObject(pJson, NULL, number)
+#define RyanJsonAddStringToArray(pJson, string) RyanJsonAddStringToObject(pJson, NULL, string)
+#define RyanJsonAddItemToArray(pJson, item) RyanJsonAddItemToObject(pJson, NULL, item)
+
+// 便利函数
 #define RyanJsonArrayForEach(pJson, item) for ((item) = RyanJsonGetArrayValue(pJson); NULL != (item); (item) = (item)->next)
 #define RyanJsonObjectForEach(pJson, item) for ((item) = RyanJsonGetObjectValue(pJson); NULL != (item); (item) = (item)->next)
 

@@ -420,7 +420,7 @@ static RyanJsonBool RyanJsonParseNumber(parseBuffer *buf, char *key, RyanJson_t 
         if (NULL == newItem)
             return RyanJsonFalse;
 
-        RyanJsonGetIntValue(newItem) = (int32_t)sign * number;
+        RyanJsonGetIntValue(newItem) = (int32_t)(sign * number);
     }
     else
     {
@@ -856,7 +856,7 @@ static RyanJsonBool RyanJsonParseValue(parseBuffer *buf, char *key, RyanJson_t *
  */
 static RyanJsonBool RyanJsonPrintNumber(RyanJson_t pJson, printBuffer *buf)
 {
-    double f = 0;
+    double f;
     int32_t len = 0;
 
     // RyanJsonNumber 类型是一个整数
@@ -1313,12 +1313,10 @@ char *RyanJsonPrintPreallocated(RyanJson_t pJson, char *buffer, uint32_t length,
 
     printBuffer buf = {0};
 
-    if (NULL == pJson || NULL == buffer || length <= 0)
+    if (NULL == pJson || NULL == buffer)
         return NULL;
 
     buf.address = (char *)buffer;
-    if (NULL == buf.address)
-        return NULL;
     buf.noalloc = RyanJsonTrue;
     buf.size = length;
     buf.end = 0;
@@ -1429,7 +1427,7 @@ RyanJson_t RyanJsonGetObjectByIndex(RyanJson_t pJson, int32_t index)
 RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, int32_t index, ...)
 {
     RyanJson_t nextItem = NULL;
-    va_list args = {0};
+    va_list args;
     int32_t i = index;
 
     if (NULL == pJson || index < 0)
@@ -1489,8 +1487,8 @@ RyanJson_t RyanJsonGetObjectByKey(RyanJson_t pJson, const char *key)
 RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, char *key, ...)
 {
     RyanJson_t nextItem = NULL;
-    va_list args = {0};
-    char *s = key;
+    va_list args;
+    const char *s = key;
 
     if (NULL == pJson || NULL == key)
         return NULL;
@@ -2286,7 +2284,7 @@ RyanJsonBool RyanJsonCompare(RyanJson_t a, RyanJson_t b)
         if (RyanJsonTrue == RyanJsonIsInt(a) && RyanJsonTrue == RyanJsonIsInt(b))
             return RyanJsonGetIntValue(a) == RyanJsonGetIntValue(b) ? RyanJsonTrue : RyanJsonFalse;
 
-        else if (RyanJsonTrue == RyanJsonIsDouble(a) && RyanJsonTrue == RyanJsonIsDouble(b))
+        if (RyanJsonTrue == RyanJsonIsDouble(a) && RyanJsonTrue == RyanJsonIsDouble(b))
             return compare_double(RyanJsonGetDoubleValue(a), RyanJsonGetDoubleValue(b));
 
         return RyanJsonFalse;
