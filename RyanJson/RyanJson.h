@@ -72,6 +72,7 @@ extern "C"
  * @brief 较底层接口, 不推荐用户使用，除非用户知道这些接口意义
  */
 #define RyanJsonGetInfo(pJson) ((pJson) ? ((pJson)->info) : 0)
+// NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
 #define RyanJsonGetType(pJson) ((RyanjsonType_e)((uint8_t)RyanJsonGetInfo(pJson)))
     RyanJsonBool RyanJsonInsert(RyanJson_t pJson, int32_t index, RyanJson_t item);
     void *RyanJsonGetValue(RyanJson_t pJson);
