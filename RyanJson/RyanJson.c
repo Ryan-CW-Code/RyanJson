@@ -123,15 +123,14 @@ static RyanJsonBool compare_double(double a, double b)
  */
 static int32_t pow2gt(int32_t x)
 {
-    int32_t b = sizeof(int32_t) * 8;
-    int32_t i = 1;
-    --x;
-    while (i < b)
-    {
-        x |= (x >> i);
-        i <<= 1;
-    }
-    return x + 1;
+    // 算法逻辑：将x-1的所有低位填充为1，再加1得到最小2的幂
+    x--;          // 处理x=2^n的边界情况
+    x |= x >> 1;  // 填充低2位
+    x |= x >> 2;  // 填充低4位
+    x |= x >> 4;  // 填充低8位
+    x |= x >> 8;  // 填充低16位
+    x |= x >> 16; // 填充全部32位（int32_t范围）
+    return x + 1; // 得到大于原x的最小2的幂
 }
 
 /**
