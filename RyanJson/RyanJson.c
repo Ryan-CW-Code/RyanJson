@@ -1469,7 +1469,7 @@ RyanJson_t RyanJsonGetObjectByKey(RyanJson_t pJson, const char *key)
     if (RyanJsonFalse == RyanJsonIsKey(nextItem))
         return NULL;
 
-    while (nextItem && strcmp(RyanJsonGetKey(nextItem), key))
+    while (nextItem && 0 != strcmp(RyanJsonGetKey(nextItem), key))
         nextItem = nextItem->next;
 
     return nextItem;
@@ -1571,7 +1571,7 @@ RyanJson_t RyanJsonDetachByKey(RyanJson_t pJson, const char *key)
     if (RyanJsonFalse == RyanJsonIsKey(nextItem))
         return NULL;
 
-    while (nextItem && strcmp(RyanJsonGetKey(nextItem), key))
+    while (nextItem && 0 != strcmp(RyanJsonGetKey(nextItem), key))
     {
         prev = nextItem;
         nextItem = nextItem->next;
@@ -1755,7 +1755,7 @@ RyanJsonBool RyanJsonReplaceByKey(RyanJson_t pJson, const char *key, RyanJson_t 
     nextItem = RyanJsonGetObjectValue(pJson);
 
     // 找到要修改的节点
-    while (nextItem && strcmp(RyanJsonGetKey(nextItem), key))
+    while (nextItem && 0 != strcmp(RyanJsonGetKey(nextItem), key))
     {
         prev = nextItem;
         nextItem = nextItem->next;
@@ -2144,10 +2144,7 @@ RyanJson_t RyanJsonDuplicate(RyanJson_t pJson)
     {
     case RyanJsonTypeUnknow:
     case RyanJsonTypeNull:
-        break;
-
-    // 创建NewNode的时候已经赋值了
-    case RyanJsonTypeBool:
+    case RyanJsonTypeBool: // 创建NewNode的时候已经赋值了
         break;
 
     case RyanJsonTypeNumber:
