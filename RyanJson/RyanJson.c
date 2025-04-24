@@ -1772,9 +1772,7 @@ RyanJsonBool RyanJsonReplaceByKey(RyanJson_t pJson, const char *key, RyanJson_t 
     else if (0 != strcmp(RyanJsonGetKey(item), key))
     {
         // 修改key
-        jsonFree(RyanJsonGetKey(item));
-        RyanJsonGetKey(item) = RyanJsonStrdup(key);
-        if (NULL == RyanJsonGetKey(item))
+        if (RyanJsonFalse == RyanJsonChangeKey(item, key))
             return RyanJsonFalse;
     }
 
