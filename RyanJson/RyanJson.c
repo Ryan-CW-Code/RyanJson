@@ -806,14 +806,14 @@ static RyanJsonBool RyanJsonParseValue(parseBuffer *buf, char *key, RyanJson_t *
 {
     *out = NULL;
 
-    if (*buf->address == '-' || (*buf->address >= '0' && *buf->address <= '9'))
-        return RyanJsonParseNumber(buf, key, out);
     if (*buf->address == '\"')
         return RyanJsonParseString(buf, key, out);
-    if (*buf->address == '[')
-        return RyanJsonParseArray(buf, key, out);
     if (*buf->address == '{')
         return RyanJsonParseObject(buf, key, out);
+    if (*buf->address == '-' || (*buf->address >= '0' && *buf->address <= '9'))
+        return RyanJsonParseNumber(buf, key, out);
+    if (*buf->address == '[')
+        return RyanJsonParseArray(buf, key, out);
 
     if (parseCanRead(buf, 4) && 0 == strncmp(buf->address, "null", 4))
     {
