@@ -121,7 +121,7 @@ static RyanJsonBool compare_double(double a, double b)
  * @param x
  * @return int32_t 大于x的最小2次方
  */
-static int32_t pow2gt(int32_t x)
+/* static int32_t pow2gt(int32_t x)
 {
     // 算法逻辑：将x-1的所有低位填充为1，再加1得到最小2的幂
     x--;          // 处理x=2^n的边界情况
@@ -131,7 +131,7 @@ static int32_t pow2gt(int32_t x)
     x |= x >> 8;  // 填充低16位
     x |= x >> 16; // 填充全部32位（int32_t范围）
     return x + 1; // 得到大于原x的最小2的幂
-}
+} */
 
 /**
  * @brief 申请buf容量, 决定是否进行扩容
@@ -158,7 +158,8 @@ static RyanJsonBool expansion(printBuffer *buf, uint32_t needed)
     if (RyanJsonTrue == buf->noalloc)
         return RyanJsonFalse;
 
-    size = pow2gt(needed);
+    // size = pow2gt(needed);
+    size = needed + RyanJsonPrintfPreAlloSize;
     address = (char *)jsonRealloc(buf->address, size);
     if (NULL == address)
         return RyanJsonFalse;
@@ -1274,8 +1275,8 @@ char *RyanJsonPrint(RyanJson_t pJson, uint32_t preset, RyanJsonBool format, uint
     if (NULL == pJson)
         return NULL;
 
-    if (preset < 24)
-        preset = 24;
+    if (preset < RyanJsonPrintfPreAlloSize)
+        preset = RyanJsonPrintfPreAlloSize;
 
     buf.address = (char *)jsonMalloc(preset);
     if (NULL == buf.address)

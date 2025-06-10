@@ -68,6 +68,9 @@ extern "C"
 #define RyanJsonNestingLimit 30000
 #endif
 
+// 当 RyanJsonPrint 剩余缓冲空间不足时申请的空间大小
+#define RyanJsonPrintfPreAlloSize (64)
+
 /**
  * @brief 较底层接口, 不推荐用户使用，除非用户知道这些接口意义
  */
