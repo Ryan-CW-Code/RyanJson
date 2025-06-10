@@ -11,4 +11,7 @@ null
 
 # 忽略
 core
+build
+.xmake
+.vscode-ctags
 
