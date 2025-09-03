@@ -81,12 +81,9 @@ then using the CJSON_API_VISIBILITY flag to "export" the same symbols the way CJ
 /* project version */
 #define CJSON_VERSION_MAJOR 1
 #define CJSON_VERSION_MINOR 7
-#define CJSON_VERSION_PATCH 15
+#define CJSON_VERSION_PATCH 18
 
 #include <stddef.h>
-
-#define rt_memset memset
-#define rt_memcpy memcpy
 
 /* cJSON Types: */
 #define cJSON_Invalid (0)
@@ -101,13 +98,7 @@ then using the CJSON_API_VISIBILITY flag to "export" the same symbols the way CJ
 
 #define cJSON_IsReference 256
 #define cJSON_StringIsConst 512
-    union value
-    {
-    /* writing to value.valueint is DEPRECATED, use cJSON_SetNumberValue instead */
-    int valueint;
-    /* The item's number, if type==cJSON_Number */
-    double valuedouble;
-    };
+
 /* The cJSON structure: */
 typedef struct cJSON
 {
@@ -122,7 +113,11 @@ typedef struct cJSON
 
     /* The item's string, if type==cJSON_String  and type == cJSON_Raw */
     char *valuestring;
-    union value value;
+    /* writing to valueint is DEPRECATED, use cJSON_SetNumberValue instead */
+    int valueint;
+    /* The item's number, if type==cJSON_Number */
+    double valuedouble;
+
     /* The item's name string, if this item is the child of, or is in the list of subitems of an object. */
     char *string;
 } cJSON;
@@ -140,6 +135,12 @@ typedef int cJSON_bool;
  * This is to prevent stack overflows. */
 #ifndef CJSON_NESTING_LIMIT
 #define CJSON_NESTING_LIMIT 1000
+#endif
+
+/* Limits the length of circular references can be before cJSON rejects to parse them.
+ * This is to prevent stack overflows. */
+#ifndef CJSON_CIRCULAR_LIMIT
+#define CJSON_CIRCULAR_LIMIT 10000
 #endif
 
 /* returns the version of cJSON as a string */
@@ -260,7 +261,7 @@ CJSON_PUBLIC(cJSON *) cJSON_Duplicate(const cJSON *item, cJSON_bool recurse);
 CJSON_PUBLIC(cJSON_bool) cJSON_Compare(const cJSON * const a, const cJSON * const b, const cJSON_bool case_sensitive);
 
 /* Minify a strings, remove blank characters(such as ' ', '\t', '\r', '\n') from strings.
- * The input pointer json cannot point to a read-only address area, such as a string constant,
+ * The input pointer json cannot point to a read-only address area, such as a string constant, 
  * but should point to a readable and writable address area. */
 CJSON_PUBLIC(void) cJSON_Minify(char *json);
 
@@ -276,8 +277,8 @@ CJSON_PUBLIC(cJSON*) cJSON_AddRawToObject(cJSON * const object, const char * con
 CJSON_PUBLIC(cJSON*) cJSON_AddObjectToObject(cJSON * const object, const char * const name);
 CJSON_PUBLIC(cJSON*) cJSON_AddArrayToObject(cJSON * const object, const char * const name);
 
-/* When assigning an integer value, it needs to be propagated to value.valuedouble too. */
-#define cJSON_SetIntValue(object, number) ((object) ? (object)->value.valueint = (object)->value.valuedouble = (number) : (number))
+/* When assigning an integer value, it needs to be propagated to valuedouble too. */
+#define cJSON_SetIntValue(object, number) ((object) ? (object)->valueint = (object)->valuedouble = (number) : (number))
 /* helper for the cJSON_SetNumberValue macro */
 CJSON_PUBLIC(double) cJSON_SetNumberHelper(cJSON *object, double number);
 #define cJSON_SetNumberValue(object, number) ((object != NULL) ? cJSON_SetNumberHelper(object, (double)number) : (number))

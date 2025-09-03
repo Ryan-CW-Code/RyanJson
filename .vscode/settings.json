@@ -1,24 +1,35 @@
 {
-    "files.associations": {
-        "valloc.h": "c",
-        "json.h": "c",
-        "jansson.h": "c",
-        "jansson_private.h": "c",
-        "jansson_config.h": "c",
-        "hashtable.h": "c",
-        "stddef.h": "c",
-        "stdlib.h": "c",
-        "string.h": "c",
-        "cstdarg": "c",
-        "type_traits": "c",
-        "limits.h": "c",
-        "cmath": "c",
-        "ryanjson.h": "c",
-        "cjson.h": "c",
-        "unity.h": "c",
-        "unity_config.h": "c",
-        "common.h": "c",
-        "stdio.h": "c"
+    "clangd.enable": false,
+    "C_Cpp.intelliSenseEngine": "default",
+    "C_Cpp.codeAnalysis.clangTidy.enabled": true,
+    "c-cpp-flylint.enable": true,
+    "c-cpp-flylint.cppcheck.severityLevels": {
+        "error": "Error",
+        "warning": "Warning",
+        "style": "Information",
+        "performance": "Information",
+        "portability": "Information",
+        "information": "Information"
     },
-    "commentTranslate.source": "Google"
+    "c-cpp-flylint.cppcheck.extraArgs": [
+        // "--suppress=constParameterPointer",
+        // "--suppress=constParameterCallback",
+        "--check-level=exhaustive",
+        // "--suppress=variableScope",
+        // "--suppress=unreadVariable",
+        // "--suppress=constVariablePointer",
+        // "--suppress=constParameter",
+    ],
+    "files.associations": {
+        "*.c": "c",
+        "inttypes.h": "c",
+        "float.h": "c",
+        "stdlib.h": "c",
+        "limits.h": "c",
+        "stdio.h": "c",
+        "stdint.h": "c",
+        "ryanjsontest.h": "c",
+        "dirent.h": "c",
+        "valloc.h": "c"
+    },
 }

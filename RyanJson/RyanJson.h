@@ -3,8 +3,7 @@
 #define __RyanJson__
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #include <stdio.h>
@@ -17,49 +16,59 @@ extern "C"
 #include <math.h>
 #include <inttypes.h>
 
-    typedef enum
-    {
-        // 类型标志 占用8字节,剩余一个备用
-        RyanJsonTypeUnknow = 1 << 0,
-        RyanJsonTypeNull = 1 << 1,
-        RyanJsonTypeBool = 1 << 2,
-        RyanJsonTypeNumber = 1 << 3,
-        RyanJsonTypeString = 1 << 4,
-        RyanJsonTypeArray = 1 << 5,
-        RyanJsonTypeObject = 1 << 6,
-    } RyanjsonType_e;
+#define RyanMqttMemset  memset
+#define RyanMqttMemcpy  memcpy
+#define RyanMqttStrlen  strlen
+#define RyanMqttStrncmp strncmp
+#define RyanMqttStrcmp  strcmp
+#define RyanMqttSprintf sprintf
 
-    typedef enum
-    {
-        // flag标志
-        RyanJsonValueBoolTrueFlag = 1 << 8,
-        RyanJsonValueNumberIntFlag = 1 << 9,
-        RyanJsonWithKeyFlag = 1 << 10
-    } RyanJsonInfoFlag_e;
+typedef enum
+{
+	// 类型标志 占用8字节,剩余一个备用
+	RyanJsonTypeUnknow = 1 << 0,
+	RyanJsonTypeNull = 1 << 1,
+	RyanJsonTypeBool = 1 << 2,
+	RyanJsonTypeNumber = 1 << 3,
+	RyanJsonTypeString = 1 << 4,
+	RyanJsonTypeArray = 1 << 5,
+	RyanJsonTypeObject = 1 << 6,
+} RyanjsonType_e;
 
-    typedef enum
-    {
-        RyanJsonFalse = 0,
-        RyanJsonTrue = 1
-    } RyanJsonBool;
+typedef enum
+{
+	// flag标志
+	RyanJsonValueBoolTrueFlag = 1 << 8,
+	RyanJsonValueNumberIntFlag = 1 << 9,
+	RyanJsonWithKeyFlag = 1 << 10
+} RyanJsonInfoFlag_e;
 
-    struct RyanJsonNode
-    {
-        uint32_t info;             // 包含类型，key等标志
-        struct RyanJsonNode *next; // 单链表node节点
+typedef enum
+{
+	RyanJsonFalse = 0,
+	RyanJsonTrue = 1
+} RyanJsonBool_e;
 
-        // [char *key] 有key的json节点, 会动态创建指针
+// !兼容之前的类型定义
+typedef RyanJsonBool_e RyanJsonBool;
 
-        // 有value值的节点, 会动态创建指针
-        // [int32_t value / double value / char* value / RyanJson_t item]
-    };
+struct RyanJsonNode
+{
+	uint32_t info;             // 包含类型，key等标志
+	struct RyanJsonNode *next; // 单链表node节点
 
-    typedef struct RyanJsonNode *RyanJson_t;
+	// [char *key] 有key的json节点, 会动态创建指针
 
-    // 内存钩子函数
-    typedef void *(*malloc_t)(size_t size);
-    typedef void (*free_t)(void *block);
-    typedef void *(*realloc_t)(void *block, size_t size);
+	// 有value值的节点, 会动态创建指针
+	// [int32_t value / double value / char* value / RyanJson_t item]
+};
+
+typedef struct RyanJsonNode *RyanJson_t;
+
+// 内存钩子函数
+typedef void *(*malloc_t)(size_t size);
+typedef void (*free_t)(void *block);
+typedef void *(*realloc_t)(void *block, size_t size);
 
 // 限制解析数组/对象中嵌套的深度
 // RyanJson使用递归 序列化/反序列化 json
@@ -77,125 +86,122 @@ extern "C"
 #define RyanJsonGetInfo(pJson) ((pJson) ? ((pJson)->info) : 0)
 // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
 #define RyanJsonGetType(pJson) ((RyanjsonType_e)((uint8_t)RyanJsonGetInfo(pJson)))
-    RyanJsonBool RyanJsonInsert(RyanJson_t pJson, int32_t index, RyanJson_t item);
-    void *RyanJsonGetValue(RyanJson_t pJson);
-    RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, int32_t index, ...);
-    RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, char *key, ...);
-    RyanJsonBool RyanJsonReapplyString(char **dst, const char *src);
-    RyanJson_t RyanJsonCreateItem(const char *key, RyanJson_t item);
+extern RyanJsonBool_e RyanJsonInsert(RyanJson_t pJson, int32_t index, RyanJson_t item);
+extern void *RyanJsonGetValue(RyanJson_t pJson);
+extern RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, int32_t index, ...);
+extern RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, char *key, ...);
+extern RyanJsonBool_e RyanJsonReapplyString(char **dst, const char *src);
+extern RyanJson_t RyanJsonCreateItem(const char *key, RyanJson_t item);
 
-    /**
-     * @brief json对象函数
-     */
-    RyanJsonBool RyanJsonInitHooks(malloc_t _malloc, free_t _free, realloc_t _realloc);
-    RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool require_null_terminated, const char **return_parse_end); // 需用户释放内存
-    static inline RyanJson_t RyanJsonParse(const char *text)                                                                               // 需用户释放内存
-    {
-        return RyanJsonParseOptions(text, strlen(text), RyanJsonFalse, NULL);
-    }
+/**
+ * @brief json对象函数
+ */
+extern RyanJsonBool_e RyanJsonInitHooks(malloc_t _malloc, free_t _free, realloc_t _realloc);
+extern RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool_e mustBeNullTerminated, const char **parseEndPtr); // 需用户释放内存
+#define RyanJsonParse(text) RyanJsonParseOptions(text, strlen(text), RyanJsonFalse, NULL)                                               // 需用户释放内存
 
-    char *RyanJsonPrint(RyanJson_t pJson, uint32_t preset, RyanJsonBool format, uint32_t *len); // 需用户释放内存
-    char *RyanJsonPrintPreallocated(RyanJson_t pJson, char *buffer, uint32_t length, RyanJsonBool format, uint32_t *len);
+extern char *RyanJsonPrint(RyanJson_t pJson, uint32_t preset, RyanJsonBool_e format, uint32_t *len); // 需用户释放内存
+extern char *RyanJsonPrintPreallocated(RyanJson_t pJson, char *buffer, uint32_t length, RyanJsonBool_e format, uint32_t *len);
 
-    RyanJson_t RyanJsonDuplicate(RyanJson_t pJson); // 需用户释放内存
-    uint32_t RyanJsonGetSize(RyanJson_t pJson);     // 获取Json中子项个数
-    void RyanJsonMinify(char *text);
+extern RyanJson_t RyanJsonDuplicate(RyanJson_t pJson); // 需用户释放内存
+extern uint32_t RyanJsonGetSize(RyanJson_t pJson);     // 获取Json中子项个数
+extern void RyanJsonMinify(char *text);
 
-    void RyanJsonDelete(RyanJson_t pJson);
-    void RyanJsonFree(void *block);
+extern void RyanJsonDelete(RyanJson_t pJson);
+extern void RyanJsonFree(void *block);
 
-    RyanJsonBool RyanJsonCompare(RyanJson_t a, RyanJson_t b);
-    RyanJsonBool RyanJsonCompareOnlyKey(RyanJson_t a, RyanJson_t b);
+extern RyanJsonBool_e RyanJsonCompare(RyanJson_t a, RyanJson_t b);
+extern RyanJsonBool_e RyanJsonCompareOnlyKey(RyanJson_t a, RyanJson_t b);
 
-    /**
-     * @brief 添加 / 删除相关函数
-     */
-    RyanJson_t RyanJsonCreateObject();                              // 如果没有添加到父json, 则需释放内存
-    RyanJson_t RyanJsonCreateNull(char *key);                       // 如果没有添加到父json, 则需释放内存
-    RyanJson_t RyanJsonCreateBool(char *key, RyanJsonBool boolean); // 如果没有添加到父json, 则需释放内存
-    RyanJson_t RyanJsonCreateInt(char *key, int32_t number);        // 如果没有添加到父json, 则需释放内存
-    RyanJson_t RyanJsonCreateDouble(char *key, double number);      // 如果没有添加到父json, 则需释放内存
-    RyanJson_t RyanJsonCreateString(char *key, const char *string); // 如果没有添加到父json, 则需释放内存
+/**
+ * @brief 添加 / 删除相关函数
+ */
+extern RyanJson_t RyanJsonCreateObject(void);                            // 如果没有添加到父json, 则需释放内存
+extern RyanJson_t RyanJsonCreateNull(char *key);                         // 如果没有添加到父json, 则需释放内存
+extern RyanJson_t RyanJsonCreateBool(char *key, RyanJsonBool_e boolean); // 如果没有添加到父json, 则需释放内存
+extern RyanJson_t RyanJsonCreateInt(char *key, int32_t number);          // 如果没有添加到父json, 则需释放内存
+extern RyanJson_t RyanJsonCreateDouble(char *key, double number);        // 如果没有添加到父json, 则需释放内存
+extern RyanJson_t RyanJsonCreateString(char *key, const char *string);   // 如果没有添加到父json, 则需释放内存
 
-    RyanJson_t RyanJsonCreateArray();                                           // 如果没有添加到父json, 则需释放内存
-    RyanJson_t RyanJsonCreateIntArray(const int32_t *numbers, int32_t count);   // 语法糖，根据传入的numbers数组创建一个int类型的数组。如果没有添加到父json, 则需释放内存
-    RyanJson_t RyanJsonCreateDoubleArray(const double *numbers, int32_t count); // 语法糖，根据传入的numbers数组创建一个double类型的数组。如果没有添加到父json, 则需释放内存
-    RyanJson_t RyanJsonCreateStringArray(const char **strings, int32_t count);  // 语法糖，根据传入的strings数组创建一个string类型的数组。如果没有添加到父json, 则需释放内存
+extern RyanJson_t RyanJsonCreateArray(void);                                       // 如果没有添加到父json, 则需释放内存
+extern RyanJson_t RyanJsonCreateIntArray(const int32_t *numbers, int32_t count);   // 语法糖，根据传入的numbers数组创建一个int类型的数组。如果没有添加到父json, 则需释放内存
+extern RyanJson_t RyanJsonCreateDoubleArray(const double *numbers, int32_t count); // 语法糖，根据传入的numbers数组创建一个double类型的数组。如果没有添加到父json, 则需释放内存
+extern RyanJson_t RyanJsonCreateStringArray(const char **strings, int32_t count);  // 语法糖，根据传入的strings数组创建一个string类型的数组。如果没有添加到父json, 则需释放内存
 
-    RyanJson_t RyanJsonDetachByIndex(RyanJson_t pJson, int32_t index); // 需用户释放内存
-    RyanJson_t RyanJsonDetachByKey(RyanJson_t pJson, const char *key); // 需用户释放内存
-    RyanJsonBool RyanJsonDeleteByIndex(RyanJson_t pJson, int32_t index);
-    RyanJsonBool RyanJsonDeleteByKey(RyanJson_t pJson, const char *key);
+extern RyanJson_t RyanJsonDetachByIndex(RyanJson_t pJson, int32_t index); // 需用户释放内存
+extern RyanJson_t RyanJsonDetachByKey(RyanJson_t pJson, const char *key); // 需用户释放内存
+extern RyanJsonBool_e RyanJsonDeleteByIndex(RyanJson_t pJson, int32_t index);
+extern RyanJsonBool_e RyanJsonDeleteByKey(RyanJson_t pJson, const char *key);
 
-    /**
-     * @brief 查询函数
-     */
-    RyanJson_t RyanJsonGetObjectByKey(RyanJson_t pJson, const char *key);
-    RyanJson_t RyanJsonGetObjectByIndex(RyanJson_t pJson, int32_t index);
-#define RyanJsonGetObjectToKey(pJson, key, ...) RyanJsonGetObjectByKeys(pJson, key, ##__VA_ARGS__, NULL)
+/**
+ * @brief 查询函数
+ */
+extern RyanJson_t RyanJsonGetObjectByKey(RyanJson_t pJson, const char *key);
+extern RyanJson_t RyanJsonGetObjectByIndex(RyanJson_t pJson, int32_t index);
+#define RyanJsonGetObjectToKey(pJson, key, ...)     RyanJsonGetObjectByKeys(pJson, key, ##__VA_ARGS__, NULL)
 #define RyanJsonGetObjectToIndex(pJson, index, ...) RyanJsonGetObjectByIndexs(pJson, index, ##__VA_ARGS__, INT_MIN)
 
-#define RyanJsonHasObjectByKey(pJson, key) (RyanJsonGetObjectByKey(pJson, key) ? RyanJsonTrue : RyanJsonFalse)
-#define RyanJsonHasObjectByIndex(pJson, key) (RyanJsonGetObjectByIndex(pJson, index) ? RyanJsonTrue : RyanJsonFalse)
-#define RyanJsonHasObjectToKey(pJson, key, ...) (RyanJsonGetObjectByKeys(pJson, key, ##__VA_ARGS__, NULL) ? RyanJsonTrue : RyanJsonFalse)
+#define RyanJsonHasObjectByKey(pJson, key)        (RyanJsonGetObjectByKey(pJson, key) ? RyanJsonTrue : RyanJsonFalse)
+#define RyanJsonHasObjectByIndex(pJson, key)      (RyanJsonGetObjectByIndex(pJson, index) ? RyanJsonTrue : RyanJsonFalse)
+#define RyanJsonHasObjectToKey(pJson, key, ...)   (RyanJsonGetObjectByKeys(pJson, key, ##__VA_ARGS__, NULL) ? RyanJsonTrue : RyanJsonFalse)
 #define RyanJsonHasObjectToIndex(pJson, key, ...) (RyanJsonGetObjectByIndexs(pJson, index, ##__VA_ARGS__, INT_MIN) ? RyanJsonTrue : RyanJsonFalse)
 
-#define returnJsonBool(ex) ((ex) ? RyanJsonTrue : RyanJsonFalse)
-#define RyanJsonIsKey(pJson) returnJsonBool(RyanJsonGetInfo(pJson) & RyanJsonWithKeyFlag)
-#define RyanJsonIsNull(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeNull)
-#define RyanJsonIsBool(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeBool)
+#define returnJsonBool(ex)      ((ex) ? RyanJsonTrue : RyanJsonFalse)
+#define RyanJsonIsKey(pJson)    returnJsonBool(RyanJsonGetInfo(pJson) & RyanJsonWithKeyFlag)
+#define RyanJsonIsNull(pJson)   returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeNull)
+#define RyanJsonIsBool(pJson)   returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeBool)
 #define RyanJsonIsNumber(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeNumber)
-#define RyanJsonIsInt(pJson) returnJsonBool(RyanJsonIsNumber(pJson) && (RyanJsonGetInfo(pJson) & RyanJsonValueNumberIntFlag))
+#define RyanJsonIsInt(pJson)    returnJsonBool(RyanJsonIsNumber(pJson) && (RyanJsonGetInfo(pJson) & RyanJsonValueNumberIntFlag))
 #define RyanJsonIsDouble(pJson) returnJsonBool(RyanJsonIsNumber(pJson) && !(RyanJsonGetInfo(pJson) & RyanJsonValueNumberIntFlag))
 #define RyanJsonIsString(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeString)
-#define RyanJsonIsArray(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeArray)
+#define RyanJsonIsArray(pJson)  returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeArray)
 #define RyanJsonIsObject(pJson) returnJsonBool(RyanJsonGetType(pJson) & RyanJsonTypeObject)
 
 //! get value函数使用前建议RyanJsonIsXXXX宏做好判断
-#define RyanJsonGetKey(pJson) (*(char **)((RyanJson_t)(pJson) + 1))
-#define RyanJsonGetNullValue(pJson) (NULL)
-#define RyanJsonGetBoolValue(pJson) (RyanJsonGetInfo(pJson) & RyanJsonValueBoolTrueFlag ? RyanJsonTrue : RyanJsonFalse)
-#define RyanJsonGetIntValue(pJson) (*(int32_t *)RyanJsonGetValue(pJson))
+#define RyanJsonGetKey(pJson)         (*(char **)((RyanJson_t)(pJson) + 1))
+#define RyanJsonGetNullValue(pJson)   (NULL)
+#define RyanJsonGetBoolValue(pJson)   (RyanJsonGetInfo(pJson) & RyanJsonValueBoolTrueFlag ? RyanJsonTrue : RyanJsonFalse)
+#define RyanJsonGetIntValue(pJson)    (*(int32_t *)RyanJsonGetValue(pJson))
 #define RyanJsonGetDoubleValue(pJson) (*(double *)RyanJsonGetValue(pJson))
 #define RyanJsonGetStringValue(pJson) (*(char **)RyanJsonGetValue(pJson))
-#define RyanJsonGetArrayValue(pJson) (*(RyanJson_t *)RyanJsonGetValue(pJson))
+#define RyanJsonGetArrayValue(pJson)  (*(RyanJson_t *)RyanJsonGetValue(pJson))
 #define RyanJsonGetObjectValue(pJson) (*(RyanJson_t *)RyanJsonGetValue(pJson))
 
 #define RyanJsonGetArraySize(pJson) RyanJsonGetSize(pJson)
 
 //! add函数使用前建议RyanJsonIsXXXX宏判断是否是对象 / 数组
-#define RyanJsonAddNullToObject(pJson, key) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateNull(key))
-#define RyanJsonAddBoolToObject(pJson, key, boolean) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateBool(key, boolean))
-#define RyanJsonAddIntToObject(pJson, key, number) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateInt(key, number))
+#define RyanJsonAddNullToObject(pJson, key)           RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateNull(key))
+#define RyanJsonAddBoolToObject(pJson, key, boolean)  RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateBool(key, boolean))
+#define RyanJsonAddIntToObject(pJson, key, number)    RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateInt(key, number))
 #define RyanJsonAddDoubleToObject(pJson, key, number) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateDouble(key, number))
 #define RyanJsonAddStringToObject(pJson, key, string) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateString(key, string))
-#define RyanJsonAddItemToObject(pJson, key, item) RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateItem(key, item))
+#define RyanJsonAddItemToObject(pJson, key, item)     RyanJsonInsert(pJson, INT_MAX, RyanJsonCreateItem(key, item))
 
-#define RyanJsonAddNullToArray(pJson) RyanJsonAddNullToObject(pJson, NULL)
-#define RyanJsonAddBoolToArray(pJson, boolean) RyanJsonAddBoolToObject(pJson, NULL, boolean)
-#define RyanJsonAddIntToArray(pJson, number) RyanJsonAddIntToObject(pJson, NULL, number)
+#define RyanJsonAddNullToArray(pJson)           RyanJsonAddNullToObject(pJson, NULL)
+#define RyanJsonAddBoolToArray(pJson, boolean)  RyanJsonAddBoolToObject(pJson, NULL, boolean)
+#define RyanJsonAddIntToArray(pJson, number)    RyanJsonAddIntToObject(pJson, NULL, number)
 #define RyanJsonAddDoubleToArray(pJson, number) RyanJsonAddDoubleToObject(pJson, NULL, number)
 #define RyanJsonAddStringToArray(pJson, string) RyanJsonAddStringToObject(pJson, NULL, string)
-#define RyanJsonAddItemToArray(pJson, item) RyanJsonAddItemToObject(pJson, NULL, item)
+#define RyanJsonAddItemToArray(pJson, item)     RyanJsonAddItemToObject(pJson, NULL, item)
 
 // 便利函数
-#define RyanJsonArrayForEach(pJson, item) for ((item) = RyanJsonGetArrayValue(pJson); NULL != (item); (item) = (item)->next)
+#define RyanJsonArrayForEach(pJson, item)  for ((item) = RyanJsonGetArrayValue(pJson); NULL != (item); (item) = (item)->next)
 #define RyanJsonObjectForEach(pJson, item) for ((item) = RyanJsonGetObjectValue(pJson); NULL != (item); (item) = (item)->next)
 
-    /**
-     * @brief change函数
-     * !change函数没有对入参做校验，使用前请做使用RyanJsonIsXXXX宏做好判断
-     */
-#define RyanJsonChangeKey(pJson, key) (RyanJsonReapplyString(&RyanJsonGetKey(pJson), key))
+/**
+ * @brief change函数
+ * !change函数没有对入参做校验，使用前请做使用RyanJsonIsXXXX宏做好判断
+ */
+#define RyanJsonChangeKey(pJson, key)            (RyanJsonReapplyString(&RyanJsonGetKey(pJson), key))
 #define RyanJsonChangeStringValue(pJson, string) (RyanJsonReapplyString(&RyanJsonGetStringValue(pJson), string))
-#define RyanJsonChangeBoolValue(pJson, boolean) ((boolean) == RyanJsonTrue) ? ((pJson)->info |= (RyanJsonValueBoolTrueFlag)) : ((pJson)->info &= (~RyanJsonValueBoolTrueFlag))
-#define RyanJsonChangeIntValue(pJson, number) (RyanJsonGetIntValue(pJson) = (number))
+#define RyanJsonChangeBoolValue(pJson, boolean)  ((boolean) == RyanJsonTrue) ? ((pJson)->info |= (RyanJsonValueBoolTrueFlag)) : ((pJson)->info &= (~RyanJsonValueBoolTrueFlag))
+#define RyanJsonChangeIntValue(pJson, number)    (RyanJsonGetIntValue(pJson) = (number))
 #define RyanJsonChangeDoubleValue(pJson, number) (RyanJsonGetDoubleValue(pJson) = (number))
 
-    // 这是change方法的补充，当需要修改value类型时，使用此函数
-    // 请参考 changeJsonTest 示例，严格按照规则来使用
-    RyanJsonBool RyanJsonReplaceByKey(RyanJson_t pJson, const char *key, RyanJson_t item);
-    RyanJsonBool RyanJsonReplaceByIndex(RyanJson_t pJson, int32_t index, RyanJson_t item); // object对象也可以使用，但是不推荐
+// 这是change方法的补充，当需要修改value类型时，使用此函数
+// 请参考 changeJsonTest 示例，严格按照规则来使用
+extern RyanJsonBool_e RyanJsonReplaceByKey(RyanJson_t pJson, const char *key, RyanJson_t item);
+extern RyanJsonBool_e RyanJsonReplaceByIndex(RyanJson_t pJson, int32_t index, RyanJson_t item); // object对象也可以使用，但是不推荐
 
 #ifdef __cplusplus
 }
