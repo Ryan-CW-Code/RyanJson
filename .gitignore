@@ -15,3 +15,6 @@ build
 .xmake
 .vscode-ctags
 
+default.profdata
+default.profraw
+test/fuzzer/corpus

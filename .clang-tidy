@@ -31,7 +31,7 @@ Checks:
   # 静默的窄化转换交给编译器来判断？
   - 'bugprone-*,-bugprone-easily-swappable-parameters'
   - 'readability-identifier-naming'
-  - 'misc-*,-misc-const-correctness,-misc-unused-parameters,-misc-non-private-member-variables-in-classes,-misc-no-recursion,-misc-use-anonymous-namespace,-misc-include-cleaner'
+  - 'misc-*,-misc-const-correctness,-misc-no-recursion,-misc-include-cleaner'
 
 CheckOptions:
   # 类名使用帕斯卡命名法（如 MyClass）

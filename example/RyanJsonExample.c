@@ -37,16 +37,19 @@ static int createJsonExample(void)
 	RyanJsonAddNullToObject(item, "null");
 	RyanJsonAddItemToObject(jsonRoot, "item", item); // 将上面创建的item子对象添加到root父对象
 
-	// 添加子数组
+	// 添加数字子数组
 	int arrayInt[] = {16, 16, 16, 16, 16};
 	RyanJsonAddItemToObject(jsonRoot, "arrayInt", RyanJsonCreateIntArray(arrayInt, sizeof(arrayInt) / sizeof(arrayInt[0])));
 
+	// 添加浮点数子数组
 	double arrayDouble[] = {16.89, 16.89, 16.89, 16.89, 16.89};
 	RyanJsonAddItemToObject(jsonRoot, "arrayDouble", RyanJsonCreateDoubleArray(arrayDouble, sizeof(arrayDouble) / sizeof(arrayDouble[0])));
 
+	// 添加字符串子数组
 	const char *arrayString[] = {"hello", "hello", "hello", "hello", "hello"};
 	RyanJsonAddItemToObject(jsonRoot, "arrayString", RyanJsonCreateStringArray(arrayString, sizeof(arrayString) / sizeof(arrayString[0])));
 
+	// 添加杂项数组
 	RyanJson_t array = RyanJsonCreateArray();
 	RyanJsonAddIntToArray(array, 16);
 	RyanJsonAddDoubleToArray(array, 16.89);
@@ -174,7 +177,7 @@ static int changeJsonExample(void)
 	return 0;
 }
 
-int RyanJsonExample(void)
+RyanJsonBool_e RyanJsonExample(void)
 {
 	RyanJsonInitHooks(v_malloc, v_free, v_realloc);
 
@@ -187,5 +190,5 @@ int RyanJsonExample(void)
 	printf("\r\n--------------------------- RyanJson 修改json示例 --------------------------\r\n");
 	changeJsonExample();
 
-	return -1;
+	return RyanJsonTrue;
 }

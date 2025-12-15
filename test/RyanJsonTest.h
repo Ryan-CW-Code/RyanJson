@@ -13,14 +13,15 @@ extern "C" {
 #include <sys/stat.h>
 #include <dirent.h>
 #include "valloc.h"
-#define malloc  v_malloc
-#define calloc  v_calloc
-#define free    v_free
-#define realloc v_realloc
+// #define malloc  v_malloc
+// #define calloc  v_calloc
+// #define free    v_free
+// #define realloc v_realloc
 
 #include "RyanJson.h"
+#include "RyanJsonUtils.h"
 #include "cJSON.h"
-#include "yyjson.h"
+// #include "yyjson.h"
 
 #define getArraySize(arr) ((int32_t)(sizeof(arr) / sizeof((arr)[0])))
 #define checkMemory                                                                                                                                                                                    \
@@ -45,9 +46,10 @@ extern "C" {
 // 定义结构体类型
 
 /* extern variables-----------------------------------------------------------*/
-extern RyanJsonBool RyanJsonBaseTest(void);
-extern RyanJsonBool RFC8259JsonTest(void);
-extern RyanJsonBool RyanJsonMemoryFootprintTest(void);
+extern RyanJsonBool_e RyanJsonExample(void);
+extern RyanJsonBool_e RyanJsonBaseTest(void);
+extern RyanJsonBool_e RFC8259JsonTest(void);
+extern RyanJsonBool_e RyanJsonMemoryFootprintTest(void);
 #ifdef __cplusplus
 }
 #endif
