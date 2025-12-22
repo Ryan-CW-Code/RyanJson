@@ -35,5 +35,5 @@ llvm-cov report ./build/linux/x86/release/RyanJson \
 llvm-cov show ./build/linux/x86/release/RyanJson \
   -instr-profile=default.profdata \
   -format=html \
-  -output-dir=coverage_report \
+  -output-dir=docs \
   -show-mcdc-summary

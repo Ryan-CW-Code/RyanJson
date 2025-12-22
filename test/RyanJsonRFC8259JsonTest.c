@@ -469,7 +469,7 @@ static int RyanJsonParseData(char *fileName, char *data, uint32_t len)
 		{
 			alksdjfCOunt++;
 			// 打印时避免 %s，被 NUL 截断；可以打印十六进制
-			printf("%d %s 数据不一致 -- 原始: %s -- 序列化: %s\n", alksdjfCOunt, fileName, data, str);
+			// printf("%d %s 数据不一致 -- 原始: %s -- 序列化: %s\n", alksdjfCOunt, fileName, data, str);
 			// printf("数据不一致 -- 原始len:%zu -- 序列化len:%zu\n", data_len, str_len);
 		}
 	}
@@ -514,7 +514,7 @@ static int cJSONParseData(char *fileName, char *data, uint32_t len)
 	}
 
 	cJSON_Minify(data);
-	if (0 != strcmp(data, str)) { printf("-- 原始: %s -- 序列化: %s\n", data, str); }
+	// if (0 != strcmp(data, str)) { printf("-- 原始: %s -- 序列化: %s\n", data, str); }
 
 	cJSON_free(str);
 #endif
@@ -588,13 +588,13 @@ RyanJsonBool_e RFC8259JsonTest(void)
 		goto err;
 	}
 
-	// printf("\r\n--------------------------- RFC8259  cJSON --------------------------\r\n");
-	// result = testFile("../../../../test//RFC8259JsonData", cJSONParseData);
-	// if (0 != result)
-	// {
-	// 	printf("%s:%d cJSON RFC8259JsonTest fail\r\n", __FILE__, __LINE__);
-	// 	goto err;
-	// }
+	printf("\r\n--------------------------- RFC8259  cJSON --------------------------\r\n");
+	result = testFile("../../../../test//RFC8259JsonData", cJSONParseData);
+	if (0 != result)
+	{
+		printf("%s:%d cJSON RFC8259JsonTest fail\r\n", __FILE__, __LINE__);
+		goto err;
+	}
 
 	// printf("\r\n--------------------------- RFC8259  yyjson --------------------------\r\n");
 	// result = testFile("../../../../test//RFC8259JsonData", yyjsonParseData);

@@ -65,17 +65,13 @@ static void printfJsonCompera(char *jsonstr)
 {
 	int RyanJsonCount = 0;
 	int cJSONCount = 0;
-	int yyjsonCount = 0;
 	RyanJsonCount = RyanJsonMemoryFootprint(jsonstr);
 	cJSONCount = cJSONMemoryFootprint(jsonstr);
-	yyjsonCount = yyjsonMemoryFootprint(jsonstr);
-	printf("json原始文本长度为 %ld, 序列化后RyanJson内存占用: %d, cJSON内存占用: %d, yyjson内存占用: %d\r\n", strlen(jsonstr),
-	       RyanJsonCount, cJSONCount, yyjsonCount);
+
+	printf("json原始文本长度为 %ld, 序列化后RyanJson内存占用: %d, cJSON内存占用: %d\r\n", strlen(jsonstr), RyanJsonCount, cJSONCount);
 
 	double save_vs_cjson = 100.0 - ((double)RyanJsonCount * 100.0) / (double)cJSONCount;
-	double save_vs_yyjson = 100.0 - ((double)RyanJsonCount * 100.0) / (double)yyjsonCount;
-
-	printf("比cJSON节省: %.2f%% 内存占用, 比yyjson节省: %.2f%% 内存占用\r\n", save_vs_cjson, save_vs_yyjson);
+	printf("比cJSON节省: %.2f%% 内存占用\r\n", save_vs_cjson);
 }
 
 RyanJsonBool_e RyanJsonMemoryFootprintTest(void)

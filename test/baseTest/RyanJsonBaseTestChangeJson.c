@@ -117,16 +117,6 @@ RyanJsonBool_e RyanJsonBaseTestChangeJson()
 		RyanJson_t duplicateJson = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "item"));
 		printfJsonaaaa(duplicateJson);
 
-		// RyanJson_t item = RyanJsonCreateObject2("key");
-		// // RyanJson_t item = RyanJsonCreateObject();
-		// RyanJsonAddIntToObject(item, "inter", 16);
-		// RyanJsonAddDoubleToObject(item, "double", 16.89);
-		// RyanJsonAddStringToObject(item, "string", "hello");
-		// RyanJsonAddBoolToObject(item, "boolTrue", RyanJsonTrue);
-		// RyanJsonAddBoolToObject(item, "boolFalse", RyanJsonFalse);
-		// RyanJsonAddNullToObject(item, "null");
-
-		// RyanJsonReplaceByKey(json, "arrayDouble", item);
 		RyanJsonReplaceByKey(json, "arrayDouble", duplicateJson);
 		if (!RyanJsonIsObject(RyanJsonGetObjectToKey(json, "arrayDouble")) ||
 		    -1 == rootNodeCheckTest(RyanJsonGetObjectToKey(json, "arrayDouble")))

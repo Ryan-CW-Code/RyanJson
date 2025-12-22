@@ -13,8 +13,10 @@ null
 core
 build
 .xmake
+.dump
 .vscode-ctags
 
 default.profdata
 default.profraw
 test/fuzzer/corpus
+docs

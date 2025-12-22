@@ -30,6 +30,19 @@
         "stdint.h": "c",
         "ryanjsontest.h": "c",
         "dirent.h": "c",
-        "valloc.h": "c"
+        "valloc.h": "c",
+        "initializer_list": "c",
+        "array": "c",
+        "string_view": "c",
+        "utility": "c",
+        "math.h": "c",
+        "compare": "c",
+        "type_traits": "c",
+        "cjson.h": "c",
+        "ryanjson.h": "c",
+        "string.h": "c",
+        "stdarg.h": "c",
+        "cstdlib": "c",
+        "ryanjsonconfig.h": "c"
     },
 }

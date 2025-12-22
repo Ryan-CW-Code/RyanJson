@@ -12,17 +12,17 @@ RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, const char *key, ...)
 {
 	RyanJsonCheckReturnNull(NULL != pJson && NULL != key);
 
-	const char *s = key;
-	RyanJson_t nextItem = RyanJsonGetObjectByKey(pJson, s);
+	const char *nextKey = key;
+	RyanJson_t nextItem = RyanJsonGetObjectByKey(pJson, nextKey);
 	RyanJsonCheckReturnNull(NULL != nextItem && RyanJsonIsKey(nextItem));
 
 	va_list args;
 	va_start(args, key);
-	s = va_arg(args, const char *);
-	while (nextItem && NULL != s)
+	nextKey = va_arg(args, const char *);
+	while (nextItem && NULL != nextKey)
 	{
-		nextItem = RyanJsonGetObjectByKey(nextItem, s);
-		s = va_arg(args, char *);
+		nextItem = RyanJsonGetObjectByKey(nextItem, nextKey);
+		nextKey = va_arg(args, char *);
 	}
 	va_end(args);
 
@@ -37,21 +37,21 @@ RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, const char *key, ...)
  * @param ... 可变参，连续输入索引，直到INT_MIN结束
  * @return RyanJson_t
  */
-RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, int32_t index, ...)
+RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, uint32_t index, ...)
 {
 	RyanJsonCheckReturnNull(NULL != pJson && index >= 0);
 
-	int32_t i = index;
-	RyanJson_t nextItem = RyanJsonGetObjectByIndex(pJson, i);
+	uint32_t nextIndex = index;
+	RyanJson_t nextItem = RyanJsonGetObjectByIndex(pJson, nextIndex);
 	RyanJsonCheckReturnNull(NULL != nextItem);
 
 	va_list args;
 	va_start(args, index);
-	i = va_arg(args, int32_t);
-	while (nextItem && INT32_MIN != i)
+	nextIndex = va_arg(args, uint32_t);
+	while (nextItem && nextIndex > 0)
 	{
-		nextItem = RyanJsonGetObjectByIndex(nextItem, i);
-		i = va_arg(args, int32_t);
+		nextItem = RyanJsonGetObjectByIndex(nextItem, nextIndex);
+		nextIndex = va_arg(args, uint32_t);
 	}
 	va_end(args);
 
@@ -65,12 +65,12 @@ RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, int32_t index, ...)
  * @param count 数组的长度
  * @return RyanJson_t
  */
-RyanJson_t RyanJsonCreateIntArray(const int32_t *numbers, int32_t count)
+RyanJson_t RyanJsonCreateIntArray(const int32_t *numbers, uint32_t count)
 {
 	RyanJsonCheckReturnNull(NULL != numbers && count > 0);
 
 	RyanJson_t pJson = RyanJsonCreateArray();
-	for (int32_t i = 0; pJson && i < count; i++) { RyanJsonAddIntToArray(pJson, numbers[i]); }
+	for (uint32_t i = 0; pJson && i < count; i++) { RyanJsonAddIntToArray(pJson, numbers[i]); }
 	return pJson;
 }
 
@@ -81,12 +81,12 @@ RyanJson_t RyanJsonCreateIntArray(const int32_t *numbers, int32_t count)
  * @param count
  * @return RyanJson_t
  */
-RyanJson_t RyanJsonCreateDoubleArray(const double *numbers, int32_t count)
+RyanJson_t RyanJsonCreateDoubleArray(const double *numbers, uint32_t count)
 {
 	RyanJsonCheckReturnNull(NULL != numbers && count > 0);
 
 	RyanJson_t pJson = RyanJsonCreateArray();
-	for (int32_t i = 0; pJson && i < count; i++) { RyanJsonAddDoubleToArray(pJson, numbers[i]); }
+	for (uint32_t i = 0; pJson && i < count; i++) { RyanJsonAddDoubleToArray(pJson, numbers[i]); }
 	return pJson;
 }
 
@@ -97,32 +97,32 @@ RyanJson_t RyanJsonCreateDoubleArray(const double *numbers, int32_t count)
  * @param count
  * @return RyanJson_t
  */
-RyanJson_t RyanJsonCreateStringArray(const char **strings, int32_t count)
+RyanJson_t RyanJsonCreateStringArray(const char **strings, uint32_t count)
 {
 	RyanJsonCheckReturnNull(NULL != strings && count > 0);
 
 	RyanJson_t pJson = RyanJsonCreateArray();
-	for (int32_t i = 0; pJson && i < count; i++) { RyanJsonAddStringToArray(pJson, strings[i]); }
+	for (uint32_t i = 0; pJson && i < count; i++) { RyanJsonAddStringToArray(pJson, strings[i]); }
 	return pJson;
 }
 
 /**
  * @brief 递归比较两个 pJson 对象key是否相等。
  * 此接口效率较低, 谨慎使用
- * @param a
- * @param b
+ * @param leftJson
+ * @param rightJson
  * @return RyanJsonBool_e
  */
-RyanJsonBool_e RyanJsonCompareOnlyKey(RyanJson_t a, RyanJson_t b)
+RyanJsonBool_e RyanJsonCompareOnlyKey(RyanJson_t leftJson, RyanJson_t rightJson)
 {
-	if (NULL == a || NULL == b) { return RyanJsonFalse; }
+	if (NULL == leftJson || NULL == rightJson) { return RyanJsonFalse; }
 
 	// 相同的对象相等
-	if (a == b) { return RyanJsonTrue; }
+	if (leftJson == rightJson) { return RyanJsonTrue; }
 
-	if (RyanJsonGetType(a) != RyanJsonGetType(b)) { return RyanJsonFalse; }
+	if (RyanJsonGetType(leftJson) != RyanJsonGetType(rightJson)) { return RyanJsonFalse; }
 
-	switch (RyanJsonGetType(a))
+	switch (RyanJsonGetType(leftJson))
 	{
 	case RyanJsonTypeBool:
 	case RyanJsonTypeNull:
@@ -130,30 +130,32 @@ RyanJsonBool_e RyanJsonCompareOnlyKey(RyanJson_t a, RyanJson_t b)
 	case RyanJsonTypeString: return RyanJsonTrue;
 
 	case RyanJsonTypeArray: {
-		if (RyanJsonGetSize(a) != RyanJsonGetSize(b)) { return RyanJsonFalse; }
+		if (RyanJsonGetSize(leftJson) != RyanJsonGetSize(rightJson)) { return RyanJsonFalse; }
 
-		for (int32_t count = 0; count < RyanJsonGetSize(a); count++)
+		RyanJson_t item;
+		uint32_t itemIndex = 0;
+		RyanJsonArrayForEach(leftJson, item)
 		{
-			if (RyanJsonTrue != RyanJsonCompareOnlyKey(RyanJsonGetObjectByIndex(a, count), RyanJsonGetObjectByIndex(b, count)))
+			if (RyanJsonTrue != RyanJsonCompareOnlyKey(item, RyanJsonGetObjectByIndex(rightJson, itemIndex)))
 			{
 				return RyanJsonFalse;
 			}
+			itemIndex++;
 		}
 		return RyanJsonTrue;
 	}
 
 	case RyanJsonTypeObject: {
-		RyanJson_t a_element, b_element;
-		if (RyanJsonGetSize(a) != RyanJsonGetSize(b)) { return RyanJsonFalse; }
+		if (RyanJsonGetSize(leftJson) != RyanJsonGetSize(rightJson)) { return RyanJsonFalse; }
 
-		RyanJsonObjectForEach(a, a_element)
+		RyanJson_t item;
+		RyanJsonObjectForEach(leftJson, item)
 		{
-			b_element = RyanJsonGetObjectByKey(b, RyanJsonGetKey(a_element));
-			if (NULL == b_element) { return RyanJsonFalse; }
-
-			if (RyanJsonTrue != RyanJsonCompareOnlyKey(a_element, b_element)) { return RyanJsonFalse; }
+			if (RyanJsonTrue != RyanJsonCompareOnlyKey(item, RyanJsonGetObjectByKey(rightJson, RyanJsonGetKey(item))))
+			{
+				return RyanJsonFalse;
+			}
 		}
-
 		return RyanJsonTrue;
 	}
 	}
