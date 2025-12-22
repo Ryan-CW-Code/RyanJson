@@ -19,4 +19,3 @@ build
 default.profdata
 default.profraw
 test/fuzzer/corpus
-docs
