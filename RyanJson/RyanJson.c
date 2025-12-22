@@ -1466,7 +1466,7 @@ uint32_t RyanJsonGetSize(RyanJson_t pJson)
  */
 RyanJson_t RyanJsonGetObjectByIndex(RyanJson_t pJson, uint32_t index)
 {
-	RyanJsonCheckReturnNull(NULL != pJson && index >= 0);
+	RyanJsonCheckReturnNull(NULL != pJson);
 
 	RyanJsonCheckReturnNull(_checkType(RyanJsonGetType(pJson), RyanJsonTypeArray) ||
 				_checkType(RyanJsonGetType(pJson), RyanJsonTypeObject));
@@ -1515,7 +1515,7 @@ RyanJson_t RyanJsonGetObjectByKey(RyanJson_t pJson, const char *key)
  */
 RyanJson_t RyanJsonDetachByIndex(RyanJson_t pJson, uint32_t index)
 {
-	RyanJsonCheckReturnNull(NULL != pJson && index >= 0);
+	RyanJsonCheckReturnNull(NULL != pJson);
 
 	RyanJsonCheckReturnNull(_checkType(RyanJsonGetType(pJson), RyanJsonTypeArray) ||
 				_checkType(RyanJsonGetType(pJson), RyanJsonTypeObject));
@@ -1587,7 +1587,7 @@ RyanJson_t RyanJsonDetachByKey(RyanJson_t pJson, const char *key)
  */
 RyanJsonBool_e RyanJsonDeleteByIndex(RyanJson_t pJson, uint32_t index)
 {
-	RyanJsonCheckReturnFlase(NULL != pJson && index >= 0);
+	RyanJsonCheckReturnFlase(NULL != pJson);
 
 	RyanJson_t nextItem = RyanJsonDetachByIndex(pJson, index);
 	RyanJsonCheckReturnFlase(NULL != nextItem);
@@ -1625,7 +1625,7 @@ RyanJsonBool_e RyanJsonDeleteByKey(RyanJson_t pJson, const char *key)
 RyanJsonBool_e RyanJsonInsert(RyanJson_t pJson, uint32_t index, RyanJson_t item)
 {
 	RyanJsonCheckReturnFlase(NULL != item);
-	RyanJsonCheckCode(NULL != pJson && index >= 0, { goto __exit; });
+	RyanJsonCheckCode(NULL != pJson, { goto __exit; });
 
 	RyanJsonCheckCode(_checkType(RyanJsonGetType(pJson), RyanJsonTypeArray) ||
 				  (_checkType(RyanJsonGetType(pJson), RyanJsonTypeObject) && RyanJsonIsKey(item)),
@@ -1705,7 +1705,7 @@ static RyanJsonBool_e RyanJsonReplaceNode(RyanJson_t prev, RyanJson_t oldItem, R
  */
 RyanJsonBool_e RyanJsonReplaceByIndex(RyanJson_t pJson, uint32_t index, RyanJson_t item)
 {
-	RyanJsonCheckReturnFlase(NULL != pJson && index >= 0 && NULL != item);
+	RyanJsonCheckReturnFlase(NULL != pJson && NULL != item);
 
 	RyanJsonCheckReturnFlase(_checkType(RyanJsonGetType(pJson), RyanJsonTypeArray) ||
 				 _checkType(RyanJsonGetType(pJson), RyanJsonTypeObject));
