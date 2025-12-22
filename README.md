@@ -13,10 +13,12 @@
 
 *初衷：项目重构后 JSON 结构复杂度提升，cJSON 内存占用过高，无法满足需求。*
 
+https://ryan-cw-code.github.io/RyanJson/
+
 #### ✅ 特性亮点
 
 - 💡 **极致内存优化**：在资源受限设备上实现 **40-70% 内存节省**（对比 cJSON），在 RT-Thread 平台 malloc 头部空间为 12 字节时节省约 40%，无 malloc 头部空间可接近 70%。同时保持工业级健壮性，运行速度与 cJSON 基本持平。
-- ✅ **模糊测试**：LLVM Fuzzer，千万级输入，覆盖率 **99.9%**，稳定性极高，确保在各种非法输入和极端场景下依旧安全。
+- ✅ **模糊测试**：LLVM Fuzzer，千万级输入，覆盖率 **99.9%**，稳定性极高，确保在各种非法输入和极端场景下依旧安全。**[在线查看覆盖率信息](https://ryan-cw-code.github.io/RyanJson/)** 
 - ✅ **运行时安全分析验证**，使用 **[Sanitizer](https://clang.llvm.org/docs/index.html#sanitizers)** 系列工具，捕获内存越界、Use-after-free、数据竞争、未定义行为、内存泄漏等问题，提升代码健壮性与安全性
 - ✅ **高质量代码保障** ， 引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 与 **[Cppcheck](https://cppcheck.sourceforge.io/)** 进行静态分析，实现接近语法级的"**零缺陷**"，显著提升可维护性与可读性
 - ✅ **AI 辅助开发与审查**，结合  **[coderabbitai](https://www.coderabbit.ai)** 与 **[Copilot](https://github.com/features/copilot)** ，在编码与代码审查阶段持续优化代码质量，构建多层安全防线
@@ -125,6 +127,8 @@ typedef struct RyanJsonNode *RyanJson_t;
 ### 3、测试体系
 
 **LLVM模糊测试**（核心亮点），模糊测试是 RyanJson 的 **核心稳定性保障**，针对嵌入式环境的复杂场景进行了深度设计与验证。
+
+**[在线查看覆盖率信息](https://ryan-cw-code.github.io/RyanJson/)** 
 
 ### 📊 特点与优势
 
