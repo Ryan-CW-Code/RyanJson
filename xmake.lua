@@ -7,9 +7,9 @@ target("RyanJson",function()
     set_plat("linux")
     set_arch("x86")
     set_languages("gnu99") -- 关键！启用 GNU 扩展
-    add_defines("isEnableFuzzer")
-    add_cxflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true} )
-    add_ldflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true} )
+    -- add_defines("isEnableFuzzer")
+    -- add_cxflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true} )
+    -- add_ldflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true} )
 
     set_policy("build.ccache", false)
     -- set_optimize("smallest") -- -Os
@@ -18,7 +18,7 @@ target("RyanJson",function()
     -- set_optimize("aggressive") -- -Ofast
 
     -- 启用全部警告
-    -- set_warnings("everything") -- -Wall -Wextra -Weffc++ / -Weverything
+    set_warnings("everything") -- -Wall -Wextra -Weffc++ / -Weverything
 
     -- 链接器选项：生成 map 文件
     -- add_ldflags("-Wl,-Map=$(buildir)/RyanJson.map")
@@ -28,15 +28,15 @@ target("RyanJson",function()
 
     -- 链接器安全硬化与优化
     add_ldflags(
-        -- "-flto",                    -- 链接时优化（启用 LTO，便于 CFI 等）
-        -- "-fPIE",                    -- 位置无关可执行
-        -- "-pie",                     -- 与 -fPIE 搭配，启用 ASLR
-        -- "-fno-omit-frame-pointer",  -- 保留帧指针，便于崩溃分析
-        -- "-fstack-clash-protection", -- 栈碰撞保护（平台支持时有效）
-        -- "-Wl,-z,relro",             -- 只读重定位（硬化）
-        -- "-Wl,-z,now",               -- 立即绑定（与 relro 搭配）
-        -- "-Wl,-z,noexecstack",       -- 栈不可执行
-        -- "-Wl,-z,separate-code",     -- 代码与数据段分离
+        "-flto",                    -- 链接时优化（启用 LTO，便于 CFI 等）
+        "-fPIE",                    -- 位置无关可执行
+        "-pie",                     -- 与 -fPIE 搭配，启用 ASLR
+        "-fno-omit-frame-pointer",  -- 保留帧指针，便于崩溃分析
+        "-fstack-clash-protection", -- 栈碰撞保护（平台支持时有效）
+        "-Wl,-z,relro",             -- 只读重定位（硬化）
+        "-Wl,-z,now",               -- 立即绑定（与 relro 搭配）
+        "-Wl,-z,noexecstack",       -- 栈不可执行
+        "-Wl,-z,separate-code",     -- 代码与数据段分离
         {force = true}
     )
 
@@ -122,13 +122,13 @@ target("RyanJson",function()
     add_includedirs('./test/valloc', {public = true})
     add_includedirs('./test/baseTest', {public = true})
     add_includedirs('./externalModule/cJSON', {public = true})
-    -- add_includedirs('./externalModule/yyjson', {public = true})
+    add_includedirs('./externalModule/yyjson', {public = true})
 
     add_files('./example/*.c', {public = true})
     add_files('./test/*.c', {public = true}, {cxflags = "-w"})
     add_files('./test/valloc/*.c', {public = true}, {cxflags = "-w"})
     add_files('./test/baseTest/*.c', {public = true}, {cxflags = "-w"})
     add_files('./externalModule/cJSON/*.c', {public = true}, {cxflags = "-w"})
-    -- add_files('./externalModule/yyjson/*.c', {public = true})
+    add_files('./externalModule/yyjson/*.c', {public = true}, {cxflags = "-w"})
 
 end)

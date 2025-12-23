@@ -42,22 +42,22 @@ static int cJSONMemoryFootprint(char *jsonstr)
 
 static int yyjsonMemoryFootprint(char *jsonstr)
 {
-	// static yyjson_alc yyalc = {yy_malloc, yy_realloc, yy_free, NULL};
-	// // 先解析成只读文档（可用自定义分配器 yyalc）
-	// yyjson_doc *doc = yyjson_read_opts(jsonstr, strlen(jsonstr), YYJSON_READ_NOFLAG, &yyalc, NULL);
-	// if (doc == NULL) { return -1; }
+	static yyjson_alc yyalc = {yy_malloc, yy_realloc, yy_free, NULL};
+	// 先解析成只读文档（可用自定义分配器 yyalc）
+	yyjson_doc *doc = yyjson_read_opts(jsonstr, strlen(jsonstr), YYJSON_READ_NOFLAG, &yyalc, NULL);
+	if (doc == NULL) { return -1; }
 
-	// // 从只读文档拷贝为可变文档（用于后续读写修改）
-	// yyjson_mut_doc *mdoc = yyjson_doc_mut_copy(doc, &yyalc);
-	// yyjson_doc_free(doc);
-	// if (mdoc == NULL) { return -1; }
+	// 从只读文档拷贝为可变文档（用于后续读写修改）
+	yyjson_mut_doc *mdoc = yyjson_doc_mut_copy(doc, &yyalc);
+	yyjson_doc_free(doc);
+	if (mdoc == NULL) { return -1; }
 
 	// 统计当前分配器的占用
 	int area = 0, use = 0;
 	v_mcheck(&area, &use);
 
-	// // 用完释放可变文档
-	// yyjson_mut_doc_free(mdoc);
+	// 用完释放可变文档
+	yyjson_mut_doc_free(mdoc);
 	return use;
 }
 
@@ -65,13 +65,17 @@ static void printfJsonCompera(char *jsonstr)
 {
 	int RyanJsonCount = 0;
 	int cJSONCount = 0;
+	int yyjsonCount = 0;
 	RyanJsonCount = RyanJsonMemoryFootprint(jsonstr);
 	cJSONCount = cJSONMemoryFootprint(jsonstr);
-
-	printf("json原始文本长度为 %ld, 序列化后RyanJson内存占用: %d, cJSON内存占用: %d\r\n", strlen(jsonstr), RyanJsonCount, cJSONCount);
+	yyjsonCount = yyjsonMemoryFootprint(jsonstr);
+	printf("json原始文本长度为 %ld, 序列化后RyanJson内存占用: %d, cJSON内存占用: %d, yyjson内存占用: %d\r\n", strlen(jsonstr),
+	       RyanJsonCount, cJSONCount, yyjsonCount);
 
 	double save_vs_cjson = 100.0 - ((double)RyanJsonCount * 100.0) / (double)cJSONCount;
-	printf("比cJSON节省: %.2f%% 内存占用\r\n", save_vs_cjson);
+	double save_vs_yyjson = 100.0 - ((double)RyanJsonCount * 100.0) / (double)yyjsonCount;
+
+	printf("比cJSON节省: %.2f%% 内存占用, 比yyjson节省: %.2f%% 内存占用\r\n", save_vs_cjson, save_vs_yyjson);
 }
 
 RyanJsonBool_e RyanJsonMemoryFootprintTest(void)

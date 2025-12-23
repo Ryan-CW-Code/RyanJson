@@ -25,19 +25,22 @@ extern "C" {
 /* extern variables-----------------------------------------------------------*/
 
 extern RyanJsonBool_e compare_double(double a, double b);
-extern void printfJsonaaaa(RyanJson_t json);
+extern void printJsonDebug(RyanJson_t json);
 extern RyanJsonBool_e rootNodeCheckTest(RyanJson_t json);
 extern RyanJsonBool_e itemNodeCheckTest(RyanJson_t json);
 extern RyanJsonBool_e arrayNodeCheckTest(RyanJson_t json);
 extern RyanJsonBool_e arrayItemNodeCheckTest(RyanJson_t json);
 extern RyanJsonBool_e RyanJsonBaseTestCheckRoot(RyanJson_t pJson);
 
-extern RyanJsonBool_e RyanJsonBaseTestCreateJson();
-extern RyanJsonBool_e RyanJsonBaseTestLoadJson();
 extern RyanJsonBool_e RyanJsonBaseTestChangeJson();
 extern RyanJsonBool_e RyanJsonBaseTestCompareJson();
+extern RyanJsonBool_e RyanJsonBaseTestCreateJson();
+extern RyanJsonBool_e RyanJsonBaseTestDeleteJson();
+extern RyanJsonBool_e RyanJsonBaseTestDetachJson();
 extern RyanJsonBool_e RyanJsonBaseTestDuplicateJson();
 extern RyanJsonBool_e RyanJsonBaseTestForEachJson();
+extern RyanJsonBool_e RyanJsonBaseTestLoadJson();
+extern RyanJsonBool_e RyanJsonBaseTestReplaceJson();
 
 #ifdef __cplusplus
 }

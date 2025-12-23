@@ -4,12 +4,6 @@
 
 typedef int (*jsonParseData)(char *fileName, char *data, uint32_t len);
 
-// static void *yy_malloc(void *ctx, size_t size) { return v_malloc(size); }
-// static void *yy_realloc(void *ctx, void *ptr, size_t old_size, size_t size) { return v_realloc(ptr, size); }
-// static void yy_free(void *ctx, void *ptr) { v_free(ptr); }
-
-// static yyjson_alc yyalc = {yy_malloc, yy_realloc, yy_free, NULL};
-
 /* Read a file, parse, render back, etc. */
 static int testFile(const char *path, jsonParseData jsonParseDataHandle)
 {
@@ -108,7 +102,7 @@ fail:
 typedef struct
 {
 	const char *p;
-	size_t len;
+	int32_t len;
 } Slice;
 
 static int hexval(int c)
@@ -128,15 +122,15 @@ static int decode_u4(const char *s, uint16_t *out)
 }
 
 // 将 JSON 字符串（不含两端引号）规范化为 UTF-8 字节序列
-static int normalize_json_string(const char *in, size_t in_len, unsigned char **out, size_t *out_len)
+static int normalize_json_string(const char *in, int32_t in_len, unsigned char **out, int32_t *out_len)
 {
 	// 预留足够缓冲
-	size_t cap = in_len * 4 + 8;
+	int32_t cap = in_len * 4 + 8;
 	unsigned char *buf = (unsigned char *)malloc(cap);
 	if (!buf) { return 0; }
-	size_t pos = 0;
+	int32_t pos = 0;
 
-	for (size_t i = 0; i < in_len; i++)
+	for (int32_t i = 0; i < in_len; i++)
 	{
 		unsigned char ch = (unsigned char)in[i];
 
@@ -256,10 +250,10 @@ static int normalize_json_string(const char *in, size_t in_len, unsigned char **
 }
 
 // 比较：规范化两侧为 UTF-8 字节序列，再 memcmp
-static int json_string_equal_semantic(const char *a, size_t a_len, const char *b, size_t b_len)
+static int json_string_equal_semantic(const char *a, int32_t a_len, const char *b, int32_t b_len)
 {
 	unsigned char *na = NULL, *nb = NULL;
-	size_t nla = 0, nlb = 0;
+	int32_t nla = 0, nlb = 0;
 
 	if (!normalize_json_string(a, a_len, &na, &nla)) { return 0; }
 	if (!normalize_json_string(b, b_len, &nb, &nlb))
@@ -273,12 +267,12 @@ static int json_string_equal_semantic(const char *a, size_t a_len, const char *b
 	free(nb);
 	return eq;
 }
-#include <ctype.h>
+
 /* 去空白 */
-static void trim(const char **s, size_t *len)
+static void trim(const char **s, int32_t *len)
 {
 	const char *p = *s;
-	size_t n = *len;
+	int32_t n = *len;
 	while (n && isspace((unsigned char)*p))
 	{
 		p++;
@@ -290,10 +284,10 @@ static void trim(const char **s, size_t *len)
 }
 
 /* 是否是带双引号的字符串值 */
-static int is_quoted_string(const char *s, size_t len) { return len >= 2 && s[0] == '\"' && s[len - 1] == '\"'; }
+static int is_quoted_string(const char *s, int32_t len) { return len >= 2 && s[0] == '\"' && s[len - 1] == '\"'; }
 
 /* 值级语义比较：字符串（去引号并 normalize）、数字（含科学计数法）、布尔、null */
-static int json_scalar_equal(const char *a, size_t a_len, const char *b, size_t b_len)
+static int json_scalar_equal(const char *a, int32_t a_len, const char *b, int32_t b_len)
 {
 	trim(&a, &a_len);
 	trim(&b, &b_len);
@@ -302,12 +296,12 @@ static int json_scalar_equal(const char *a, size_t a_len, const char *b, size_t 
 	if (is_quoted_string(a, a_len) && is_quoted_string(b, b_len))
 	{
 		const char *as = a + 1;
-		size_t al = a_len - 2;
+		int32_t al = a_len - 2;
 		const char *bs = b + 1;
-		size_t bl = b_len - 2;
+		int32_t bl = b_len - 2;
 
 		unsigned char *na = NULL, *nb = NULL;
-		size_t nla = 0, nlb = 0;
+		int32_t nla = 0, nlb = 0;
 		if (!normalize_json_string(as, al, &na, &nla)) { return 0; }
 		if (!normalize_json_string(bs, bl, &nb, &nlb))
 		{
@@ -368,13 +362,13 @@ static int json_scalar_equal(const char *a, size_t a_len, const char *b, size_t 
 }
 
 /* 提取一元素数组的唯一元素；若不是一元素数组返回 0 */
-static int extract_single_array_element(const char *s, size_t len, const char **elem, size_t *elem_len)
+static int extract_single_array_element(const char *s, int32_t len, const char **elem, int32_t *elem_len)
 {
 	trim(&s, &len);
 	if (len < 2 || s[0] != '[' || s[len - 1] != ']') { return 0; }
 
 	const char *p = s + 1;
-	size_t n = len - 2;
+	int32_t n = len - 2;
 
 	/* 去前后空白 */
 	trim(&p, &n);
@@ -383,7 +377,7 @@ static int extract_single_array_element(const char *s, size_t len, const char **
 	/* 扫描逗号，确保只有一个元素（字符串中的逗号不算） */
 	int in_str = 0;
 	int escape = 0;
-	for (size_t i = 0; i < n; i++)
+	for (int32_t i = 0; i < n; i++)
 	{
 		char c = p[i];
 		if (in_str)
@@ -413,10 +407,10 @@ static int extract_single_array_element(const char *s, size_t len, const char **
 }
 
 /* 顶层比较：若两侧都是一元素数组则剥离后比较；否则直接按值级比较 */
-static int json_value_equal(const char *a, size_t a_len, const char *b, size_t b_len)
+static int json_value_equal(const char *a, int32_t a_len, const char *b, int32_t b_len)
 {
 	const char *ae = NULL, *be = NULL;
-	size_t ale = 0, ble = 0;
+	int32_t ale = 0, ble = 0;
 
 	if (extract_single_array_element(a, a_len, &ae, &ale) && extract_single_array_element(b, b_len, &be, &ble))
 	{
@@ -424,6 +418,20 @@ static int json_value_equal(const char *a, size_t a_len, const char *b, size_t b
 	}
 
 	return json_scalar_equal(a, a_len, b, b_len);
+}
+
+static void checkadjfladjfl(char *data, uint32_t len, char *str, uint32_t strLen, uint32_t *alksdjfCOunt)
+{
+	if (0 != strcmp(data, str))
+	{
+		// data/str 是去掉两端引号后的 JSON 字符串内容，并且有长度
+		if (!json_value_equal(data, len, str, strLen))
+		{
+			(*alksdjfCOunt)++;
+			// 打印时避免 %s，被 NUL 截断；可以打印十六进制
+			printf("%d 数据不完全一致 -- 原始: %s -- 序列化: %s\n", *alksdjfCOunt, data, str);
+		}
+	}
 }
 
 /**
@@ -447,8 +455,8 @@ static int RyanJsonParseData(char *fileName, char *data, uint32_t len)
 	if (NULL == json) { return -1; }
 
 #ifdef PrintfStrCmpEnable
-	int32_t strLena = 0;
-	char *str = RyanJsonPrint(json, 60, RyanJsonFalse, &strLena);
+	int32_t strLen = 0;
+	char *str = RyanJsonPrint(json, 60, RyanJsonFalse, &strLen);
 	if (NULL == str)
 	{
 		printf("反序列化失败: [%s]\n", data);
@@ -456,23 +464,8 @@ static int RyanJsonParseData(char *fileName, char *data, uint32_t len)
 	}
 
 	RyanJsonMinify(data, len);
-	// {"foo\u0000bar":42}
 	static uint32_t alksdjfCOunt = 0;
-
-	if (0 != strcmp(data, str))
-	{
-		// if (data[0] = '[' && data[len - 1] = ']' && str[0] = '[' && str[strLena - 1] = ']') {
-
-		// }
-		// data/str 是去掉两端引号后的 JSON 字符串内容，并且有长度
-		if (!json_value_equal(data, len, str, strLena))
-		{
-			alksdjfCOunt++;
-			// 打印时避免 %s，被 NUL 截断；可以打印十六进制
-			// printf("%d %s 数据不一致 -- 原始: %s -- 序列化: %s\n", alksdjfCOunt, fileName, data, str);
-			// printf("数据不一致 -- 原始len:%zu -- 序列化len:%zu\n", data_len, str_len);
-		}
-	}
+	checkadjfladjfl(data, len, str, strLen, &alksdjfCOunt);
 
 	RyanJsonFree(str);
 #endif
@@ -514,7 +507,8 @@ static int cJSONParseData(char *fileName, char *data, uint32_t len)
 	}
 
 	cJSON_Minify(data);
-	// if (0 != strcmp(data, str)) { printf("-- 原始: %s -- 序列化: %s\n", data, str); }
+	static uint32_t alksdjfCOunt = 0;
+	checkadjfladjfl(data, len, str, strlen(str), &alksdjfCOunt);
 
 	cJSON_free(str);
 #endif
@@ -536,36 +530,35 @@ err:
  */
 static int yyjsonParseData(char *fileName, char *data, uint32_t len)
 {
+	if (strcmp(fileName, "n_structure_100000_opening_arrays.json") == 0 ||
+	    strcmp(fileName, "n_structure_open_array_object.json") == 0 || strcmp(fileName, "n_structure_100000_opening_arrays.json") == 0)
+	{
+		return -1;
+	}
 
-	// 	if (strcmp(fileName, "n_structure_100000_opening_arrays.json") == 0 ||
-	// 	    strcmp(fileName, "n_structure_open_array_object.json") == 0 || strcmp(fileName,
-	// "n_structure_100000_opening_arrays.json") == 0)
-	// 	{
-	// 		return -1;
-	// 	}
+	yyjson_doc *doc = yyjson_read(data, len, 0);
+	if (NULL == doc) { return -1; }
 
-	// 	yyjson_doc *doc = yyjson_read_opts(data, len, YYJSON_READ_NOFLAG, &yyalc, NULL);
-	// 	if (NULL == doc) { return -1; }
+#ifdef PrintfStrCmpEnable
+	char *str = yyjson_write(doc, 0, NULL);
+	if (NULL == str)
+	{
+		printf("反序列化失败: [%s]\n", data);
+		goto err;
+	}
 
-	// #ifdef PrintfStrCmpEnable
-	// 	char *str = yyjson_write_opts(doc, YYJSON_WRITE_NOFLAG, &yyalc, NULL, NULL);
-	// 	if (NULL == str)
-	// 	{
-	// 		printf("反序列化失败: [%s]\n", data);
-	// 		goto err;
-	// 	}
+	cJSON_Minify(data);
+	static uint32_t alksdjfCOunt = 0;
+	checkadjfladjfl(data, len, str, strlen(str), &alksdjfCOunt);
 
-	// 	cJSON_Minify(data);
-	// 	if (0 != strcmp(data, str)) { printf("-- 原始: %s -- 序列化: %s\n", data, str); }
+	free(str);
+#endif
 
-	// 	free(str);
-	// #endif
-
-	// 	yyjson_doc_free(doc);
-	// 	return 0;
-	// err:
-	// 	yyjson_doc_free(doc);
-	// 	return -1;
+	yyjson_doc_free(doc);
+	return 0;
+err:
+	yyjson_doc_free(doc);
+	return -1;
 }
 
 // RFC 8259 JSON Test Suite
@@ -596,13 +589,13 @@ RyanJsonBool_e RFC8259JsonTest(void)
 		goto err;
 	}
 
-	// printf("\r\n--------------------------- RFC8259  yyjson --------------------------\r\n");
-	// result = testFile("../../../../test//RFC8259JsonData", yyjsonParseData);
-	// if (0 != result)
-	// {
-	// 	printf("%s:%d yyjson RFC8259JsonTest fail\r\n", __FILE__, __LINE__);
-	// 	goto err;
-	// }
+	printf("\r\n--------------------------- RFC8259  yyjson --------------------------\r\n");
+	result = testFile("../../../../test//RFC8259JsonData", yyjsonParseData);
+	if (0 != result)
+	{
+		printf("%s:%d yyjson RFC8259JsonTest fail\r\n", __FILE__, __LINE__);
+		goto err;
+	}
 
 	displayMem();
 	return RyanJsonTrue;

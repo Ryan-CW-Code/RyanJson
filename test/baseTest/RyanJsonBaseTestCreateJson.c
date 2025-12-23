@@ -76,7 +76,7 @@ RyanJsonBool_e RyanJsonBaseTestCreateJson()
 
 	RyanJsonAddItemToObject(jsonRoot, "arrayItem", arrayItem);
 
-	RyanJsonCheckCode(RyanJsonTrue != RyanJsonBaseTestCheckRoot(jsonRoot), {
+	RyanJsonCheckCode(RyanJsonTrue == RyanJsonBaseTestCheckRoot(jsonRoot), {
 		RyanJsonDelete(jsonRoot);
 		return RyanJsonFalse;
 	});

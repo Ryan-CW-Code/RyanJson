@@ -1,43 +1,26 @@
 #include "RyanJsonTest.h"
 #include <signal.h>
 
-// cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-// ./build/linux/x86/release/RyanJson -dict=./test/fuzzer/RyanJsonFuzzer.dict
-// ./build/linux/x86/release/RyanJson -dict=./test/fuzzer/RyanJsonFuzzer.dict -timeout=10 -runs=999999 -max_len=8192 -print_final_stats=0
-// -verbosity=0 test/fuzzer/input
-// ./build/linux/x86/release/RyanJson -dict=./test/fuzzer/RyanJsonFuzzer.dict -timeout=10 -runs=99999 -verbosity=0 -max_len=8192
-
-// llvm-profdata merge -sparse default.profraw -o default.profdata
-// 文本报告
-// llvm-cov report ./build/linux/x86/release/RyanJson -instr-profile=default.profdata
-// html报告
-// llvm-cov show ./build/linux/x86/release/RyanJson -instr-profile=default.profdata -format=html -output-dir=coverage_report
-// llvm-cov show ./build/linux/x86/release/RyanJson \
-//   -instr-profile=default.profdata \
-//   -format=html \
-//   -output-dir=coverage_report \
-//   -compilation-dir=/home/ryan/linux/appDev/RyanJson \
-//   -path-equivalence=/home/ryan/linux/appDev/RyanJson,./RyanJson
-
-// llvm-cov show ./build/linux/x86/release/RyanJson -instr-profile=default.profdata -format=html -output-dir=coverage_report
-// llvm-cov show ./build/linux/x86/release/RyanJson -instr-profile=default.profdata -name=RyanJson -format=html > coverage_report.html
-// llvm-cov show ./build/linux/x86/release/RyanJson -instr-profile=default.profdata -name=FuzzMe
-
-// RyanJsonBool_e RyanJson
 #define RyanJsonCheckGotoExit(EX)                                                                                                          \
 	RyanJsonCheckCode(EX, {                                                                                                            \
 		result = RyanJsonFalse;                                                                                                    \
 		goto __exit;                                                                                                               \
 	})
+
 RyanJsonBool_e isadfa = RyanJsonTrue;
 
 static RyanJsonBool_e RyanJsonFuzzerTestByParseAndPrint(RyanJson_t pJson, const char *data, uint32_t size)
 {
+	RyanJsonAssert(NULL == RyanJsonPrint(NULL, 100, RyanJsonFalse, NULL));
+	RyanJsonAssert(NULL == RyanJsonPrintPreallocated(NULL, NULL, 100, RyanJsonFalse, NULL));
+	RyanJsonAssert(NULL == RyanJsonPrintPreallocated(pJson, NULL, 100, RyanJsonFalse, NULL));
+	RyanJsonAssert(NULL == RyanJsonPrintPreallocated(NULL, data, 100, RyanJsonFalse, NULL));
+	RyanJsonAssert(NULL == RyanJsonPrintPreallocated(pJson, data, 0, RyanJsonFalse, NULL));
 
 	uint32_t len = 0;
-	char *jsonStr = RyanJsonPrint(pJson, 100, size % 2 ? RyanJsonFalse : RyanJsonTrue, &len); // 以带格式方式将数据打印出来
-	// printf("len222222222222222222: %d\r\n", len);
-	RyanJsonCheckReturnFlase(NULL != jsonStr && len > 0);
+	char *jsonStr =
+		RyanJsonPrint(pJson, size % 5 ? 100 : 0, size % 2 ? RyanJsonFalse : RyanJsonTrue, &len); // 以带格式方式将数据打印出来
+	RyanJsonCheckReturnFalse(NULL != jsonStr && len > 0);
 	RyanJsonFree(jsonStr);
 
 	{
@@ -89,6 +72,25 @@ static RyanJsonBool_e RyanJsonFuzzerTestByParseAndPrint(RyanJson_t pJson, const 
 		}
 	}
 
+	{
+		uint32_t bufLen = size * 3;
+		char *buf = malloc((size_t)bufLen);
+		if (buf)
+		{
+			memset(buf, 0, (size_t)bufLen);
+			memcpy(buf, data, (size_t)size);
+			RyanJson_t jsonRoot = RyanJsonParse(buf);
+			RyanJsonCheckCode(NULL != jsonRoot, {
+				free(buf);
+				return RyanJsonFalse;
+			});
+
+			RyanJsonPrintPreallocated(jsonRoot, buf, bufLen / 15, RyanJsonTrue, NULL);
+			free(buf);
+			RyanJsonDelete(jsonRoot);
+		}
+	}
+
 	return RyanJsonTrue;
 }
 
@@ -102,7 +104,7 @@ static RyanJsonBool_e RyanJsonFuzzerTestByDup(RyanJson_t pJson)
 	// 测试打印和复制功能
 	uint32_t len = 0;
 
-	jsonStr = RyanJsonPrint(pJson, 100, RyanJsonFalse, &len); // 以带格式方式将数据打印出来
+	jsonStr = RyanJsonPrint(pJson, 100, RyanJsonFalse, &len);
 	RyanJsonCheckGotoExit(NULL != jsonStr && len > 0);
 
 	pJsonDup = RyanJsonDuplicate(pJson);
@@ -260,12 +262,12 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachChange(RyanJson_t pJson, uint32
 		if (RyanJsonIsArray(pJson))
 		{
 			RyanJsonArrayForEach(pJson, item)
-			{ RyanJsonCheckReturnFlase(RyanJsonTrue == RyanJsonFuzzerTestByForEachChange(item, size)); }
+			{ RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonFuzzerTestByForEachChange(item, size)); }
 		}
 		else
 		{
 			RyanJsonObjectForEach(pJson, item)
-			{ RyanJsonCheckReturnFlase(RyanJsonTrue == RyanJsonFuzzerTestByForEachChange(item, size)); }
+			{ RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonFuzzerTestByForEachChange(item, size)); }
 		}
 	}
 
@@ -275,6 +277,24 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachChange(RyanJson_t pJson, uint32
 static RyanJsonBool_e RyanJsonFuzzerTestByForEachGet2(RyanJson_t lastJson, RyanJson_t pJson, uint32_t index, uint32_t size)
 {
 	RyanJsonIsNull(pJson);
+
+	RyanJsonAssert(NULL == RyanJsonGetValue(NULL));
+	RyanJsonAssert(NULL == RyanJsonGetKey(NULL));
+	RyanJsonAssert(NULL == RyanJsonGetStringValue(NULL));
+
+	RyanJsonAssert(NULL == RyanJsonGetObjectByKey(NULL, NULL));
+	RyanJsonAssert(NULL == RyanJsonGetObjectByKey(pJson, NULL));
+	RyanJsonAssert(NULL == RyanJsonGetObjectByKey(NULL, "NULL"));
+	if (!RyanJsonIsObject(pJson)) // pJson类型错误
+	{
+		RyanJsonAssert(NULL == RyanJsonGetObjectByKey(pJson, "NULL"));
+	}
+
+	RyanJsonAssert(NULL == RyanJsonGetObjectByIndex(NULL, 10));
+	if (!RyanJsonIsArray(pJson) && !RyanJsonIsObject(pJson)) // pJson类型错误
+	{
+		RyanJsonAssert(NULL == RyanJsonGetObjectByIndex(pJson, 0));
+	}
 
 	if (RyanJsonIsKey(pJson)) { RyanJsonGetObjectToKey(lastJson, RyanJsonGetKey(pJson)); }
 	else
@@ -293,6 +313,7 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachGet2(RyanJson_t lastJson, RyanJ
 
 static RyanJsonBool_e RyanJsonFuzzerTestByForEachGet(RyanJson_t pJson, uint32_t size)
 {
+
 	if (RyanJsonIsArray(pJson) || RyanJsonIsObject(pJson))
 	{
 		RyanJson_t item;
@@ -306,7 +327,7 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachGet(RyanJson_t pJson, uint32_t 
 	return RyanJsonTrue;
 }
 
-static RyanJson_t RyanJsonFuzzerTestalkdfjald(RyanJson_t pJson)
+static RyanJson_t RyanJsonFuzzerCreateRandomNode(RyanJson_t pJson)
 {
 	static int32_t count = 0;
 	static int32_t count2 = 0;
@@ -337,10 +358,40 @@ static RyanJson_t RyanJsonFuzzerTestalkdfjald(RyanJson_t pJson)
 static RyanJsonBool_e RyanJsonFuzzerTestByForEachCreate(RyanJson_t pJson, uint32_t size)
 {
 	// RyanJsonInsert的特殊情况
-	RyanJsonCheckReturnFlase(RyanJsonFalse == RyanJsonInsert(NULL, INT32_MAX, RyanJsonCreateString("key", "string")));
-	RyanJsonCheckReturnFlase(RyanJsonFalse == RyanJsonInsert(pJson, -10, RyanJsonCreateString("key", "string")));
-	RyanJsonCheckReturnFlase(RyanJsonFalse == RyanJsonInsert(pJson, INT32_MAX, NULL));
-	RyanJsonCheckReturnFlase(RyanJsonFalse == RyanJsonInsert(NULL, -10, NULL));
+	RyanJsonCheckReturnFalse(RyanJsonFalse == RyanJsonInsert(NULL, UINT32_MAX, RyanJsonCreateString("key", "string")));
+	RyanJsonCheckReturnFalse(RyanJsonFalse == RyanJsonInsert(pJson, UINT32_MAX, NULL));
+	RyanJsonCheckReturnFalse(RyanJsonFalse == RyanJsonInsert(NULL, 0, NULL));
+
+	RyanJsonAssert(NULL == RyanJsonCreateString(NULL, NULL));
+	RyanJsonAssert(NULL == RyanJsonCreateString("NULL", NULL));
+
+	RyanJsonAssert(RyanJsonFalse == RyanJsonChangeStringValue(NULL, NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonChangeStringValue(pJson, NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonChangeStringValue(NULL, "NULL"));
+	if (!RyanJsonIsKey(pJson) && !RyanJsonIsString(pJson)) // pJson类型错误
+	{
+		RyanJsonAssert(RyanJsonFalse == RyanJsonChangeStringValue(pJson, "NULL"));
+	}
+
+	RyanJsonAssert(RyanJsonFalse == RyanJsonChangeKey(NULL, NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonChangeKey(pJson, NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonChangeKey(NULL, "NULL"));
+	if (!RyanJsonIsKey(pJson) && !RyanJsonIsString(pJson)) // pJson类型错误
+	{
+		RyanJsonAssert(RyanJsonFalse == RyanJsonChangeKey(pJson, "NULL"));
+	}
+
+	RyanJsonAssert(RyanJsonFalse == RyanJsonAddItemToObject(NULL, NULL, NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonAddItemToObject(pJson, NULL, NULL));
+
+	RyanJsonAssert(NULL == RyanJsonCreateIntArray(NULL, 0));
+	RyanJsonAssert(NULL == RyanJsonCreateDoubleArray(NULL, 0));
+	RyanJsonAssert(NULL == RyanJsonCreateStringArray(NULL, 0));
+
+	RyanJsonAssert(RyanJsonFalse == RyanJsonHasObjectToKey(NULL, "0", "1", "2", "3"));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonHasObjectToIndex(NULL, 0, 1, 2, 3));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonHasObjectToKey(pJson, "0", "1", "2", "3"));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonHasObjectToIndex(pJson, 0, 1, 2, 3));
 
 	char *key = "keyaaa";
 	RyanJsonAddNullToObject(pJson, key);
@@ -381,14 +432,14 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachCreate(RyanJson_t pJson, uint32
 
 		RyanJsonObjectForEach(pJson, item) { RyanJsonFuzzerTestByForEachCreate(item, size); }
 
-		RyanJson_t pJson2 = RyanJsonFuzzerTestalkdfjald(pJson);
+		RyanJson_t pJson2 = RyanJsonFuzzerCreateRandomNode(pJson);
 		RyanJsonAddItemToObject(pJson, key, pJson2);
 
 		if (RyanJsonIsArray(pJson))
 		{
 			RyanJsonAddNullToArray(pJson);
 			RyanJsonAddBoolToArray(pJson, size % 2 ? RyanJsonTrue : RyanJsonFalse);
-			RyanJsonAddItemToArray(pJson, RyanJsonFuzzerTestalkdfjald(RyanJsonGetArrayValue(pJson)));
+			RyanJsonAddItemToArray(pJson, RyanJsonFuzzerCreateRandomNode(RyanJsonGetArrayValue(pJson)));
 		}
 	}
 
@@ -405,6 +456,43 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachCreate(RyanJson_t pJson, uint32
  */
 static RyanJsonBool_e RyanJsonFuzzerTestByForEachReplace(RyanJson_t pJson, uint32_t size)
 {
+	{
+		isadfa = RyanJsonFalse;
+		RyanJson_t strItem = RyanJsonCreateString("", "NULL");
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByKey(NULL, NULL, NULL));
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByKey(pJson, NULL, NULL));
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByKey(NULL, "NULL", NULL));
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByKey(NULL, NULL, strItem));
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByKey(pJson, "NULL", NULL));
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByKey(NULL, "NULL", strItem));
+		if (!RyanJsonIsObject(pJson)) // pJson类型错误
+		{
+			RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByKey(pJson, "NULL", strItem));
+		}
+
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByIndex(NULL, 0, NULL));
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByIndex(pJson, 0, NULL));
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByIndex(NULL, 0, strItem));
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByIndex(pJson, 0, NULL));
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByIndex(NULL, 0, strItem));
+		if (!RyanJsonIsArray(pJson) && !RyanJsonIsObject(pJson)) // pJson类型错误
+		{
+			RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByIndex(pJson, 0, strItem));
+		}
+
+		RyanJson_t objItem = RyanJsonCreateObject();
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByKey(objItem, "NULL", strItem));
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByIndex(objItem, 0, strItem));
+
+		RyanJsonAddItemToObject(objItem, "item", RyanJsonCreateObject());
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByKey(objItem, "NULL222", strItem));
+		RyanJsonAssert(RyanJsonFalse == RyanJsonReplaceByIndex(objItem, INT32_MAX, strItem));
+		isadfa = RyanJsonTrue;
+
+		RyanJsonDelete(objItem);
+		RyanJsonDelete(strItem);
+	}
+
 	// 只处理数组或对象
 	if (!(RyanJsonIsArray(pJson) || RyanJsonIsObject(pJson))) { return RyanJsonTrue; }
 
@@ -425,7 +513,7 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachReplace(RyanJson_t pJson, uint3
 	{
 		if (LastItem && RyanJsonIsKey(LastItem))
 		{
-			RyanJson_t newNode = RyanJsonFuzzerTestalkdfjald(pJson);
+			RyanJson_t newNode = RyanJsonFuzzerCreateRandomNode(pJson);
 			if (RyanJsonFalse == RyanJsonReplaceByKey(pJson, RyanJsonGetKey(LastItem), newNode))
 			{
 				if (newNode) { RyanJsonDelete(newNode); }
@@ -437,7 +525,7 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachReplace(RyanJson_t pJson, uint3
 	// 按 index 替换
 	{
 		uint32_t idx = RyanJsonGetSize(pJson) % size;
-		RyanJson_t newNode = RyanJsonFuzzerTestalkdfjald(pJson);
+		RyanJson_t newNode = RyanJsonFuzzerCreateRandomNode(pJson);
 		if (RyanJsonFalse == RyanJsonReplaceByIndex(pJson, (size % 25) ? idx : 0, newNode))
 		{
 			if (newNode) { RyanJsonDelete(newNode); }
@@ -458,6 +546,20 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachReplace(RyanJson_t pJson, uint3
  */
 static RyanJsonBool_e RyanJsonFuzzerTestByForEachDetach(RyanJson_t pJson, uint32_t size)
 {
+	RyanJsonAssert(RyanJsonFalse == RyanJsonDetachByKey(NULL, NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonDetachByKey(pJson, NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonDetachByKey(NULL, "NULL"));
+	if (!RyanJsonIsObject(pJson)) // pJson类型错误
+	{
+		RyanJsonAssert(NULL == RyanJsonDetachByKey(pJson, "NULL"));
+	}
+
+	RyanJsonAssert(NULL == RyanJsonDetachByIndex(NULL, 10));
+	if (!RyanJsonIsArray(pJson) && !RyanJsonIsObject(pJson)) // pJson类型错误
+	{
+		RyanJsonAssert(NULL == RyanJsonDetachByIndex(pJson, 0));
+	}
+
 	if (!(RyanJsonIsArray(pJson) || RyanJsonIsObject(pJson))) { return RyanJsonTrue; }
 
 	// 递归遍历子节点
@@ -478,12 +580,14 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachDetach(RyanJson_t pJson, uint32
 		{
 			RyanJson_t detached = RyanJsonDetachByKey(pJson, RyanJsonGetKey(LastItem));
 			if (detached) { RyanJsonDelete(detached); }
+
+			// RyanJsonAssert(RyanJsonFalse == RyanJsonDetachByKey(pJson, RyanJsonGetKey(LastItem)));
 		}
 	}
 
 	// 按 index 分离
 	{
-		int32_t idx = RyanJsonGetSize(pJson) % size;
+		uint32_t idx = RyanJsonGetSize(pJson) % size;
 		RyanJson_t detached = RyanJsonDetachByIndex(pJson, (size % 25) ? idx : 0);
 		if (detached) { RyanJsonDelete(detached); }
 	}
@@ -555,11 +659,12 @@ static RyanJsonBool_e RyanJsonFuzzerTestByMinify(const char *data, uint32_t size
 	uint32_t size2 = RyanJsonMinify(buf, size);
 	// 非法情况
 	{
-		RyanJsonCheckReturnFlase(0 == RyanJsonMinify(NULL, 0));
-		RyanJsonCheckReturnFlase(0 == RyanJsonMinify(NULL, 10));
-		RyanJsonCheckReturnFlase(0 == RyanJsonMinify(NULL, -10));
-		RyanJsonCheckReturnFlase(0 == RyanJsonMinify(buf, -10));
+		RyanJsonCheckReturnFalse(0 == RyanJsonMinify(NULL, 0));
+		RyanJsonCheckReturnFalse(0 == RyanJsonMinify(NULL, 10));
+		RyanJsonCheckReturnFalse(0 == RyanJsonMinify(NULL, -10));
+		RyanJsonCheckReturnFalse(0 == RyanJsonMinify(buf, -10));
 	}
+
 	// 内存泄漏就是上面出错了
 	RyanJson_t pJson2 = RyanJsonParseOptions(buf, size2, size % 2 ? RyanJsonTrue : RyanJsonFalse, NULL);
 	free(buf);
@@ -588,7 +693,7 @@ static void *RyanJsonFuzzerMalloc(size_t size)
 	count++;
 	if (RyanJsonTrue == isadfa)
 	{
-		if (0 == count % 709) { return NULL; }
+		if (0 == count % 598) { return NULL; }
 	}
 	return (char *)v_malloc(size);
 }
@@ -601,46 +706,47 @@ static void *RyanJsonFuzzerRealloc(void *block, size_t size)
 	count++;
 	if (RyanJsonTrue == isadfa)
 	{
-		if (0 == count % 708) { return NULL; }
+		if (0 == count % 508) { return NULL; }
 	}
 	return (char *)v_realloc(block, size);
 }
 
-// 需要模拟内存故障
-// tokey需要增加s测试
 int LLVMFuzzerTestOneInput(const char *data, uint32_t size)
 {
 
 	// !检查分支覆盖率的时候要把这个取消掉,否则不知道是这个测试用例还是Fuzzer触发的，期望的是Fuzzer触发
-	// {
-	// 	// 执行基础测试
-	// 	static bool isFirst = true;
-	// 	if (true == isFirst)
-	// 	{
-	// 		RyanJsonBool_e result = RyanJsonBaseTest();
-	// 		if (RyanJsonTrue != result)
-	// 		{
-	// 			printf("%s:%d RyanJsonTest fail\r\n", __FILE__, __LINE__);
-	// 			return -1;
-	// 		}
+	{
+		// // 执行基础测试
+		// static bool isFirst = true;
+		// if (true == isFirst)
+		// {
+		// 	RyanJsonBool_e result = RyanJsonBaseTest();
+		// 	if (RyanJsonTrue != result)
+		// 	{
+		// 		printf("%s:%d RyanJsonTest fail\r\n", __FILE__, __LINE__);
+		// 		return -1;
+		// 	}
 
-	// 		result = RFC8259JsonTest();
-	// 		// if (RyanJsonTrue != result)
-	// 		// {
-	// 		// 	printf("%s:%d RFC8259JsonTest fail\r\n", __FILE__, __LINE__);
-	// 		// 	return -1;
-	// 		// }
-	// 		isFirst = false;
-	// 	}
-	// }
+		// 	RFC8259JsonTest();
+		// 	isFirst = false;
+		// }
+	}
 
 	// for (int i = 0; i < size; i++) { printf("%c", size, data[i]); }
 	// printf("\r\n");
 
+	RyanJsonInitHooks(NULL, RyanJsonFuzzerFree, RyanJsonFuzzerRealloc);
+	RyanJsonInitHooks(RyanJsonFuzzerMalloc, NULL, RyanJsonFuzzerRealloc);
+	RyanJsonInitHooks(RyanJsonFuzzerMalloc, RyanJsonFuzzerFree, NULL);
+	RyanJsonInitHooks(NULL, NULL, NULL);
+
 	RyanJsonInitHooks(RyanJsonFuzzerMalloc, RyanJsonFuzzerFree, size % 2 ? NULL : RyanJsonFuzzerRealloc);
 
+	RyanJsonAssert(NULL == RyanJsonParseOptions(NULL, 100, RyanJsonFalse, NULL));
+	RyanJsonAssert(NULL == RyanJsonParseOptions(data, 0, RyanJsonFalse, NULL));
+
 	const char *parseEndPtr = NULL;
-	RyanJson_t pJson = RyanJsonParseOptions(data, size, 0 ? RyanJsonTrue : RyanJsonFalse, &parseEndPtr);
+	RyanJson_t pJson = RyanJsonParseOptions(data, size, size % 3 ? RyanJsonTrue : RyanJsonFalse, &parseEndPtr);
 	if (NULL != pJson)
 	{
 		assert(NULL != parseEndPtr && parseEndPtr - data <= size);
@@ -674,7 +780,6 @@ int LLVMFuzzerTestOneInput(const char *data, uint32_t size)
 		RyanJsonFuzzerTestByDup(pJson);
 		RyanJsonCheckCode(RyanJsonFuzzerTestByForEachChange(pJson, size), { goto __exit; });
 		RyanJsonCheckCode(RyanJsonFuzzerTestByForEachCreate(pJson, size), { goto __exit; });
-
 		RyanJsonCheckCode(RyanJsonFuzzerTestByForEachReplace(pJson, size), { goto __exit; });
 
 		RyanJsonDelete(pJson);

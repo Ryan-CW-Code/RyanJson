@@ -50,7 +50,7 @@ uint64_t platformUptimeMs(void)
 
 RyanJsonBool_e RyanJsonBaseTest(void)
 {
-	int result = 0;
+	int32_t result = 0;
 	RyanJsonInitHooks(v_malloc, v_free, v_realloc);
 
 	uint32_t testRunCount = 0;
@@ -62,17 +62,20 @@ RyanJsonBool_e RyanJsonBaseTest(void)
 		printf("┌── [TEST %d] 开始执行: " #fun "()\r\n", testRunCount);                                                            \
 		funcStartMs = platformUptimeMs();                                                                                          \
 		result = fun();                                                                                                            \
-		printf("└── [TEST %d] 结束执行: 返回值 = %d %s | 耗时: %llu ms\x1b[0m\r\n\r\n", testRunCount, result,                      \
-		       (result == RyanJsonTrue) ? "✅" : "❌", (platformUptimeMs() - funcStartMs));                                        \
+		printf("└── [TEST %" PRIu32 "] 结束执行: 返回值 = %" PRId32 " %s | 耗时: %" PRIu64 " ms\x1b[0m\r\n\r\n", testRunCount,     \
+		       result, (result == RyanJsonTrue) ? "✅" : "❌", (platformUptimeMs() - funcStartMs));                                \
 		RyanJsonCheckCodeNoReturn(RyanJsonTrue == result, { goto __exit; });                                                       \
 	} while (0)
 
-	runTestWithLogAndTimer(RyanJsonBaseTestLoadJson);      // 从文本解析json测试
-	runTestWithLogAndTimer(RyanJsonBaseTestCreateJson);    // 创建json节点树测试
-	runTestWithLogAndTimer(RyanJsonBaseTestChangeJson);    // 修改json节点测试,包含删除、分离
-	runTestWithLogAndTimer(RyanJsonBaseTestCompareJson);   // 修改json节点测试,包含删除、分离
-	runTestWithLogAndTimer(RyanJsonBaseTestDuplicateJson); // 复制测试
-	runTestWithLogAndTimer(RyanJsonBaseTestForEachJson);   // 循环测试
+	runTestWithLogAndTimer(RyanJsonBaseTestChangeJson);    // JSON 修改功能的条件覆盖测试
+	runTestWithLogAndTimer(RyanJsonBaseTestCompareJson);   // 节点比较与一致性验证
+	runTestWithLogAndTimer(RyanJsonBaseTestCreateJson);    // 节点创建与结构正确性检查
+	runTestWithLogAndTimer(RyanJsonBaseTestDeleteJson);    // JSON 删除功能的条件覆盖测试
+	runTestWithLogAndTimer(RyanJsonBaseTestDetachJson);    // 节点分离操作的条件覆盖测试
+	runTestWithLogAndTimer(RyanJsonBaseTestDuplicateJson); // 节点复制的深拷贝与浅拷贝验证
+	runTestWithLogAndTimer(RyanJsonBaseTestForEachJson);   // 节点遍历与迭代稳定性测试
+	runTestWithLogAndTimer(RyanJsonBaseTestLoadJson);      // JSON 文本解析与加载能力验证
+	runTestWithLogAndTimer(RyanJsonBaseTestReplaceJson);   // 节点替换功能的条件覆盖测试
 
 	// result = likeReferenceTest(); // 模仿 引用类型实现 示例
 	// if (0 != result)

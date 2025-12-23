@@ -39,7 +39,7 @@ RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, const char *key, ...)
  */
 RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, uint32_t index, ...)
 {
-	RyanJsonCheckReturnNull(NULL != pJson && index >= 0);
+	RyanJsonCheckReturnNull(NULL != pJson);
 
 	uint32_t nextIndex = index;
 	RyanJson_t nextItem = RyanJsonGetObjectByIndex(pJson, nextIndex);
@@ -48,7 +48,7 @@ RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, uint32_t index, ...)
 	va_list args;
 	va_start(args, index);
 	nextIndex = va_arg(args, uint32_t);
-	while (nextItem && nextIndex > 0)
+	while (nextItem && UINT32_MAX != nextIndex)
 	{
 		nextItem = RyanJsonGetObjectByIndex(nextItem, nextIndex);
 		nextIndex = va_arg(args, uint32_t);
@@ -67,7 +67,7 @@ RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, uint32_t index, ...)
  */
 RyanJson_t RyanJsonCreateIntArray(const int32_t *numbers, uint32_t count)
 {
-	RyanJsonCheckReturnNull(NULL != numbers && count > 0);
+	RyanJsonCheckReturnNull(NULL != numbers);
 
 	RyanJson_t pJson = RyanJsonCreateArray();
 	for (uint32_t i = 0; pJson && i < count; i++) { RyanJsonAddIntToArray(pJson, numbers[i]); }
@@ -83,7 +83,7 @@ RyanJson_t RyanJsonCreateIntArray(const int32_t *numbers, uint32_t count)
  */
 RyanJson_t RyanJsonCreateDoubleArray(const double *numbers, uint32_t count)
 {
-	RyanJsonCheckReturnNull(NULL != numbers && count > 0);
+	RyanJsonCheckReturnNull(NULL != numbers);
 
 	RyanJson_t pJson = RyanJsonCreateArray();
 	for (uint32_t i = 0; pJson && i < count; i++) { RyanJsonAddDoubleToArray(pJson, numbers[i]); }
@@ -99,7 +99,7 @@ RyanJson_t RyanJsonCreateDoubleArray(const double *numbers, uint32_t count)
  */
 RyanJson_t RyanJsonCreateStringArray(const char **strings, uint32_t count)
 {
-	RyanJsonCheckReturnNull(NULL != strings && count > 0);
+	RyanJsonCheckReturnNull(NULL != strings);
 
 	RyanJson_t pJson = RyanJsonCreateArray();
 	for (uint32_t i = 0; pJson && i < count; i++) { RyanJsonAddStringToArray(pJson, strings[i]); }

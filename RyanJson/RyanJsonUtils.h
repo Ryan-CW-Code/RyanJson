@@ -18,15 +18,25 @@ extern RyanJson_t RyanJsonCreateStringArray(const char **strings, uint32_t count
 extern RyanJsonBool_e RyanJsonCompareOnlyKey(RyanJson_t leftJson, RyanJson_t rightJson);
 
 /**
- * @brief 查询函数
+ * @brief 查询函数，此接口较为底层，请使用下发的宏定义调用
  */
 extern RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, uint32_t index, ...);
 extern RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, const char *key, ...);
+
+/**
+ * @brief 可使用此宏进行嵌套式查找，例如 RyanJsonGetObjectToKey(json, "test", "inter")
+ * 
+ */
 #define RyanJsonGetObjectToKey(pJson, key, ...)     RyanJsonGetObjectByKeys(pJson, (key), ##__VA_ARGS__, NULL)
-#define RyanJsonGetObjectToIndex(pJson, index, ...) RyanJsonGetObjectByIndexs(pJson, (index), ##__VA_ARGS__, 0)
+
+/**
+ * @brief 可使用此宏进行嵌套式查找，例如 RyanJsonGetObjectToIndex(json, 0, 2)
+ * 
+ */
+#define RyanJsonGetObjectToIndex(pJson, index, ...) RyanJsonGetObjectByIndexs(pJson, (index), ##__VA_ARGS__, UINT32_MAX)
 
 #define RyanJsonHasObjectToKey(pJson, key, ...)     RyanJsonMakeBool(RyanJsonGetObjectByKeys(pJson, key, ##__VA_ARGS__, NULL))
-#define RyanJsonHasObjectToIndex(pJson, index, ...) RyanJsonMakeBool(RyanJsonGetObjectByIndexs(pJson, index, ##__VA_ARGS__, 0))
+#define RyanJsonHasObjectToIndex(pJson, index, ...) RyanJsonMakeBool(RyanJsonGetObjectByIndexs(pJson, index, ##__VA_ARGS__, UINT32_MAX))
 
 #ifdef __cplusplus
 }

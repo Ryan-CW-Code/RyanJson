@@ -20,7 +20,7 @@ RyanJsonBool_e RyanJsonBaseTestLoadJson()
 			 "\"boolFalse\":false,\"null\":null}]}";
 
 	json = RyanJsonParse(jsonstr);
-	RyanJsonCheckReturnFlase(NULL != json);
+	RyanJsonCheckReturnFalse(NULL != json);
 
 	str = RyanJsonPrint(json, 250, RyanJsonFalse, NULL);
 	RyanJsonCheckCode(0 == strcmp(str, jsonstr), {
@@ -31,7 +31,7 @@ RyanJsonBool_e RyanJsonBaseTestLoadJson()
 
 	RyanJsonFree(str);
 
-	RyanJsonCheckCode(RyanJsonTrue != RyanJsonBaseTestCheckRoot(json), {
+	RyanJsonCheckCode(RyanJsonTrue == RyanJsonBaseTestCheckRoot(json), {
 		RyanJsonDelete(json);
 		return RyanJsonFalse;
 	});

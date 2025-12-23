@@ -12,33 +12,29 @@ extern "C" {
 #include <time.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <ctype.h>
 #include "valloc.h"
-// #define malloc  v_malloc
-// #define calloc  v_calloc
-// #define free    v_free
-// #define realloc v_realloc
-
 #include "RyanJson.h"
 #include "RyanJsonUtils.h"
 #include "cJSON.h"
-// #include "yyjson.h"
+#include "yyjson.h"
 
 #define getArraySize(arr) ((int32_t)(sizeof(arr) / sizeof((arr)[0])))
-#define checkMemory                                                                                                                                                                                    \
-	do                                                                                                                                                                                             \
-	{                                                                                                                                                                                              \
-		int area = 0, use = 0;                                                                                                                                                                 \
-		v_mcheck(&area, &use);                                                                                                                                                                 \
-		if (area != 0 || use != 0)                                                                                                                                                             \
-		{                                                                                                                                                                                      \
-			RyanMqttLog_e("内存泄漏");                                                                                                                                                     \
-			while (1)                                                                                                                                                                      \
-			{                                                                                                                                                                              \
-				v_mcheck(&area, &use);                                                                                                                                                 \
-				RyanMqttLog_e("|||----------->>> area = %d, size = %d", area, use);                                                                                                    \
-				delay(3000);                                                                                                                                                           \
-			}                                                                                                                                                                              \
-		}                                                                                                                                                                                      \
+#define checkMemory                                                                                                                        \
+	do                                                                                                                                 \
+	{                                                                                                                                  \
+		int area = 0, use = 0;                                                                                                     \
+		v_mcheck(&area, &use);                                                                                                     \
+		if (area != 0 || use != 0)                                                                                                 \
+		{                                                                                                                          \
+			RyanMqttLog_e("内存泄漏");                                                                                         \
+			while (1)                                                                                                          \
+			{                                                                                                                  \
+				v_mcheck(&area, &use);                                                                                     \
+				RyanMqttLog_e("|||----------->>> area = %d, size = %d", area, use);                                        \
+				delay(3000);                                                                                               \
+			}                                                                                                                  \
+		}                                                                                                                          \
 	} while (0)
 
 // 定义枚举类型
