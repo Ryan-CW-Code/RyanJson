@@ -16,6 +16,7 @@ build
 .dump
 .vscode-ctags
 
+.vscode
 default.profdata
 default.profraw
 test/fuzzer/corpus
