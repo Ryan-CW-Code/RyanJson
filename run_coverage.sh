@@ -8,7 +8,7 @@ set -e  # 遇到错误立即退出
   ./test/fuzzer/corpus \
   -dict=./test/fuzzer/RyanJsonFuzzer.dict \
   -timeout=2 \
-  -runs=99999 \
+  -runs=999999 \
   -verbosity=0 \
   -max_len=16384
 
@@ -27,6 +27,7 @@ llvm-cov report ./build/linux/x86/release/RyanJson \
   -instr-profile=default.profdata \
   -show-mcdc-summary \
   -show-functions \
+  -show-region-summary \
   -sources ./test/fuzzer ./RyanJson
 
 # ================================
@@ -36,4 +37,8 @@ llvm-cov show ./build/linux/x86/release/RyanJson \
   -instr-profile=default.profdata \
   -format=html \
   -output-dir=docs \
-  -show-mcdc-summary
+  -show-mcdc-summary \
+  -show-expansions \
+  -show-regions \
+  -show-line-counts-or-regions \
+  -sources ./test/fuzzer ./RyanJson

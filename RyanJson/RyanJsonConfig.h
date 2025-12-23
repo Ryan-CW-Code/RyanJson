@@ -47,7 +47,7 @@ extern "C" {
 // RyanJson使用递归 序列化/反序列化 json
 // 请根据单片机资源合理设置以防止堆栈溢出。
 #ifndef RyanJsonNestingLimit
-#define RyanJsonNestingLimit 9000000
+#define RyanJsonNestingLimit 3000
 #endif
 
 // 当 RyanJsonPrint 剩余缓冲空间不足时申请的空间大小

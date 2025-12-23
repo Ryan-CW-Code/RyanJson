@@ -15,14 +15,18 @@ extern "C" {
 	if (!(EX))                                                                                                                         \
 	{                                                                                                                                  \
 		jsonLog("\r\n%s:%d Check failed: %s\n", __FILE__, __LINE__, #EX);                                                          \
-		{code};                                                                                                                    \
+		code                                                                                                                       \
 	}
 
-#define RyanJsonCheckCode(EX, code) RyanJsonCheckCodeNoReturn(EX, { {code}; });
+#define RyanJsonCheckCode(EX, code) RyanJsonCheckCodeNoReturn(EX, code)
 
-#define RyanJsonCheckReturnFlase(EX) RyanJsonCheckCode(EX, { return RyanJsonFalse; })
-#define RyanJsonCheckReturnNull(EX)  RyanJsonCheckCode(EX, { return NULL; })
-#define RyanJsonCheckAssert(EX)      RyanJsonCheckCode(EX, { RyanJsonAssert(NULL && "RyanJsonCheckAssert"); })
+#define RyanJsonCheckReturnFalse(EX) RyanJsonCheckCode(EX, return RyanJsonFalse;)
+#define RyanJsonCheckReturnNull(EX)  RyanJsonCheckCode(EX, return NULL;)
+#ifdef RyanJsonEnableAssert
+#define RyanJsonCheckAssert(EX) RyanJsonCheckCode(EX, RyanJsonAssert(NULL && "RyanJsonCheckAssert");)
+#else
+#define RyanJsonCheckAssert(EX) (void)(EX)
+#endif
 
 // Json 的最基础节点，所有 Json 元素都由该节点表示。
 // 结构体中仅包含固定的 next 指针，用于单向链表串联。
@@ -89,7 +93,7 @@ struct RyanJsonNode
 	/*
 	 * 设计特点：
 	 * - 一个 Json 节点最多 malloc 两次（一次节点本身，一次可选的 key/stringValue），
-	 *   对嵌入式系统非常友好，减少 malloc 头部开销。
+	 *   对嵌入式系统非常友好，减少 malloc 头部开销, 尽可能的减少内存碎片。
 	 *
 	 * - key 和 stringValue 必须通过指针管理：
 	 *   * 如果直接放在节点里，虽然只需一次 malloc，
@@ -225,21 +229,21 @@ extern RyanJson_t RyanJsonGetObjectByIndex(RyanJson_t pJson, uint32_t index);
 #define RyanJsonHasObjectByIndex(pJson, index) RyanJsonMakeBool(RyanJsonGetObjectByIndex(pJson, index))
 
 /**
- * @brief 类型判断宏
+ * @brief RyanJson 类型判断接口
  */
-#define RyanJsonIsKey(pJson)    RyanJsonMakeBool(RyanJsonGetPayloadWhiteKeyByFlag(pJson))
-#define RyanJsonIsNull(pJson)   RyanJsonMakeBool(RyanJsonGetType(pJson) == RyanJsonTypeNull)
-#define RyanJsonIsBool(pJson)   RyanJsonMakeBool(RyanJsonGetType(pJson) == RyanJsonTypeBool)
-#define RyanJsonIsNumber(pJson) RyanJsonMakeBool(RyanJsonGetType(pJson) == RyanJsonTypeNumber)
-#define RyanJsonIsInt(pJson)    RyanJsonMakeBool(RyanJsonIsNumber(pJson) && (RyanJsonFalse == RyanJsonGetPayloadNumberIsDoubleByFlag(pJson)))
-#define RyanJsonIsDouble(pJson) RyanJsonMakeBool(RyanJsonIsNumber(pJson) && (RyanJsonTrue == RyanJsonGetPayloadNumberIsDoubleByFlag(pJson)))
-#define RyanJsonIsString(pJson) RyanJsonMakeBool(RyanJsonGetType(pJson) == RyanJsonTypeString)
-#define RyanJsonIsArray(pJson)  RyanJsonMakeBool(RyanJsonGetType(pJson) == RyanJsonTypeArray)
-#define RyanJsonIsObject(pJson) RyanJsonMakeBool(RyanJsonGetType(pJson) == RyanJsonTypeObject)
+extern RyanJsonBool_e RyanJsonIsKey(RyanJson_t pJson);
+extern RyanJsonBool_e RyanJsonIsNull(RyanJson_t pJson);
+extern RyanJsonBool_e RyanJsonIsBool(RyanJson_t pJson);
+extern RyanJsonBool_e RyanJsonIsNumber(RyanJson_t pJson);
+extern RyanJsonBool_e RyanJsonIsString(RyanJson_t pJson);
+extern RyanJsonBool_e RyanJsonIsArray(RyanJson_t pJson);
+extern RyanJsonBool_e RyanJsonIsObject(RyanJson_t pJson);
+extern RyanJsonBool_e RyanJsonIsInt(RyanJson_t pJson);
+extern RyanJsonBool_e RyanJsonIsDouble(RyanJson_t pJson);
 
 /**
  * @brief 取值宏
- * !取值宏使用前一定要RyanJsonIsXXXX类型判断宏做好判断,否则会内存访问越界
+ * !取值宏使用前一定要RyanJsonIsXXXX类型判断函数做好判断,否则会内存访问越界
  */
 extern char *RyanJsonGetKey(RyanJson_t pJson);
 extern char *RyanJsonGetStringValue(RyanJson_t pJson);
@@ -259,7 +263,7 @@ extern char *RyanJsonGetStringValue(RyanJson_t pJson);
 #define RyanJsonAddIntToObject(pJson, key, number)    RyanJsonInsert(pJson, UINT32_MAX, RyanJsonCreateInt(key, number))
 #define RyanJsonAddDoubleToObject(pJson, key, number) RyanJsonInsert(pJson, UINT32_MAX, RyanJsonCreateDouble(key, number))
 #define RyanJsonAddStringToObject(pJson, key, string) RyanJsonInsert(pJson, UINT32_MAX, RyanJsonCreateString(key, string))
-extern RyanJsonBool_e RyanJsonAddItemToObject(RyanJson_t pJson, char *key, RyanJson_t item);
+extern RyanJsonBool_e RyanJsonAddItemToObject(RyanJson_t pJson, const char *key, RyanJson_t item);
 
 #define RyanJsonAddNullToArray(pJson)           RyanJsonAddNullToObject(pJson, NULL)
 #define RyanJsonAddBoolToArray(pJson, boolean)  RyanJsonAddBoolToObject(pJson, NULL, boolean)

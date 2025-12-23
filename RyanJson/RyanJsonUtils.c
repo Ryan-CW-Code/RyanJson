@@ -48,7 +48,7 @@ RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, uint32_t index, ...)
 	va_list args;
 	va_start(args, index);
 	nextIndex = va_arg(args, uint32_t);
-	while (nextItem && nextIndex > 0)
+	while (nextItem && UINT32_MAX != nextIndex)
 	{
 		nextItem = RyanJsonGetObjectByIndex(nextItem, nextIndex);
 		nextIndex = va_arg(args, uint32_t);
