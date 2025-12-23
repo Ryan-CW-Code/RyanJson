@@ -41,4 +41,5 @@ llvm-cov show ./build/linux/x86/release/RyanJson \
   -show-expansions \
   -show-regions \
   -show-line-counts-or-regions \
-  -sources ./test/fuzzer ./RyanJson
+  -sources ./RyanJson
+#   -sources ./test/fuzzer ./RyanJson

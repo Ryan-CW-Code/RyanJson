@@ -2,7 +2,7 @@
 
 /* --------------------------------------------------------------------- */
 
-RyanJsonBool_e RyanJsonBaseTestDeleteJson()
+RyanJsonBool_e RyanJsonBaseTestDeleteJson(void)
 {
 	// 保持原始 jsonStr，不做修改
 	char jsonstr[] =

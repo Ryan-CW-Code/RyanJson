@@ -2,7 +2,7 @@
 
 /* --------------------------------------------------------------------- */
 
-RyanJsonBool_e RyanJsonBaseTestReplaceJson()
+RyanJsonBool_e RyanJsonBaseTestReplaceJson(void)
 {
 	char jsonstr[] =
 		"{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":"
@@ -96,7 +96,6 @@ RyanJsonBool_e RyanJsonBaseTestReplaceJson()
 	RyanJsonReplaceByIndex(RyanJsonGetObjectToKey(json, "arrayString"), 1, RyanJsonCreateString(NULL, "headString"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json, "arrayString"), 1);
-		printJsonDebug(v);
 		RyanJsonCheckCode(RyanJsonIsString(v), { goto err; });
 		RyanJsonCheckCode(strcmp(RyanJsonGetStringValue(v), "headString") == 0, { goto err; });
 	}

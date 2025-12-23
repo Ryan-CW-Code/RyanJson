@@ -1,7 +1,7 @@
 
 #include "RyanJsonBaseTest.h"
 
-RyanJsonBool_e RyanJsonBaseTestForEachJson()
+RyanJsonBool_e RyanJsonBaseTestForEachJson(void)
 {
 	char *str = NULL;
 	char jsonstr[] = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":"

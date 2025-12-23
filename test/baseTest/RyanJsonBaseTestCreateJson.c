@@ -1,7 +1,7 @@
 
 #include "RyanJsonBaseTest.h"
 
-RyanJsonBool_e RyanJsonBaseTestCreateJson()
+RyanJsonBool_e RyanJsonBaseTestCreateJson(void)
 {
 	RyanJson_t jsonRoot, item;
 

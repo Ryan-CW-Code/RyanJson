@@ -1,7 +1,7 @@
 
 #include "RyanJsonBaseTest.h"
 
-RyanJsonBool_e RyanJsonBaseTestDuplicateJson()
+RyanJsonBool_e RyanJsonBaseTestDuplicateJson(void)
 {
 	RyanJson_t json, dupItem, jsonRoot = NULL;
 	char jsonstr[] = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":"

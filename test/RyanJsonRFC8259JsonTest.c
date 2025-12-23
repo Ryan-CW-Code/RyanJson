@@ -66,8 +66,8 @@ static int testFile(const char *path, jsonParseData jsonParseDataHandle)
 		{
 			int area = 0, use = 0;
 			v_mcheck(&area, &use);
-			free(data);
 			printf("内存泄漏 %s len: %ld\r\n", data, len);
+            free(data);
 			// printf("内存泄漏 %x len: %ld\r\n", (unsigned int)data, len);
 			// printf("内存泄漏 %c len: %ld\r\n", (int)data, len);
 			printf("|||----------->>> area = %d, size = %d\r\n", area, use);

@@ -32,15 +32,15 @@ extern RyanJsonBool_e arrayNodeCheckTest(RyanJson_t json);
 extern RyanJsonBool_e arrayItemNodeCheckTest(RyanJson_t json);
 extern RyanJsonBool_e RyanJsonBaseTestCheckRoot(RyanJson_t pJson);
 
-extern RyanJsonBool_e RyanJsonBaseTestChangeJson();
-extern RyanJsonBool_e RyanJsonBaseTestCompareJson();
-extern RyanJsonBool_e RyanJsonBaseTestCreateJson();
-extern RyanJsonBool_e RyanJsonBaseTestDeleteJson();
-extern RyanJsonBool_e RyanJsonBaseTestDetachJson();
-extern RyanJsonBool_e RyanJsonBaseTestDuplicateJson();
-extern RyanJsonBool_e RyanJsonBaseTestForEachJson();
-extern RyanJsonBool_e RyanJsonBaseTestLoadJson();
-extern RyanJsonBool_e RyanJsonBaseTestReplaceJson();
+extern RyanJsonBool_e RyanJsonBaseTestChangeJson(void);
+extern RyanJsonBool_e RyanJsonBaseTestCompareJson(void);
+extern RyanJsonBool_e RyanJsonBaseTestCreateJson(void);
+extern RyanJsonBool_e RyanJsonBaseTestDeleteJson(void);
+extern RyanJsonBool_e RyanJsonBaseTestDetachJson(void);
+extern RyanJsonBool_e RyanJsonBaseTestDuplicateJson(void);
+extern RyanJsonBool_e RyanJsonBaseTestForEachJson(void);
+extern RyanJsonBool_e RyanJsonBaseTestLoadJson(void);
+extern RyanJsonBool_e RyanJsonBaseTestReplaceJson(void);
 
 #ifdef __cplusplus
 }

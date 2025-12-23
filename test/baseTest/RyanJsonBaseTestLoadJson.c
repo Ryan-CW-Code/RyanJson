@@ -3,7 +3,7 @@
 
 /* --------------------------------------------------------------------- */
 
-RyanJsonBool_e RyanJsonBaseTestLoadJson()
+RyanJsonBool_e RyanJsonBaseTestLoadJson(void)
 {
 	char *str = NULL;
 	RyanJson_t json;

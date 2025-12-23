@@ -22,7 +22,7 @@ RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, const char *key, ...)
 	while (nextItem && NULL != nextKey)
 	{
 		nextItem = RyanJsonGetObjectByKey(nextItem, nextKey);
-		nextKey = va_arg(args, char *);
+		nextKey = va_arg(args, const char *);
 	}
 	va_end(args);
 
@@ -34,7 +34,7 @@ RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, const char *key, ...)
  *
  * @param pJson
  * @param index
- * @param ... 可变参，连续输入索引，直到INT_MIN结束
+ * @param ... 可变参，连续输入索引，直到UINT32_MAX结束
  * @return RyanJson_t
  */
 RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, uint32_t index, ...)

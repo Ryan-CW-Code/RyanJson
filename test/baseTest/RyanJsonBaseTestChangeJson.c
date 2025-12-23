@@ -2,7 +2,7 @@
 
 /* --------------------------------------------------------------------- */
 
-RyanJsonBool_e RyanJsonBaseTestChangeJson()
+RyanJsonBool_e RyanJsonBaseTestChangeJson(void)
 {
 	char jsonstr[] =
 		"{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,"
@@ -84,11 +84,11 @@ RyanJsonBool_e RyanJsonBaseTestChangeJson()
 	/**
 	 * @brief 修改数组对象中的字段 (arrayItem[0].inter -> 123)
 	 */
-	RyanJsonChangeIntValue(RyanJsonGetObjectToKey(RyanJsonGetObjectToIndex(RyanJsonGetObjectByKey(json, "arrayItem"), 0), "inter"),
+	RyanJsonChangeIntValue(RyanJsonGetObjectToKey(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json, "arrayItem"), 0), "inter"),
 			       123);
 	RyanJsonCheckCode(
-		RyanJsonIsInt(RyanJsonGetObjectToKey(RyanJsonGetObjectToIndex(RyanJsonGetObjectByKey(json, "arrayItem"), 0), "inter")) &&
-			RyanJsonGetIntValue(RyanJsonGetObjectToKey(RyanJsonGetObjectToIndex(RyanJsonGetObjectByKey(json, "arrayItem"), 0),
+		RyanJsonIsInt(RyanJsonGetObjectToKey(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json, "arrayItem"), 0), "inter")) &&
+			RyanJsonGetIntValue(RyanJsonGetObjectToKey(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json, "arrayItem"), 0),
 								   "inter")) == 123,
 		{ goto err; });
 

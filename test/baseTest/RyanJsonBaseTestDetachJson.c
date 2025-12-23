@@ -2,7 +2,7 @@
 
 /* --------------------------------------------------------------------- */
 
-RyanJsonBool_e RyanJsonBaseTestDetachJson()
+RyanJsonBool_e RyanJsonBaseTestDetachJson(void)
 {
 	char jsonstr[] =
 		"{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":"
@@ -58,16 +58,18 @@ RyanJsonBool_e RyanJsonBaseTestDetachJson()
 		RyanJson_t arr = RyanJsonGetObjectByKey(json, "arrayInt");
 		RyanJson_t json2 = RyanJsonParse(jsonstr);
 
+        uint32_t jsonSize =  RyanJsonGetSize(arr);
 		// 头部
 		RyanJsonDelete(RyanJsonDetachByIndex(arr, 0));
-		if (RyanJsonGetObjectToIndex(arr, 0) == NULL)
+		if (jsonSize == RyanJsonGetSize(arr))
 		{
 			RyanJsonCheckCode(NULL, { goto err; });
 		}
 
 		// 中间
+         jsonSize =  RyanJsonGetSize(arr);
 		RyanJsonDelete(RyanJsonDetachByIndex(arr, 2));
-		if (RyanJsonGetObjectToIndex(arr, 2) == NULL)
+		if (jsonSize == RyanJsonGetSize(arr))
 		{
 			RyanJsonCheckCode(NULL, { goto err; });
 		}
