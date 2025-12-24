@@ -16,7 +16,7 @@
 #### ✅ 特性亮点
 
 - 💡 **极致内存优化**：在资源受限设备上实现 **40-70% 内存节省**（对比 cJSON），在 RT-Thread 平台 malloc 头部空间为 12 字节时节省约 40%，无 malloc 头部空间可接近 70%。同时保持工业级健壮性，运行速度与 cJSON 基本持平。
-- 🔍 **模糊测试保障**：基于[LLVM Fuzzer](https://llvm.org/docs/LibFuzzer.html) ，千万级数据输入分支覆盖率 **99.9%**，确保在各种非法输入和极端场景下依旧安全。**[点击在线查看覆盖率信息](https://ryan-cw-code.github.io/RyanJson/)** 
+- 🔍 **模糊测试保障**：基于[LLVM Fuzzer](https://llvm.org/docs/LibFuzzer.html) ，上亿级数据输入分支覆盖率 **99.9%**，确保在各种非法输入和极端场景下依旧安全。**[点击在线查看覆盖率信息](https://ryan-cw-code.github.io/RyanJson/)** 
 - 🛡️ **运行时安全分析验证**，使用 **[Sanitizer](https://clang.llvm.org/docs/index.html#sanitizers)** 系列工具，捕获内存越界、Use-after-free、数据竞争、未定义行为、内存泄漏等问题，提升代码健壮性与安全性
 - 📐**高质量代码保障** ， 引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 与 **[Cppcheck](https://cppcheck.sourceforge.io/)** 进行静态分析，实现接近语法级的"**零缺陷**"，显著提升可维护性与可读性
 - 🤖  **AI 辅助开发与审查**，结合  **[coderabbitai](https://www.coderabbit.ai)** 、 **[Copilot](https://github.com/features/copilot)** 、**[Gemini Code Assist](https://codeassist.google/)**，在编码与代码审查阶段持续优化代码质量，构建多层安全防线
@@ -125,7 +125,7 @@ typedef struct RyanJsonNode *RyanJson_t;
 
 **[点击在线查看覆盖率信息](https://ryan-cw-code.github.io/RyanJson/)** 
 
-- **千万级测试样本**：[LLVM Fuzzer](https://llvm.org/docs/LibFuzzer.html)  自动生成并执行千万级随机与非法 JSON 输入。
+- **千万级测试样本**：[LLVM Fuzzer](https://llvm.org/docs/LibFuzzer.html)  自动生成并执行上亿级随机与非法 JSON 输入。
 - **覆盖率极高**：分支覆盖率 **99.9%**，无崩溃、无泄漏。
 - **鲁棒性验证**：内存申请失败、扩容失败、非法转义字符、尾随逗号、嵌套过深、随机类型切换。
 - **内存安全验证**：结合 Sanitizer 工具链，确保无泄漏、无悬空指针、无越界。
@@ -334,5 +334,4 @@ RFC 8259 JSON: (322/322)
 📖 文档中心：RyanDocs
 
 📧 联系方式：1831931681@qq.com
-
 

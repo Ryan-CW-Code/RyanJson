@@ -7,9 +7,9 @@ target("RyanJson",function()
     set_plat("linux")
     set_arch("x86")
     set_languages("gnu99") -- 关键！启用 GNU 扩展
-    -- add_defines("isEnableFuzzer")
-    -- add_cxflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true} )
-    -- add_ldflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true} )
+    add_defines("isEnableFuzzer")
+    add_cxflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true} )
+    add_ldflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true} )
 
     set_policy("build.ccache", false)
     -- set_optimize("smallest") -- -Os
@@ -61,7 +61,7 @@ target("RyanJson",function()
 
     -- 编译器警告与静态分析（开发期错误检测，Clang 兼容）
     add_cxflags(
-        "-g3",                  -- 生成调试信息"
+        "-g3",                     -- 生成调试信息"
         "-pedantic",               -- 强制遵循 ISO C 标准
         "-Wall",                   -- 常见警告
         "-Wextra",                 -- 额外警告

@@ -7,10 +7,13 @@ set -e  # 遇到错误立即退出
 ./build/linux/x86/release/RyanJson \
   ./test/fuzzer/corpus \
   -dict=./test/fuzzer/RyanJsonFuzzer.dict \
-  -timeout=2 \
-  -runs=999999 \
+  -timeout=4 \
+  -runs=99999999 \
   -verbosity=0 \
-  -max_len=16384
+  -max_len=8192 \
+  -workers=5 \
+  -jobs=10 \ 
+
 
 # ================================
 # 2. 合并 profile 数据

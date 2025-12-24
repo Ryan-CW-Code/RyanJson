@@ -2,15 +2,35 @@
 
 #ifdef isEnableFuzzer
 #undef RyanJsonNestingLimit
-#define RyanJsonNestingLimit 150
+#define RyanJsonNestingLimit 350
 
 #undef RyanJsonSnprintf
 #include <stdarg.h>
+#include <time.h>
+
+static uint32_t RyanJsonRandRange(uint32_t min, uint32_t max)
+{
+	// int32_t seedp = (int32_t)time(NULL);
+	// return min + rand_r(&seedp) % (max - min + 1);
+
+	static uint64_t state = 0;
+	// 初始化一次种子
+	if (state == 0) { state = (uint64_t)time(NULL); }
+
+	// Xorshift64* 算法
+	state ^= state >> 12;
+	state ^= state << 25;
+	state ^= state >> 27;
+	uint64_t result = state * 2685821657736338717ULL;
+
+	return min + (uint32_t)(result % (max - min + 1));
+}
+
 static int32_t RyanJsonSnprintf(char *buf, size_t size, const char *fmt, ...)
 {
 	static uint32_t jsonsnprintCount = 1;
 	jsonsnprintCount++;
-	if (jsonsnprintCount % random() % 500 == 0) { return 0; };
+	if (jsonsnprintCount % RyanJsonRandRange(10, 500) == 0) { return 0; };
 
 	va_list args;
 	va_start(args, fmt); // 每 500 次随机触发一次“失败”
@@ -94,7 +114,7 @@ static RyanJsonBool_e parseBufTyrAdvanceCurrentPrt(RyanJsonParseBuffer *parseBuf
 #ifdef isEnableFuzzer
 	static uint32_t count = 0;
 	count++;
-	if (0 == count % random() % 2000) { return RyanJsonFalse; }
+	if (0 == count % RyanJsonRandRange(10, 2000)) { return RyanJsonFalse; }
 #endif
 
 	if (parseBufHasRemainBytes(parseBuf, bytesToAdvance))
@@ -119,11 +139,11 @@ static RyanJsonBool_e parseBufSkipWhitespace(RyanJsonParseBuffer *parseBuf)
 #ifdef isEnableFuzzer
 	static uint32_t count = 0;
 	count++;
-	if (0 == count % random() % 2000) { return RyanJsonFalse; }
+	if (0 == count % RyanJsonRandRange(10, 2000)) { return RyanJsonFalse; }
 #endif
 
 	const uint8_t *cursor = parseBuf->currentPtr;
-	while (*cursor && (' ' == *cursor || '\n' == *cursor || '\r' == *cursor))
+	while (parseBufHasRemain(parseBuf) && *cursor && (' ' == *cursor || '\n' == *cursor || '\r' == *cursor))
 	{
 		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 		// 更新本地指针以反映 buf->address 的变化（若 parseBufTyrAdvanceCurrentPrt 移动 address）
@@ -554,7 +574,7 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 	RyanJsonBool_e isint = RyanJsonTrue;
 
 	// 处理符号
-	if ('-' == *parseBuf->currentPtr)
+	if (parseBufHasRemain(parseBuf) && '-' == *parseBuf->currentPtr)
 	{
 		sign = -1;
 		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
@@ -562,7 +582,7 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 	}
 
 	// 跳过前导零
-	while ('0' == *parseBuf->currentPtr)
+	while (parseBufHasRemain(parseBuf) && '0' == *parseBuf->currentPtr)
 	{
 		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 		// 前导0后面不允许跟数组，比如"0123"
@@ -570,19 +590,19 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 	}
 
 	// 整数部分
-	while (*parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
+	while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
 	{
 		number = number * 10.0 + (*parseBuf->currentPtr - '0');
 		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 	}
 
 	// 小数部分
-	if ('.' == *parseBuf->currentPtr)
+	if (parseBufHasRemain(parseBuf) && '.' == *parseBuf->currentPtr)
 	{
 		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9');
 
-		while (*parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
+		while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
 		{
 			number = number * 10.0 + (*parseBuf->currentPtr - '0');
 			scale--; // 每读一位小数，scale减一
@@ -592,14 +612,15 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 	}
 
 	// 指数部分
-	if (('e' == *parseBuf->currentPtr || 'E' == *parseBuf->currentPtr))
+	if (parseBufHasRemain(parseBuf) && ('e' == *parseBuf->currentPtr || 'E' == *parseBuf->currentPtr))
 	{
 		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
+		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf));
 		if ('+' == *parseBuf->currentPtr || '-' == *parseBuf->currentPtr) { e_sign = ('-' == *parseBuf->currentPtr) ? -1 : 1; }
 		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-		RyanJsonCheckReturnFalse(*parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9');
+		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9');
 
-		while (*parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
+		while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
 		{
 			e_scale = e_scale * 10 + (*parseBuf->currentPtr - '0');
 			RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
