@@ -12,7 +12,7 @@ set -e  # 遇到错误立即退出
   -verbosity=0 \
   -max_len=8192 \
   -workers=5 \
-  -jobs=10 \ 
+  -jobs=10
 
 
 # ================================
@@ -39,7 +39,7 @@ llvm-cov report ./build/linux/x86/release/RyanJson \
 llvm-cov show ./build/linux/x86/release/RyanJson \
   -instr-profile=default.profdata \
   -format=html \
-  -output-dir=docs \
+  -output-dir=coverage/docs \
   -show-mcdc-summary \
   -show-expansions \
   -show-regions \
