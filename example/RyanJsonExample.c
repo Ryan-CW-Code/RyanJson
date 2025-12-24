@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include "RyanJson.h"
+#include "RyanJsonUtils.h"
 #include "valloc.h"
 
 /**
@@ -37,16 +38,21 @@ static int createJsonExample(void)
 	RyanJsonAddNullToObject(item, "null");
 	RyanJsonAddItemToObject(jsonRoot, "item", item); // 将上面创建的item子对象添加到root父对象
 
-	// 添加子数组
+	// 添加数字子数组
 	int arrayInt[] = {16, 16, 16, 16, 16};
 	RyanJsonAddItemToObject(jsonRoot, "arrayInt", RyanJsonCreateIntArray(arrayInt, sizeof(arrayInt) / sizeof(arrayInt[0])));
 
+	// 添加浮点数子数组
 	double arrayDouble[] = {16.89, 16.89, 16.89, 16.89, 16.89};
-	RyanJsonAddItemToObject(jsonRoot, "arrayDouble", RyanJsonCreateDoubleArray(arrayDouble, sizeof(arrayDouble) / sizeof(arrayDouble[0])));
+	RyanJsonAddItemToObject(jsonRoot, "arrayDouble",
+				RyanJsonCreateDoubleArray(arrayDouble, sizeof(arrayDouble) / sizeof(arrayDouble[0])));
 
+	// 添加字符串子数组
 	const char *arrayString[] = {"hello", "hello", "hello", "hello", "hello"};
-	RyanJsonAddItemToObject(jsonRoot, "arrayString", RyanJsonCreateStringArray(arrayString, sizeof(arrayString) / sizeof(arrayString[0])));
+	RyanJsonAddItemToObject(jsonRoot, "arrayString",
+				RyanJsonCreateStringArray(arrayString, sizeof(arrayString) / sizeof(arrayString[0])));
 
+	// 添加杂项数组
 	RyanJson_t array = RyanJsonCreateArray();
 	RyanJsonAddIntToArray(array, 16);
 	RyanJsonAddDoubleToArray(array, 16.89);
@@ -80,7 +86,7 @@ static int createJsonExample(void)
 
 	uint32_t len = 0;
 	str = RyanJsonPrint(jsonRoot, 250, RyanJsonTrue, &len); // 以带格式方式将数据打印出来
-	printf("strLen: %d, data: %s\r\n", len, str);
+	printf("strLen: %" PRIu32 ", data: %s\r\n", len, str);
 	RyanJsonFree(str);
 
 	RyanJsonDelete(jsonRoot);
@@ -97,10 +103,14 @@ static int loadJsonExample(void)
 {
 	char *str = NULL;
 	RyanJson_t jsonRoot;
-	const char jsonstr[] = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\","
-			       "\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\","
-			       "\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\","
-			       "\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}";
+	const char jsonstr[] = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,"
+			       "\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\","
+			       "\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,"
+			       "16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\","
+			       "\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{"
+			       "\"inter\":16,\"double\":16.89,\"string\":\"hello\","
+			       "\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\","
+			       "\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}";
 
 	// 解析json数据
 	jsonRoot = RyanJsonParse(jsonstr);
@@ -124,7 +134,7 @@ static int loadJsonExample(void)
 	// 将序列化的数据以有格式样式打印出来
 	uint32_t len = 0;
 	str = RyanJsonPrint(jsonRoot, 250, RyanJsonTrue, &len);
-	printf("strLen: %d, data: %s\r\n", len, str);
+	printf("strLen: %" PRIu32 ", data: %s\r\n", len, str);
 	RyanJsonFree(str);
 
 	// 删除json对象
@@ -165,7 +175,7 @@ static int changeJsonExample(void)
 	// 将序列化的数据以有格式样式打印出来
 	uint32_t len = 0;
 	str = RyanJsonPrint(jsonRoot, 250, RyanJsonTrue, &len);
-	printf("strLen: %d, data: %s\r\n", len, str);
+	printf("strLen: %" PRIu32 ", data: %s\r\n", len, str);
 	RyanJsonFree(str);
 
 	// 删除json对象
@@ -174,7 +184,7 @@ static int changeJsonExample(void)
 	return 0;
 }
 
-int RyanJsonExample(void)
+RyanJsonBool_e RyanJsonExample(void)
 {
 	RyanJsonInitHooks(v_malloc, v_free, v_realloc);
 
@@ -187,5 +197,5 @@ int RyanJsonExample(void)
 	printf("\r\n--------------------------- RyanJson 修改json示例 --------------------------\r\n");
 	changeJsonExample();
 
-	return -1;
+	return RyanJsonTrue;
 }

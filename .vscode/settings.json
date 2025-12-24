@@ -20,6 +20,18 @@
         // "--suppress=constVariablePointer",
         // "--suppress=constParameter",
     ],
+    "files.watcherExclude": {
+        "**/test/fuzzer/corpus/**": true,
+        "./docs": true,
+        "./build": true,
+        "./.xmake": true,
+    },
+    "files.exclude": {
+        "**/test/fuzzer/corpus/**": true,
+        "./docs": true,
+        "./build": true,
+        "./.xmake": true,
+    },
     "files.associations": {
         "*.c": "c",
         "inttypes.h": "c",
@@ -30,6 +42,19 @@
         "stdint.h": "c",
         "ryanjsontest.h": "c",
         "dirent.h": "c",
-        "valloc.h": "c"
+        "valloc.h": "c",
+        "initializer_list": "c",
+        "array": "c",
+        "string_view": "c",
+        "utility": "c",
+        "math.h": "c",
+        "compare": "c",
+        "type_traits": "c",
+        "cjson.h": "c",
+        "ryanjson.h": "c",
+        "string.h": "c",
+        "stdarg.h": "c",
+        "cstdlib": "c",
+        "ryanjsonconfig.h": "c"
     },
 }

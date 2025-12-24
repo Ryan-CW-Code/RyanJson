@@ -142,6 +142,9 @@
 #ifndef YYJSON_HAS_STDBOOL_H
 #endif
 
+/* Define to an integer to set a depth limit for containers (arrays, objects). */
+#ifndef YYJSON_READER_DEPTH_LIMIT
+#endif
 
 
 /*==============================================================================
@@ -418,8 +421,8 @@
 
 /** stdbool (C89 compatible) */
 #if (defined(YYJSON_HAS_STDBOOL_H) && YYJSON_HAS_STDBOOL_H) || \
-    (yyjson_has_include(<stdbool.h>) && !defined(__STRICT_ANSI__)) || \
-    YYJSON_MSC_VER >= 1800 || YYJSON_STDC_VER >= 199901L
+    YYJSON_MSC_VER >= 1800 || YYJSON_STDC_VER >= 199901L || \
+    (yyjson_has_include(<stdbool.h>) && !defined(__STRICT_ANSI__))
 #   include <stdbool.h>
 #elif !defined(__bool_true_false_are_defined)
 #   define __bool_true_false_are_defined 1
@@ -474,7 +477,7 @@ extern "C" {
 #   pragma clang diagnostic push
 #   pragma clang diagnostic ignored "-Wunused-function"
 #   pragma clang diagnostic ignored "-Wunused-parameter"
-#elif defined(__GNUC__)
+#elif YYJSON_IS_REAL_GCC
 #   if (__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #       pragma GCC diagnostic push
 #   endif
@@ -874,6 +877,9 @@ static const yyjson_read_code YYJSON_READ_ERROR_FILE_READ               = 13;
 
 /** Incomplete input during incremental parsing; parsing state is preserved. */
 static const yyjson_read_code YYJSON_READ_ERROR_MORE                    = 14;
+
+/** Read depth limit exceeded. */
+static const yyjson_read_code YYJSON_READ_ERROR_DEPTH                   = 15;
 
 /** Error information for JSON reader. */
 typedef struct yyjson_read_err {
@@ -1339,6 +1345,30 @@ yyjson_api bool yyjson_write_fp(FILE *fp,
                                 yyjson_write_err *err);
 
 /**
+ Write a document into a buffer.
+
+ This function does not allocate memory, but the buffer must be larger than the
+ final JSON size to allow temporary space. See `API.md` for details.
+
+ @param buf The output buffer.
+    If the buffer is NULL, the function will fail and return 0.
+ @param buf_len The buffer length.
+    If the buf_len is too small, the function will fail and return 0.
+ @param doc doc The JSON document.
+    If this doc is NULL or has no root, the function will fail and return 0.
+ @param flg flg The JSON write options.
+    Multiple options can be combined with `|` operator. 0 means no options.
+ @param err err A pointer to receive error information.
+    Pass NULL if you don't need error information.
+ @return The number of bytes written (excluding the null terminator),
+    or 0 on failure.
+ */
+yyjson_api size_t yyjson_write_buf(char *buf, size_t buf_len,
+                                   const yyjson_doc *doc,
+                                   yyjson_write_flag flg,
+                                   yyjson_write_err *err);
+
+/**
  Write a document to JSON string.
 
  This function is thread-safe.
@@ -1441,6 +1471,30 @@ yyjson_api bool yyjson_mut_write_fp(FILE *fp,
                                     yyjson_write_flag flg,
                                     const yyjson_alc *alc,
                                     yyjson_write_err *err);
+
+/**
+ Write a document into a buffer.
+ 
+ This function does not allocate memory, but the buffer must be larger than the
+ final JSON size to allow temporary space. See `API.md` for details.
+ 
+ @param buf The output buffer.
+    If the buffer is NULL, the function will fail and return 0.
+ @param buf_len The buffer length.
+    If the buf_len is too small, the function will fail and return 0.
+ @param doc doc The JSON document.
+    If this doc is NULL or has no root, the function will fail and return 0.
+ @param flg flg The JSON write options.
+    Multiple options can be combined with `|` operator. 0 means no options.
+ @param err err A pointer to receive error information.
+    Pass NULL if you don't need error information.
+ @return The number of bytes written (excluding the null terminator),
+    or 0 on failure.
+ */
+yyjson_api size_t yyjson_mut_write_buf(char *buf, size_t buf_len,
+                                       const yyjson_mut_doc *doc,
+                                       yyjson_write_flag flg,
+                                       yyjson_write_err *err);
 
 /**
  Write a document to JSON string.
@@ -1550,6 +1604,30 @@ yyjson_api bool yyjson_val_write_fp(FILE *fp,
                                     yyjson_write_err *err);
 
 /**
+ Write a value into a buffer.
+
+ This function does not allocate memory, but the buffer must be larger than the
+ final JSON size to allow temporary space. See `API.md` for details.
+
+ @param buf The output buffer.
+    If the buffer is NULL, the function will fail and return 0.
+ @param buf_len The buffer length.
+    If the buf_len is too small, the function will fail and return 0.
+ @param val The JSON root value.
+    If this parameter is NULL, the function will fail and return NULL.
+ @param flg flg The JSON write options.
+    Multiple options can be combined with `|` operator. 0 means no options.
+ @param err err A pointer to receive error information.
+    Pass NULL if you don't need error information.
+ @return The number of bytes written (excluding the null terminator),
+    or 0 on failure.
+ */
+yyjson_api size_t yyjson_val_write_buf(char *buf, size_t buf_len,
+                                       const yyjson_val *val,
+                                       yyjson_write_flag flg,
+                                       yyjson_write_err *err);
+
+/**
  Write a value to JSON string.
 
  This function is thread-safe.
@@ -1650,6 +1728,30 @@ yyjson_api bool yyjson_mut_val_write_fp(FILE *fp,
                                         yyjson_write_flag flg,
                                         const yyjson_alc *alc,
                                         yyjson_write_err *err);
+
+/**
+ Write a value into a buffer.
+
+ This function does not allocate memory, but the buffer must be larger than the
+ final JSON size to allow temporary space. See `API.md` for details.
+
+ @param buf The output buffer.
+    If the buffer is NULL, the function will fail and return 0.
+ @param buf_len The buffer length.
+    If the buf_len is too small, the function will fail and return 0.
+ @param val The JSON root value.
+    If this parameter is NULL, the function will fail and return NULL.
+ @param flg flg The JSON write options.
+    Multiple options can be combined with `|` operator. 0 means no options.
+ @param err err A pointer to receive error information.
+    Pass NULL if you don't need error information.
+ @return The number of bytes written (excluding the null terminator),
+    or 0 on failure.
+ */
+yyjson_api size_t yyjson_mut_val_write_buf(char *buf, size_t buf_len,
+                                           const yyjson_mut_val *val,
+                                           yyjson_write_flag flg,
+                                           yyjson_write_err *err);
 
 /**
  Write a value to JSON string.
@@ -1895,7 +1997,7 @@ yyjson_api_inline bool yyjson_set_sint(yyjson_val *val, int64_t num);
 /** Set the value to int.
     Returns false if input is NULL or `val` is object or array.
     @warning This will modify the `immutable` value, use with caution. */
-yyjson_api_inline bool yyjson_set_int(yyjson_val *val, int num);
+yyjson_api_inline bool yyjson_set_int(yyjson_val *val, int64_t num);
 
 /** Set the value to float.
     Returns false if input is NULL or `val` is object or array.
@@ -2498,7 +2600,7 @@ yyjson_api_inline bool yyjson_mut_set_sint(yyjson_mut_val *val, int64_t num);
 /** Set the value to int.
     Returns false if input is NULL.
     @warning This function should not be used on an existing object or array. */
-yyjson_api_inline bool yyjson_mut_set_int(yyjson_mut_val *val, int num);
+yyjson_api_inline bool yyjson_mut_set_int(yyjson_mut_val *val, int64_t num);
 
 /** Set the value to float.
     Returns false if input is NULL.
@@ -5324,9 +5426,9 @@ yyjson_api_inline bool yyjson_set_sint(yyjson_val *val, int64_t num) {
     return true;
 }
 
-yyjson_api_inline bool yyjson_set_int(yyjson_val *val, int num) {
+yyjson_api_inline bool yyjson_set_int(yyjson_val *val, int64_t num) {
     if (yyjson_unlikely(!val || unsafe_yyjson_is_ctn(val))) return false;
-    unsafe_yyjson_set_sint(val, (int64_t)num);
+    unsafe_yyjson_set_sint(val, num);
     return true;
 }
 
@@ -5877,9 +5979,9 @@ yyjson_api_inline bool yyjson_mut_set_sint(yyjson_mut_val *val, int64_t num) {
     return true;
 }
 
-yyjson_api_inline bool yyjson_mut_set_int(yyjson_mut_val *val, int num) {
+yyjson_api_inline bool yyjson_mut_set_int(yyjson_mut_val *val, int64_t num) {
     if (yyjson_unlikely(!val)) return false;
-    unsafe_yyjson_set_sint(val, (int64_t)num);
+    unsafe_yyjson_set_sint(val, num);
     return true;
 }
 

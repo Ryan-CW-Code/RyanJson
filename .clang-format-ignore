@@ -1,2 +1,2 @@
-# 忽略coreMqtt
+# 忽略外部包
 externalModule/*
