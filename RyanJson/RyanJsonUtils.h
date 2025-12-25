@@ -24,15 +24,12 @@ extern RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, uint32_t index, ..
 extern RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, const char *key, ...);
 
 /**
- * @brief 可使用此宏进行嵌套式查找，例如 RyanJsonGetObjectToKey(json, "test", "inter")
- * 
+ * @brief 可使用此宏进行嵌套式查找，
+ * 例如 RyanJsonGetObjectToKey(json, "test", "inter")
+ * 例如 RyanJsonGetObjectToIndex(json, 0, 2)
+ *
  */
 #define RyanJsonGetObjectToKey(pJson, key, ...)     RyanJsonGetObjectByKeys(pJson, (key), ##__VA_ARGS__, NULL)
-
-/**
- * @brief 可使用此宏进行嵌套式查找，例如 RyanJsonGetObjectToIndex(json, 0, 2)
- * 
- */
 #define RyanJsonGetObjectToIndex(pJson, index, ...) RyanJsonGetObjectByIndexs(pJson, (index), ##__VA_ARGS__, UINT32_MAX)
 
 #define RyanJsonHasObjectToKey(pJson, key, ...)     RyanJsonMakeBool(RyanJsonGetObjectByKeys(pJson, key, ##__VA_ARGS__, NULL))

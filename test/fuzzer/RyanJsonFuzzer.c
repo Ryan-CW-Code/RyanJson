@@ -45,7 +45,7 @@ static RyanJsonBool_e RyanJsonFuzzerTestByParseAndPrint(RyanJson_t pJson, const 
 		return RyanJsonFalse;
 	});
 
-    // 测试多次打印结果是否一致
+	// 测试多次打印结果是否一致
 	{
 		uint32_t len3 = 0;
 		char *jsonStr3 = RyanJsonPrint(jsonRoot, 100, size % 2 ? RyanJsonFalse : RyanJsonTrue, &len3); // 以带格式方式将数据打印出来
@@ -243,9 +243,11 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachGet2(RyanJson_t lastJson, RyanJ
 {
 	RyanJsonIsNull(pJson);
 
-	RyanJsonAssert(NULL == RyanJsonGetValue(NULL));
 	RyanJsonAssert(NULL == RyanJsonGetKey(NULL));
 	RyanJsonAssert(NULL == RyanJsonGetStringValue(NULL));
+	RyanJsonAssert(0 == RyanJsonGetIntValue(NULL));
+	RyanJsonAssert(0 == RyanJsonGetDoubleValue(NULL));
+	RyanJsonAssert(NULL == RyanJsonGetObjectValue(NULL));
 
 	RyanJsonAssert(NULL == RyanJsonGetObjectByKey(NULL, NULL));
 	RyanJsonAssert(NULL == RyanJsonGetObjectByKey(pJson, NULL));
@@ -345,6 +347,9 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachCreate(RyanJson_t pJson, uint32
 	{
 		RyanJsonAssert(RyanJsonFalse == RyanJsonChangeKey(pJson, "NULL"));
 	}
+
+	RyanJsonAssert(RyanJsonFalse == RyanJsonChangeIntValue(NULL, 0));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonChangeDoubleValue(NULL, 0));
 
 	RyanJsonAssert(RyanJsonFalse == RyanJsonAddItemToObject(NULL, NULL, NULL));
 	RyanJsonAssert(RyanJsonFalse == RyanJsonAddItemToObject(pJson, NULL, NULL));

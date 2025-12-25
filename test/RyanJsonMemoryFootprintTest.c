@@ -129,7 +129,7 @@ RyanJsonBool_e RyanJsonMemoryFootprintTest(void)
 		  "}}";
 	printfJsonCompera(jsonstr);
 
-	printf("\r\n--------------------------- 对象占多json数据测试 --------------------------\r\n");
+	printf("\r\n--------------------------- 全是对象json数据测试 --------------------------\r\n");
 	jsonstr =
 		"{\"message\":\"success感谢又拍云(upyun.com)提供CDN赞助\",\"status\":200,\"date\":\"20230822\",\"time\":\"2023-08-22 "
 		"09:44:54\",\"cityInfo\":{\"city\":\"郑州市\",\"citykey\":\"101180101\",\"parent\":\"河南\",\"updateTime\":\"07:46\"},"

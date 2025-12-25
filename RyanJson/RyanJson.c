@@ -30,7 +30,7 @@ static int32_t RyanJsonSnprintf(char *buf, size_t size, const char *fmt, ...)
 {
 	static uint32_t jsonsnprintCount = 1;
 	jsonsnprintCount++;
-	if (jsonsnprintCount % RyanJsonRandRange(10, 500) == 0) { return 0; };
+	if (jsonsnprintCount % RyanJsonRandRange(10, 500) == 0) { return 0; }
 
 	va_list args;
 	va_start(args, fmt); // 每 500 次随机触发一次“失败”
@@ -163,18 +163,23 @@ static RyanJsonBool_e RyanJsonPrintValue(RyanJson_t pJson, RyanJsonPrintBuffer *
 static RyanJson_t RyanJsonCreateObjectAndKey(const char *key);
 static RyanJson_t RyanJsonCreateArrayAndKey(const char *key);
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-align"
 static uint8_t *RyanJsonGetHiddePrt(RyanJson_t pJson)
 {
 	RyanJsonCheckAssert(NULL != pJson);
-	return *(uint8_t **)(RyanJsonGetPayloadPtr(pJson) + sizeof(void *));
+
+	// 用memcpy规避非对其警告
+	void *tmpPtr = NULL;
+	RyanJsonMemcpy((void *)&tmpPtr, (RyanJsonGetPayloadPtr(pJson) + RyanJsonAlign), sizeof(void *));
+	return (uint8_t *)tmpPtr;
 }
 static void RyanJsonSetHiddePrt(RyanJson_t pJson, uint8_t *hiddePrt)
 {
 	RyanJsonCheckAssert(NULL != pJson);
 	RyanJsonCheckAssert(NULL != hiddePrt);
-	*(uint8_t **)(RyanJsonGetPayloadPtr(pJson) + sizeof(void *)) = hiddePrt;
+
+	// 用memcpy规避非对其警告
+	void *tmpPtr = hiddePrt;
+	RyanJsonMemcpy((RyanJsonGetPayloadPtr(pJson) + RyanJsonAlign), (const void *)&tmpPtr, sizeof(void *));
 }
 
 /**
@@ -189,24 +194,41 @@ static uint8_t *RyanJsonGetHiddenPtrAt(RyanJson_t pJson, uint32_t index)
 	RyanJsonCheckAssert(NULL != pJson);
 	return (uint8_t *)(RyanJsonGetHiddePrt(pJson) + (index));
 }
-#pragma GCC diagnostic pop
 
 static void RyanJsonSetLenKey(RyanJson_t pJson, uint32_t value)
 {
 	RyanJsonCheckAssert(NULL != pJson);
+	uint8_t *buf = RyanJsonGetHiddenPtrAt(pJson, 0);
+	uint8_t len = RyanJsonGetPayloadEncodeKeyLenByFlag(pJson);
+	RyanJsonCheckAssert(len <= 4);
 
-	uint8_t *buf = (RyanJsonGetPayloadPtr(pJson) + sizeof(uint8_t));
-	RyanJsonMemcpy(buf, &value, 3);
+	RyanJsonMemcpy(buf, &value, len);
 }
 
 static uint32_t RyanJsonGetLenKey(RyanJson_t pJson)
 {
 	RyanJsonCheckAssert(NULL != pJson);
+	uint8_t *buf = RyanJsonGetHiddenPtrAt(pJson, 0);
+	uint8_t len = RyanJsonGetPayloadEncodeKeyLenByFlag(pJson);
+	RyanJsonCheckAssert(len <= 4);
 
-	uint8_t *buf = (RyanJsonGetPayloadPtr(pJson) + sizeof(uint8_t));
 	uint32_t value = 0;
-	RyanJsonMemcpy(&value, buf, 3);
+	RyanJsonMemcpy(&value, buf, len);
 	return value;
+}
+
+static void *RyanJsonGetValue(RyanJson_t pJson)
+{
+	RyanJsonCheckAssert(NULL != pJson);
+
+	uint32_t len = RyanJsonAlign;
+	if (RyanJsonIsKey(pJson) || RyanJsonIsString(pJson))
+	{
+		len += sizeof(void *);
+		// jsonLog(" keyLen: %d, keyLenField: %d, \r\n", RyanJsonGetLenKey(pJson), RyanJsonGetPayloadEncodeKeyLenByFlag(pJson));
+	}
+
+	return RyanJsonGetPayloadPtr(pJson) + len;
 }
 
 /**
@@ -245,24 +267,6 @@ static uint8_t RyanJsonCalcLenBytes(uint32_t len)
 	if (len < 0xffff) { return 1; }
 	if (len < 0xffffff) { return 2; }
 	return 3;
-}
-
-/**
- * @brief 提供内存钩子函数
- *
- * @param userMalloc
- * @param userFree
- * @param userRealloc 可以为NULL
- * @return RyanJsonBool_e
- */
-RyanJsonBool_e RyanJsonInitHooks(RyanJsonMalloc_t userMalloc, RyanJsonFree_t userFree, RyanJsonRealloc_t userRealloc)
-{
-	RyanJsonCheckReturnFalse(NULL != userMalloc && NULL != userFree);
-
-	jsonMalloc = userMalloc;
-	jsonFree = userFree;
-	jsonRealloc = userRealloc;
-	return RyanJsonTrue;
 }
 
 /**
@@ -314,61 +318,32 @@ static RyanJsonBool_e printBufAppend(RyanJsonPrintBuffer *printfBuf, uint32_t ne
 	return RyanJsonTrue;
 }
 
-void *RyanJsonGetValue(RyanJson_t pJson)
+/**
+ * @brief 替换json对象节点
+ *
+ * @param prev
+ * @param oldItem
+ * @param newItem
+ * @return RyanJsonBool_e
+ */
+static RyanJsonBool_e RyanJsonReplaceNode(RyanJson_t prev, RyanJson_t oldItem, RyanJson_t newItem)
 {
-	RyanJsonCheckReturnNull(NULL != pJson);
+	RyanJsonCheckAssert(NULL != oldItem && NULL != newItem);
 
-	uint32_t len = 0;
-	if (RyanJsonIsKey(pJson) || RyanJsonIsString(pJson))
-	{
-		len += sizeof(void *); // 对齐偏移
-		len += sizeof(void *); // key和Str的指针
-		// jsonLog(" keyLen: %d, keyLenField: %d, \r\n", RyanJsonGetLenKey(pJson), RyanJsonGetPayloadEncodeKeyLenByFlag(pJson));
-	}
-	else if (RyanJsonIsObject(pJson) || RyanJsonIsArray(pJson))
-	{
-		len += sizeof(void *); // 对齐偏移
-	}
-	else
-	{
-		len += sizeof(uint8_t); // 对齐偏移
-	}
+	// 链接前驱和新节点
+	if (NULL != prev) { prev->next = newItem; }
 
-	return RyanJsonGetPayloadPtr(pJson) + len;
+	// 链接后继和新节点
+	if (NULL != oldItem->next) { newItem->next = oldItem->next; }
+
+	oldItem->next = NULL;
+	return RyanJsonTrue;
 }
 
-char *RyanJsonGetKey(RyanJson_t pJson)
+static RyanJsonBool_e RyanJsonChangeObjectValue(RyanJson_t pJson, RyanJson_t objValue)
 {
-	RyanJsonCheckReturnNull(NULL != pJson);
-	return (char *)RyanJsonGetHiddenPtrAt(pJson, 0);
-}
-
-char *RyanJsonGetStringValue(RyanJson_t pJson)
-{
-	RyanJsonCheckReturnNull(NULL != pJson);
-
-	uint32_t len = 0;
-	if (RyanJsonIsKey(pJson)) { len = RyanJsonGetLenKey(pJson) + 1U; }
-
-	return (char *)RyanJsonGetHiddenPtrAt(pJson, len);
-}
-
-int32_t RyanJsonGetIntValue(RyanJson_t pJson)
-{
-	RyanJsonCheckCodeNoReturn(NULL != pJson, { return 0; });
-
-	int32_t intValue;
-	RyanJsonMemcpy(&intValue, RyanJsonGetValue(pJson), sizeof(intValue));
-	return intValue;
-}
-
-double RyanJsonGetDoubleValue(RyanJson_t pJson)
-{
-	RyanJsonCheckCodeNoReturn(NULL != pJson, { return 0; });
-
-	double doubleValue;
-	RyanJsonMemcpy(&doubleValue, RyanJsonGetValue(pJson), sizeof(doubleValue));
-	return doubleValue;
+	RyanJsonMemcpy(RyanJsonGetValue(pJson), (void *)&objValue, sizeof(void *));
+	return RyanJsonTrue;
 }
 
 static RyanJsonBool_e RyanJsonChangeString(RyanJson_t pJson, RyanJsonBool_e isNew, const char *key, const char *strValue)
@@ -376,6 +351,7 @@ static RyanJsonBool_e RyanJsonChangeString(RyanJson_t pJson, RyanJsonBool_e isNe
 	RyanJsonCheckAssert(NULL != pJson);
 
 	uint32_t keyLen = 0;      // key的长度
+	uint8_t keyLenField = 0;  // 记录key长度需要几个字节
 	uint32_t strValueLen = 0; // stringValue的长度
 
 	uint32_t mallocSize = 0;
@@ -384,7 +360,8 @@ static RyanJsonBool_e RyanJsonChangeString(RyanJson_t pJson, RyanJsonBool_e isNe
 	if (NULL != key)
 	{
 		keyLen = RyanJsonStrlen(key);
-		mallocSize += keyLen + 1;
+		keyLenField = RyanJsonCalcLenBytes(keyLen);
+		mallocSize += keyLen + keyLenField + 1 + 1;
 
 #ifdef isEnableFuzzer
 		{
@@ -420,15 +397,17 @@ static RyanJsonBool_e RyanJsonChangeString(RyanJson_t pJson, RyanJsonBool_e isNe
 	if (NULL != key)
 	{
 		RyanJsonSetPayloadWhiteKeyByFlag(pJson, RyanJsonTrue);
+		RyanJsonSetPayloadEncodeKeyLenByFlag(pJson, keyLenField);
 		RyanJsonSetLenKey(pJson, keyLen);
 
-		jsonLog("keyLen: %d, \r\n", RyanJsonGetLenKey(pJson));
+		jsonLog(" keyLen: %d, keyLenField: %d, \r\n", RyanJsonGetLenKey(pJson), RyanJsonGetPayloadEncodeKeyLenByFlag(pJson));
 		if (0 != keyLen) { RyanJsonMemcpy(RyanJsonGetKey(pJson), key, keyLen); }
 		RyanJsonGetKey(pJson)[keyLen] = '\0';
 	}
 	else
 	{
 		RyanJsonSetPayloadWhiteKeyByFlag(pJson, RyanJsonFalse);
+		RyanJsonSetPayloadEncodeKeyLenByFlag(pJson, 0);
 	}
 
 	// 设置字符串值
@@ -448,7 +427,7 @@ static RyanJson_t RyanJsonNewNode(RyanJsonNodeInfo_t *info)
 	RyanJsonCheckAssert(NULL != info);
 
 	// 加1是flag的空间
-	uint32_t size = sizeof(struct RyanJsonNode);
+	uint32_t size = sizeof(struct RyanJsonNode) + RyanJsonAlign;
 
 	if (_checkType(info->type, RyanJsonTypeNumber))
 	{
@@ -460,19 +439,7 @@ static RyanJson_t RyanJsonNewNode(RyanJsonNodeInfo_t *info)
 	}
 	else if (_checkType(info->type, RyanJsonTypeArray) || _checkType(info->type, RyanJsonTypeObject)) { size += sizeof(RyanJson_t); }
 
-	if (NULL != info->key || _checkType(info->type, RyanJsonTypeString))
-	{
-		size += sizeof(void *); // 对齐偏移
-		size += sizeof(void *); // key和Str的指针
-	}
-	else if (_checkType(info->type, RyanJsonTypeArray) || _checkType(info->type, RyanJsonTypeObject))
-	{
-		size += sizeof(void *); // 对齐偏移
-	}
-	else
-	{
-		size += sizeof(uint8_t); // 对齐偏移
-	}
+	if (NULL != info->key || _checkType(info->type, RyanJsonTypeString)) { size += sizeof(void *); }
 
 	RyanJson_t pJson = (RyanJson_t)jsonMalloc((size_t)size);
 	if (NULL != pJson)
@@ -496,6 +463,106 @@ static RyanJson_t RyanJsonNewNode(RyanJsonNodeInfo_t *info)
 
 	return pJson;
 }
+
+/**
+ * @brief 创建一个item对象
+ * 带有key的对象才可以方便的通过replace替换，
+ * !此接口不推荐用户调用
+ *
+ * @param key
+ * @param item
+ * @return RyanJson_t
+ */
+static RyanJson_t RyanJsonCreateItem(const char *key, RyanJson_t item)
+{
+	RyanJsonCheckReturnNull(NULL != item);
+
+	RyanJsonNodeInfo_t nodeInfo = {
+		.type = _checkType(RyanJsonGetType(item), RyanJsonTypeArray) ? RyanJsonTypeArray : RyanJsonTypeObject,
+		.key = key,
+	};
+
+	RyanJson_t newItem = RyanJsonNewNode(&nodeInfo);
+
+	RyanJsonCheckReturnNull(NULL != newItem);
+
+	if (_checkType(RyanJsonGetType(item), RyanJsonTypeArray) || _checkType(RyanJsonGetType(item), RyanJsonTypeObject))
+	{
+		RyanJsonChangeObjectValue(newItem, RyanJsonGetObjectValue(item));
+
+		if (RyanJsonIsKey(item) || RyanJsonIsString(item)) { jsonFree(RyanJsonGetHiddePrt(item)); }
+		jsonFree(item);
+	}
+	else
+	{
+		RyanJsonChangeObjectValue(newItem, item);
+	}
+
+	return newItem;
+}
+
+/**
+ * @brief 提供内存钩子函数
+ *
+ * @param userMalloc
+ * @param userFree
+ * @param userRealloc 可以为NULL
+ * @return RyanJsonBool_e
+ */
+RyanJsonBool_e RyanJsonInitHooks(RyanJsonMalloc_t userMalloc, RyanJsonFree_t userFree, RyanJsonRealloc_t userRealloc)
+{
+	RyanJsonCheckReturnFalse(NULL != userMalloc && NULL != userFree);
+
+	jsonMalloc = userMalloc;
+	jsonFree = userFree;
+	jsonRealloc = userRealloc;
+	return RyanJsonTrue;
+}
+
+char *RyanJsonGetKey(RyanJson_t pJson)
+{
+	RyanJsonCheckReturnNull(NULL != pJson);
+	return (char *)RyanJsonGetHiddenPtrAt(pJson, RyanJsonGetPayloadEncodeKeyLenByFlag(pJson));
+}
+
+char *RyanJsonGetStringValue(RyanJson_t pJson)
+{
+	RyanJsonCheckReturnNull(NULL != pJson);
+
+	uint32_t len = 0;
+	if (RyanJsonIsKey(pJson)) { len = RyanJsonGetPayloadEncodeKeyLenByFlag(pJson) + RyanJsonGetLenKey(pJson) + 1U; }
+
+	return (char *)RyanJsonGetHiddenPtrAt(pJson, len);
+}
+
+int32_t RyanJsonGetIntValue(RyanJson_t pJson)
+{
+	RyanJsonCheckCodeNoReturn(NULL != pJson, { return 0; });
+
+	int32_t intValue;
+	RyanJsonMemcpy(&intValue, RyanJsonGetValue(pJson), sizeof(intValue));
+	return intValue;
+}
+
+double RyanJsonGetDoubleValue(RyanJson_t pJson)
+{
+	RyanJsonCheckCodeNoReturn(NULL != pJson, { return 0; });
+
+	double doubleValue;
+	RyanJsonMemcpy(&doubleValue, RyanJsonGetValue(pJson), sizeof(doubleValue));
+	return doubleValue;
+}
+
+RyanJson_t RyanJsonGetObjectValue(RyanJson_t pJson)
+{
+	RyanJsonCheckCodeNoReturn(NULL != pJson, { return 0; });
+
+	RyanJson_t objValue;
+	RyanJsonMemcpy((void *)&objValue, RyanJsonGetValue(pJson), sizeof(void *));
+	return objValue;
+}
+
+RyanJson_t RyanJsonGetArrayValue(RyanJson_t pJson) { return RyanJsonGetObjectValue(pJson); }
 
 /**
  * @brief 删除json及其子项
@@ -1621,7 +1688,7 @@ RyanJson_t RyanJsonDetachByIndex(RyanJson_t pJson, uint32_t index)
 	if (NULL != prev) { prev->next = nextItem->next; }
 	else
 	{
-		RyanJsonGetObjectValue(pJson) = nextItem->next;
+		RyanJsonChangeObjectValue(pJson, nextItem->next);
 	}
 
 	nextItem->next = NULL;
@@ -1655,7 +1722,7 @@ RyanJson_t RyanJsonDetachByKey(RyanJson_t pJson, const char *key)
 	if (NULL != prev) { prev->next = nextItem->next; }
 	else // 更改的可能是第一个节点
 	{
-		RyanJsonGetObjectValue(pJson) = nextItem->next;
+		RyanJsonChangeObjectValue(pJson, nextItem->next);
 	}
 
 	nextItem->next = NULL;
@@ -1732,7 +1799,7 @@ RyanJsonBool_e RyanJsonInsert(RyanJson_t pJson, uint32_t index, RyanJson_t item)
 	if (NULL != prev) { prev->next = item; }
 	else
 	{
-		RyanJsonGetObjectValue(pJson) = item;
+		RyanJsonChangeObjectValue(pJson, item);
 	}
 
 	// nextItem为NULL时这样赋值也是可以的
@@ -1756,28 +1823,6 @@ RyanJsonBool_e RyanJsonAddItemToObject(RyanJson_t pJson, const char *key, RyanJs
 	});
 
 	return RyanJsonInsert(pJson, UINT32_MAX, pItem);
-}
-
-/**
- * @brief 替换json对象节点
- *
- * @param prev
- * @param oldItem
- * @param newItem
- * @return RyanJsonBool_e
- */
-static RyanJsonBool_e RyanJsonReplaceNode(RyanJson_t prev, RyanJson_t oldItem, RyanJson_t newItem)
-{
-	RyanJsonCheckAssert(NULL != oldItem && NULL != newItem);
-
-	// 链接前驱和新节点
-	if (NULL != prev) { prev->next = newItem; }
-
-	// 链接后继和新节点
-	if (NULL != oldItem->next) { newItem->next = oldItem->next; }
-
-	oldItem->next = NULL;
-	return RyanJsonTrue;
 }
 
 /**
@@ -1809,7 +1854,7 @@ RyanJsonBool_e RyanJsonReplaceByIndex(RyanJson_t pJson, uint32_t index, RyanJson
 	}
 
 	RyanJsonReplaceNode(prev, nextItem, item);
-	if (NULL == prev) { RyanJsonGetObjectValue(pJson) = item; }
+	if (NULL == prev) { RyanJsonChangeObjectValue(pJson, item); }
 
 	RyanJsonDelete(nextItem);
 	return RyanJsonTrue;
@@ -1854,7 +1899,7 @@ RyanJsonBool_e RyanJsonReplaceByKey(RyanJson_t pJson, const char *key, RyanJson_
 	}
 
 	RyanJsonReplaceNode(prev, nextItem, item);
-	if (NULL == prev) { RyanJsonGetObjectValue(pJson) = item; }
+	if (NULL == prev) { RyanJsonChangeObjectValue(pJson, item); }
 
 	RyanJsonDelete(nextItem);
 
@@ -1987,43 +2032,6 @@ static RyanJson_t RyanJsonCreateArrayAndKey(const char *key)
 }
 RyanJson_t RyanJsonCreateArray(void) { return RyanJsonCreateArrayAndKey(NULL); }
 
-/**
- * @brief 创建一个item对象
- * 带有key的对象才可以方便的通过replace替换，
- * !此接口不推荐用户调用
- *
- * @param key
- * @param item
- * @return RyanJson_t
- */
-RyanJson_t RyanJsonCreateItem(const char *key, RyanJson_t item)
-{
-	RyanJsonCheckReturnNull(NULL != item);
-
-	RyanJsonNodeInfo_t nodeInfo = {
-		.type = _checkType(RyanJsonGetType(item), RyanJsonTypeArray) ? RyanJsonTypeArray : RyanJsonTypeObject,
-		.key = key,
-	};
-
-	RyanJson_t newItem = RyanJsonNewNode(&nodeInfo);
-
-	RyanJsonCheckReturnNull(NULL != newItem);
-
-	if (_checkType(RyanJsonGetType(item), RyanJsonTypeArray) || _checkType(RyanJsonGetType(item), RyanJsonTypeObject))
-	{
-		RyanJsonGetObjectValue(newItem) = RyanJsonGetObjectValue(item);
-
-		if (RyanJsonIsKey(item) || RyanJsonIsString(item)) { jsonFree(RyanJsonGetHiddePrt(item)); }
-		jsonFree(item);
-	}
-	else
-	{
-		RyanJsonGetObjectValue(newItem) = item;
-	}
-
-	return newItem;
-}
-
 RyanJsonBool_e RyanJsonIsKey(RyanJson_t pJson) { return RyanJsonMakeBool(NULL != pJson && RyanJsonGetPayloadWhiteKeyByFlag(pJson)); }
 RyanJsonBool_e RyanJsonIsNull(RyanJson_t pJson) { return RyanJsonMakeBool(NULL != pJson && RyanJsonTypeNull == RyanJsonGetType(pJson)); }
 RyanJsonBool_e RyanJsonIsBool(RyanJson_t pJson) { return RyanJsonMakeBool(NULL != pJson && RyanJsonTypeBool == RyanJsonGetType(pJson)); }
@@ -2094,7 +2102,7 @@ RyanJson_t RyanJsonDuplicate(RyanJson_t pJson)
 			}
 			else
 			{
-				RyanJsonGetObjectValue(newItem) = item;
+				RyanJsonChangeObjectValue(newItem, item);
 				prev = item;
 			}
 
@@ -2112,12 +2120,6 @@ err:
 	RyanJsonDelete(newItem);
 	return NULL;
 }
-
-/**
- * @brief 通过删除无效字符、注释等， 减少json文本大小
- *
- * @param text 文本指针
- */
 
 /**
  * @brief 通过删除无效字符、注释等， 减少json文本大小

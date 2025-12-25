@@ -22,13 +22,13 @@
     ],
     "files.watcherExclude": {
         "**/test/fuzzer/corpus/**": true,
-        "./docs": true,
+        "./coverage": true,
         "./build": true,
         "./.xmake": true,
     },
     "files.exclude": {
         "**/test/fuzzer/corpus/**": true,
-        "./docs": true,
+        "./coverage": true,
         "./build": true,
         "./.xmake": true,
     },

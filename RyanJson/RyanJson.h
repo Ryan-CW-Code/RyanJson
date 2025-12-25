@@ -153,9 +153,11 @@ typedef void *(*RyanJsonRealloc_t)(void *block, size_t size);
 #define RyanJsonGetPayloadWhiteKeyByFlag(pJson)        RyanJsonGetPayloadFlagField((pJson), 4, RyanJsonGetMask(1))
 #define RyanJsonSetPayloadWhiteKeyByFlag(pJson, value) RyanJsonSetPayloadFlagField((pJson), 4, RyanJsonGetMask(1), (value))
 
+// ! 使用超过8字节后一定要注意 RyanJsonSetPayloadFlagField 目前限制uint8_t类型
+// flag空间不够的时候可以把这个字段弃用，用redis的listpack方法将key和keyLen一起表示，内存占用也挺好，但是复杂度高，有空间就保持现在这样
+#define RyanJsonGetPayloadEncodeKeyLenByFlag(pJson)        ((uint8_t)RyanJsonGetPayloadFlagField((pJson), 5, RyanJsonGetMask(2)) + 1)
+#define RyanJsonSetPayloadEncodeKeyLenByFlag(pJson, value) RyanJsonSetPayloadFlagField((pJson), 5, RyanJsonGetMask(2), (value))
 extern RyanJsonBool_e RyanJsonInsert(RyanJson_t pJson, uint32_t index, RyanJson_t item);
-extern void *RyanJsonGetValue(RyanJson_t pJson);
-extern RyanJson_t RyanJsonCreateItem(const char *key, RyanJson_t item); // 需用户释放内存
 /**
  * !!!上面的接口不推荐使用
  *
@@ -245,9 +247,9 @@ extern char *RyanJsonGetKey(RyanJson_t pJson);
 extern char *RyanJsonGetStringValue(RyanJson_t pJson);
 extern int32_t RyanJsonGetIntValue(RyanJson_t pJson);
 extern double RyanJsonGetDoubleValue(RyanJson_t pJson);
-#define RyanJsonGetBoolValue(pJson)   RyanJsonGetPayloadBoolValueByFlag(pJson)
-#define RyanJsonGetArrayValue(pJson)  (*(RyanJson_t *)RyanJsonGetValue(pJson))
-#define RyanJsonGetObjectValue(pJson) (*(RyanJson_t *)RyanJsonGetValue(pJson))
+extern RyanJson_t RyanJsonGetObjectValue(RyanJson_t pJson);
+extern RyanJson_t RyanJsonGetArrayValue(RyanJson_t pJson);
+#define RyanJsonGetBoolValue(pJson) RyanJsonGetPayloadBoolValueByFlag(pJson)
 
 /**
  * @brief 添加相关函数

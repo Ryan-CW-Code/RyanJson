@@ -36,6 +36,14 @@ extern "C" {
 // 是否启用assert
 // #define RyanJsonEnableAssert
 
+// 是否支持未对齐访问,未定义时会根据平台选择，
+// 一般不用管，如果你明白你的需求就自己定义
+// true 表示支持未对齐访问
+// false 表示不支持未对齐访问
+#ifndef RyanJsonUnalignedAccessSupported
+#define RyanJsonUnalignedAccessSupported true
+#endif
+
 // 限制解析数组/对象中嵌套的深度
 // RyanJson使用递归 序列化/反序列化 json
 // 请根据单片机资源合理设置以防止堆栈溢出。
@@ -59,6 +67,12 @@ extern "C" {
 #define RyanJsonAssert(EX) RyanJsonPlatformAssert(EX)
 #else
 #define RyanJsonAssert(EX) (void)(EX)
+#endif
+
+#if true != RyanJsonUnalignedAccessSupported
+#define RyanJsonAlign sizeof(void *)
+#else
+#define RyanJsonAlign sizeof(uint8_t)
 #endif
 
 #ifdef __cplusplus
