@@ -168,13 +168,13 @@ static RyanJson_t RyanJsonCreateArrayAndKey(const char *key);
 static uint8_t *RyanJsonGetHiddePrt(RyanJson_t pJson)
 {
 	RyanJsonCheckAssert(NULL != pJson);
-	return *(uint8_t **)(RyanJsonGetPayloadPtr(pJson) + RyanJsonAlign);
+	return *(uint8_t **)(RyanJsonGetPayloadPtr(pJson) + sizeof(void *));
 }
 static void RyanJsonSetHiddePrt(RyanJson_t pJson, uint8_t *hiddePrt)
 {
 	RyanJsonCheckAssert(NULL != pJson);
 	RyanJsonCheckAssert(NULL != hiddePrt);
-	*(uint8_t **)(RyanJsonGetPayloadPtr(pJson) + RyanJsonAlign) = hiddePrt;
+	*(uint8_t **)(RyanJsonGetPayloadPtr(pJson) + sizeof(void *)) = hiddePrt;
 }
 
 /**
@@ -191,31 +191,22 @@ static uint8_t *RyanJsonGetHiddenPtrAt(RyanJson_t pJson, uint32_t index)
 }
 #pragma GCC diagnostic pop
 
-union RyanJsonUint32Bytes {
-	uint32_t value;
-	uint8_t buf[4];
-};
 static void RyanJsonSetLenKey(RyanJson_t pJson, uint32_t value)
 {
 	RyanJsonCheckAssert(NULL != pJson);
-	uint8_t *buf = RyanJsonGetHiddenPtrAt(pJson, 0);
-	uint8_t len = RyanJsonGetPayloadEncodeKeyLenByFlag(pJson);
-	RyanJsonCheckAssert(len <= 4);
 
-	union RyanJsonUint32Bytes tmpLenField = {.value = value};
-	for (uint8_t i = 0; i < len; i++) { buf[i] = tmpLenField.buf[i]; }
+	uint8_t *buf = (RyanJsonGetPayloadPtr(pJson) + sizeof(uint8_t));
+	RyanJsonMemcpy(buf, &value, 3);
 }
 
 static uint32_t RyanJsonGetLenKey(RyanJson_t pJson)
 {
 	RyanJsonCheckAssert(NULL != pJson);
-	uint8_t *buf = RyanJsonGetHiddenPtrAt(pJson, 0);
-	uint8_t len = RyanJsonGetPayloadEncodeKeyLenByFlag(pJson);
-	RyanJsonCheckAssert(len <= 4);
 
-	union RyanJsonUint32Bytes tmpLenField = {0};
-	for (uint8_t i = 0; i < len; i++) { tmpLenField.buf[i] = buf[i]; }
-	return tmpLenField.value;
+	uint8_t *buf = (RyanJsonGetPayloadPtr(pJson) + sizeof(uint8_t));
+	uint32_t value = 0;
+	RyanJsonMemcpy(&value, buf, 3);
+	return value;
 }
 
 /**
@@ -327,11 +318,20 @@ void *RyanJsonGetValue(RyanJson_t pJson)
 {
 	RyanJsonCheckReturnNull(NULL != pJson);
 
-	uint32_t len = RyanJsonAlign;
+	uint32_t len = 0;
 	if (RyanJsonIsKey(pJson) || RyanJsonIsString(pJson))
 	{
-		len += sizeof(void *);
+		len += sizeof(void *); // 对齐偏移
+		len += sizeof(void *); // key和Str的指针
 		// jsonLog(" keyLen: %d, keyLenField: %d, \r\n", RyanJsonGetLenKey(pJson), RyanJsonGetPayloadEncodeKeyLenByFlag(pJson));
+	}
+	else if (RyanJsonIsObject(pJson) || RyanJsonIsArray(pJson))
+	{
+		len += sizeof(void *); // 对齐偏移
+	}
+	else
+	{
+		len += sizeof(uint8_t); // 对齐偏移
 	}
 
 	return RyanJsonGetPayloadPtr(pJson) + len;
@@ -340,7 +340,7 @@ void *RyanJsonGetValue(RyanJson_t pJson)
 char *RyanJsonGetKey(RyanJson_t pJson)
 {
 	RyanJsonCheckReturnNull(NULL != pJson);
-	return (char *)RyanJsonGetHiddenPtrAt(pJson, RyanJsonGetPayloadEncodeKeyLenByFlag(pJson));
+	return (char *)RyanJsonGetHiddenPtrAt(pJson, 0);
 }
 
 char *RyanJsonGetStringValue(RyanJson_t pJson)
@@ -348,9 +348,27 @@ char *RyanJsonGetStringValue(RyanJson_t pJson)
 	RyanJsonCheckReturnNull(NULL != pJson);
 
 	uint32_t len = 0;
-	if (RyanJsonIsKey(pJson)) { len = RyanJsonGetPayloadEncodeKeyLenByFlag(pJson) + RyanJsonGetLenKey(pJson) + 1U; }
+	if (RyanJsonIsKey(pJson)) { len = RyanJsonGetLenKey(pJson) + 1U; }
 
 	return (char *)RyanJsonGetHiddenPtrAt(pJson, len);
+}
+
+int32_t RyanJsonGetIntValue(RyanJson_t pJson)
+{
+	RyanJsonCheckCodeNoReturn(NULL != pJson, { return 0; });
+
+	int32_t intValue;
+	RyanJsonMemcpy(&intValue, RyanJsonGetValue(pJson), sizeof(intValue));
+	return intValue;
+}
+
+double RyanJsonGetDoubleValue(RyanJson_t pJson)
+{
+	RyanJsonCheckCodeNoReturn(NULL != pJson, { return 0; });
+
+	double doubleValue;
+	RyanJsonMemcpy(&doubleValue, RyanJsonGetValue(pJson), sizeof(doubleValue));
+	return doubleValue;
 }
 
 static RyanJsonBool_e RyanJsonChangeString(RyanJson_t pJson, RyanJsonBool_e isNew, const char *key, const char *strValue)
@@ -358,7 +376,6 @@ static RyanJsonBool_e RyanJsonChangeString(RyanJson_t pJson, RyanJsonBool_e isNe
 	RyanJsonCheckAssert(NULL != pJson);
 
 	uint32_t keyLen = 0;      // key的长度
-	uint8_t keyLenField = 0;  // 记录key长度需要几个字节
 	uint32_t strValueLen = 0; // stringValue的长度
 
 	uint32_t mallocSize = 0;
@@ -367,8 +384,7 @@ static RyanJsonBool_e RyanJsonChangeString(RyanJson_t pJson, RyanJsonBool_e isNe
 	if (NULL != key)
 	{
 		keyLen = RyanJsonStrlen(key);
-		keyLenField = RyanJsonCalcLenBytes(keyLen);
-		mallocSize += keyLen + keyLenField + 1 + 1;
+		mallocSize += keyLen + 1;
 
 #ifdef isEnableFuzzer
 		{
@@ -404,17 +420,15 @@ static RyanJsonBool_e RyanJsonChangeString(RyanJson_t pJson, RyanJsonBool_e isNe
 	if (NULL != key)
 	{
 		RyanJsonSetPayloadWhiteKeyByFlag(pJson, RyanJsonTrue);
-		RyanJsonSetPayloadEncodeKeyLenByFlag(pJson, keyLenField);
 		RyanJsonSetLenKey(pJson, keyLen);
 
-		jsonLog(" keyLen: %d, keyLenField: %d, \r\n", RyanJsonGetLenKey(pJson), RyanJsonGetPayloadEncodeKeyLenByFlag(pJson));
+		jsonLog("keyLen: %d, \r\n", RyanJsonGetLenKey(pJson));
 		if (0 != keyLen) { RyanJsonMemcpy(RyanJsonGetKey(pJson), key, keyLen); }
 		RyanJsonGetKey(pJson)[keyLen] = '\0';
 	}
 	else
 	{
 		RyanJsonSetPayloadWhiteKeyByFlag(pJson, RyanJsonFalse);
-		RyanJsonSetPayloadEncodeKeyLenByFlag(pJson, 0);
 	}
 
 	// 设置字符串值
@@ -434,7 +448,7 @@ static RyanJson_t RyanJsonNewNode(RyanJsonNodeInfo_t *info)
 	RyanJsonCheckAssert(NULL != info);
 
 	// 加1是flag的空间
-	uint32_t size = sizeof(struct RyanJsonNode) + RyanJsonAlign;
+	uint32_t size = sizeof(struct RyanJsonNode);
 
 	if (_checkType(info->type, RyanJsonTypeNumber))
 	{
@@ -446,7 +460,19 @@ static RyanJson_t RyanJsonNewNode(RyanJsonNodeInfo_t *info)
 	}
 	else if (_checkType(info->type, RyanJsonTypeArray) || _checkType(info->type, RyanJsonTypeObject)) { size += sizeof(RyanJson_t); }
 
-	if (NULL != info->key || _checkType(info->type, RyanJsonTypeString)) { size += sizeof(void *); }
+	if (NULL != info->key || _checkType(info->type, RyanJsonTypeString))
+	{
+		size += sizeof(void *); // 对齐偏移
+		size += sizeof(void *); // key和Str的指针
+	}
+	else if (_checkType(info->type, RyanJsonTypeArray) || _checkType(info->type, RyanJsonTypeObject))
+	{
+		size += sizeof(void *); // 对齐偏移
+	}
+	else
+	{
+		size += sizeof(uint8_t); // 对齐偏移
+	}
 
 	RyanJson_t pJson = (RyanJson_t)jsonMalloc((size_t)size);
 	if (NULL != pJson)
@@ -1070,6 +1096,7 @@ RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool_e 
 	RyanJsonCheckReturnNull(RyanJsonTrue == parseBufSkipWhitespace(&parseBuf));
 
 	RyanJsonCheckReturnNull(RyanJsonTrue == RyanJsonParseValue(&parseBuf, NULL, &pJson));
+
 	// 检查解析后的文本后面是否有无意义的字符
 	RyanJsonCheckCode(RyanJsonTrue == RyanJsonParseCheckNullTerminator(&parseBuf, requireNullTerminator), {
 		RyanJsonDelete(pJson);
@@ -1848,6 +1875,20 @@ RyanJsonBool_e RyanJsonChangeStringValue(RyanJson_t pJson, const char *strValue)
 	return RyanJsonChangeString(pJson, RyanJsonFalse, RyanJsonIsKey(pJson) ? RyanJsonGetKey(pJson) : NULL, strValue);
 }
 
+RyanJsonBool_e RyanJsonChangeIntValue(RyanJson_t pJson, int32_t number)
+{
+	RyanJsonCheckReturnFalse(NULL != pJson);
+	RyanJsonMemcpy(RyanJsonGetValue(pJson), &number, sizeof(number));
+	return RyanJsonTrue;
+}
+
+RyanJsonBool_e RyanJsonChangeDoubleValue(RyanJson_t pJson, double number)
+{
+	RyanJsonCheckReturnFalse(NULL != pJson);
+	RyanJsonMemcpy(RyanJsonGetValue(pJson), &number, sizeof(number));
+	return RyanJsonTrue;
+}
+
 /**
  * @brief 创建一个 NULL 类型的json对象
  *
@@ -1885,7 +1926,7 @@ RyanJson_t RyanJsonCreateInt(const char *key, int32_t number)
 	RyanJson_t item = RyanJsonNewNode(&nodeInfo);
 	RyanJsonCheckReturnNull(NULL != item);
 
-	RyanJsonGetIntValue(item) = number;
+	RyanJsonChangeIntValue(item, number);
 	return item;
 }
 
@@ -1902,7 +1943,7 @@ RyanJson_t RyanJsonCreateDouble(const char *key, double number)
 	RyanJson_t item = RyanJsonNewNode(&nodeInfo);
 	RyanJsonCheckReturnNull(NULL != item);
 
-	RyanJsonGetDoubleValue(item) = number;
+	RyanJsonChangeDoubleValue(item, number);
 	return item;
 }
 

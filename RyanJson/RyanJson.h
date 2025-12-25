@@ -153,10 +153,6 @@ typedef void *(*RyanJsonRealloc_t)(void *block, size_t size);
 #define RyanJsonGetPayloadWhiteKeyByFlag(pJson)        RyanJsonGetPayloadFlagField((pJson), 4, RyanJsonGetMask(1))
 #define RyanJsonSetPayloadWhiteKeyByFlag(pJson, value) RyanJsonSetPayloadFlagField((pJson), 4, RyanJsonGetMask(1), (value))
 
-// ! 使用超过8字节后一定要注意 RyanJsonSetPayloadFlagField 目前限制uint8_t类型
-// flag空间不够的时候可以把这个字段弃用，用redis的listpack方法将key和keyLen一起表示，内存占用也挺好，但是复杂度高，有空间就保持现在这样
-#define RyanJsonGetPayloadEncodeKeyLenByFlag(pJson)        ((uint8_t)RyanJsonGetPayloadFlagField((pJson), 5, RyanJsonGetMask(2)) + 1)
-#define RyanJsonSetPayloadEncodeKeyLenByFlag(pJson, value) RyanJsonSetPayloadFlagField((pJson), 5, RyanJsonGetMask(2), (value))
 extern RyanJsonBool_e RyanJsonInsert(RyanJson_t pJson, uint32_t index, RyanJson_t item);
 extern void *RyanJsonGetValue(RyanJson_t pJson);
 extern RyanJson_t RyanJsonCreateItem(const char *key, RyanJson_t item); // 需用户释放内存
@@ -247,9 +243,9 @@ extern RyanJsonBool_e RyanJsonIsDouble(RyanJson_t pJson);
  */
 extern char *RyanJsonGetKey(RyanJson_t pJson);
 extern char *RyanJsonGetStringValue(RyanJson_t pJson);
+extern int32_t RyanJsonGetIntValue(RyanJson_t pJson);
+extern double RyanJsonGetDoubleValue(RyanJson_t pJson);
 #define RyanJsonGetBoolValue(pJson)   RyanJsonGetPayloadBoolValueByFlag(pJson)
-#define RyanJsonGetIntValue(pJson)    (*(int32_t *)RyanJsonGetValue(pJson))
-#define RyanJsonGetDoubleValue(pJson) (*(double *)RyanJsonGetValue(pJson))
 #define RyanJsonGetArrayValue(pJson)  (*(RyanJson_t *)RyanJsonGetValue(pJson))
 #define RyanJsonGetObjectValue(pJson) (*(RyanJson_t *)RyanJsonGetValue(pJson))
 
@@ -284,9 +280,9 @@ extern RyanJsonBool_e RyanJsonAddItemToObject(RyanJson_t pJson, const char *key,
  */
 extern RyanJsonBool_e RyanJsonChangeKey(RyanJson_t pJson, const char *key);
 extern RyanJsonBool_e RyanJsonChangeStringValue(RyanJson_t pJson, const char *strValue);
-#define RyanJsonChangeBoolValue(pJson, boolean)  RyanJsonSetPayloadBoolValueByFlag(pJson, boolean)
-#define RyanJsonChangeIntValue(pJson, number)    (RyanJsonGetIntValue(pJson) = (number))
-#define RyanJsonChangeDoubleValue(pJson, number) (RyanJsonGetDoubleValue(pJson) = (number))
+extern RyanJsonBool_e RyanJsonChangeIntValue(RyanJson_t pJson, int32_t number);
+extern RyanJsonBool_e RyanJsonChangeDoubleValue(RyanJson_t pJson, double number);
+#define RyanJsonChangeBoolValue(pJson, boolean) RyanJsonSetPayloadBoolValueByFlag(pJson, boolean)
 
 // 这是change方法的补充，当需要修改value类型时，使用此函数
 // 请参考 changeJsonTest 示例，严格按照规则来使用
