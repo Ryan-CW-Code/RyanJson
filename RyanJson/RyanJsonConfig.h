@@ -19,19 +19,16 @@ extern "C" {
 #include "rtthread.h"
 #define RyanJsonMemset             rt_memset
 #define RyanJsonMemcpy             rt_memcpy
-// 平台没有memove或者memove实现性能低的，也可以注释掉这个宏,交给RyanJson内部实现的memmove,RyanJson内部会尽量的使用memcpy
-#define RyanJsonMemmove            rt_memmove
 #define RyanJsonStrlen             rt_strlen
 #define RyanJsonStrcmp             rt_strcmp
 #define RyanJsonSnprintf           rt_snprintf
 #define RyanJsonPlatformAssert(EX) RT_ASSERT(EX)
 #define RyanJsonMallocHeaderSize   12U
-#define RyanJsonMallocAlign        (uint32_t)(RT_ALIGN_SIZE)
+#define RyanJsonMallocAlign        RT_ALIGN_SIZE
 #else
 #include <assert.h>
 #define RyanJsonMemset             memset
 #define RyanJsonMemcpy             memcpy
-#define RyanJsonMemmove            memmove
 #define RyanJsonStrlen             strlen
 #define RyanJsonStrcmp             strcmp
 #define RyanJsonSnprintf           snprintf

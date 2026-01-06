@@ -40,28 +40,6 @@ static int32_t RyanJsonSnprintf(char *buf, size_t size, const char *fmt, ...)
 }
 #endif
 
-#ifndef RyanJsonMemmove
-static void *RyanJsonMemmove(void *dest, const void *src, uint32_t count)
-{
-	uint8_t *d = (uint8_t *)dest;
-	const uint8_t *s = (const uint8_t *)src;
-
-	if (d == s || count == 0) { return dest; }
-
-	// 目标在源之前 (dest < src) -> 安全
-	// 目标在源之后，但没有重叠 (dest >= src + n) -> 安全
-	// 这两种情况，标准 memcpy (从前向后拷) 都是安全的，且也是最快的！
-	if (d < s || d >= (s + count)) { return RyanJsonMemcpy(dest, src, count); }
-
-	// 目标在源之后，且发生重叠 (dest > src)
-	// 必须从后往前拷，防止覆盖。
-	d += count - 1;
-	s += count - 1;
-	while (count--) { *d-- = *s--; }
-	return dest;
-}
-#endif
-
 typedef struct
 {
 	const uint8_t *currentPtr; // 待解析字符串地址
@@ -187,17 +165,21 @@ static RyanJsonBool_e RyanJsonPrintValue(RyanJson_t pJson, RyanJsonPrintBuffer *
 static RyanJson_t RyanJsonCreateObjectAndKey(const char *key);
 static RyanJson_t RyanJsonCreateArrayAndKey(const char *key);
 
+#define RyanJsonGetInlineStringSize()                                                                                                      \
+	(RyanJsonAlign((sizeof(void *) - RyanJsonFlagSize + sizeof(void *) + (RyanJsonMallocHeaderSize / 2) + RyanJsonFlagSize),           \
+		       RyanJsonMallocAlign) -                                                                                              \
+	 RyanJsonFlagSize)
 /**
  * @brief 获取内联字符串的大小
  * 用函数可读性更强一点，编译器会优化的
  * @return uint32_t
  */
-static uint32_t RyanJsonGetInlineStringSize(void)
-{
-	uint32_t baseSize = sizeof(void *) - RyanJsonFlagSize;     // flag的偏移字节量
-	baseSize += sizeof(void *) + RyanJsonMallocHeaderSize / 2; // 存储指针变量的字节量
-	return (uint32_t)(RyanJsonAlign(baseSize + RyanJsonFlagSize, RyanJsonMallocAlign) - RyanJsonFlagSize);
-}
+// static uint32_t RyanJsonGetInlineStringSize(void)
+// {
+// 	uint32_t baseSize = sizeof(void *) - RyanJsonFlagSize;     // flag的偏移字节量
+// 	baseSize += sizeof(void *) + RyanJsonMallocHeaderSize / 2; // 存储指针变量的字节量
+// 	return (uint32_t)(RyanJsonAlign(baseSize + RyanJsonFlagSize, RyanJsonMallocAlign) - RyanJsonFlagSize);
+// }
 
 static uint8_t *RyanJsonGetHiddePrt(RyanJson_t pJson)
 {
@@ -430,8 +412,14 @@ static RyanJsonBool_e RyanJsonChangeString(RyanJson_t pJson, RyanJsonBool_e isNe
 		}
 	}
 
+	char arr[RyanJsonGetInlineStringSize()] = {0};
 	// keyLenField(0-3) + 1 为key的长度
-	if ((mallocSize + keyLenField + 1) <= RyanJsonGetInlineStringSize()) { RyanJsonSetPayloadStrIsPtrByFlag(pJson, RyanJsonFalse); }
+	if ((mallocSize + keyLenField + 1) <= RyanJsonGetInlineStringSize())
+	{
+		RyanJsonSetPayloadStrIsPtrByFlag(pJson, RyanJsonFalse);
+		RyanJsonMemcpy(arr, key, keyLen);
+		RyanJsonMemcpy(arr + keyLen, strValue, strValueLen);
+	}
 	else
 	{
 		// 申请新的空间
@@ -470,7 +458,7 @@ static RyanJsonBool_e RyanJsonChangeString(RyanJson_t pJson, RyanJsonBool_e isNe
 		if (RyanJsonFalse == RyanJsonGetPayloadStrIsPtrByFlag(pJson))
 		{
 			char *keyBuf = RyanJsonGetKey(pJson);
-			if (0 != keyLen) { RyanJsonMemmove(keyBuf, key, keyLen); }
+			if (0 != keyLen) { RyanJsonMemcpy(keyBuf, arr, keyLen); }
 			keyBuf[keyLen] = '\0';
 		}
 	}
@@ -487,7 +475,7 @@ static RyanJsonBool_e RyanJsonChangeString(RyanJson_t pJson, RyanJsonBool_e isNe
 		if (RyanJsonFalse == RyanJsonGetPayloadStrIsPtrByFlag(pJson))
 		{
 			char *strValueBuf = RyanJsonGetStringValue(pJson);
-			if (0 != strValueLen) { RyanJsonMemmove(strValueBuf, strValue, strValueLen); }
+			if (0 != strValueLen) { RyanJsonMemcpy(strValueBuf, arr + keyLen, strValueLen); }
 			strValueBuf[strValueLen] = '\0';
 		}
 	}
