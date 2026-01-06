@@ -11,6 +11,31 @@ static RyanJsonBool_e isEnableRandomMemFail = RyanJsonTrue;
 
 static RyanJsonBool_e RyanJsonFuzzerTestByParseAndPrint(RyanJson_t pJson, const char *data, uint32_t size)
 {
+	isEnableRandomMemFail = RyanJsonFalse;
+	RyanJson_t testItem = RyanJsonCreateObject();
+	RyanJson_t testItem2 = RyanJsonCreateObject();
+	RyanJsonSetType(testItem, 0);
+	RyanJsonSetType(testItem2, 0);
+	RyanJsonAssert(NULL == RyanJsonPrint(testItem, 100, RyanJsonFalse, NULL));
+	RyanJsonAssert(NULL == RyanJsonDuplicate(testItem));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonCompare(testItem, testItem2));
+
+	// 测试pJson类型错误情况
+	RyanJsonAssert(RyanJsonFalse == RyanJsonInsert(testItem, 0, RyanJsonCreateString("key", "true")));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonInsert(testItem2, UINT32_MAX, RyanJsonCreateString("key", "true")));
+
+	RyanJsonSetType(testItem, RyanJsonTypeObject);
+	RyanJsonSetType(testItem2, RyanJsonTypeObject);
+
+	// 测试pJson为obj，但是item没有key的情况
+	RyanJsonAssert(RyanJsonFalse == RyanJsonInsert(pJson, 0, RyanJsonCreateString(NULL, "true")));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonInsert(pJson, UINT32_MAX, RyanJsonCreateString(NULL, "true")));
+
+	RyanJsonAssert(RyanJsonTrue == RyanJsonInsert(pJson, 0, RyanJsonCreateString("key", "true")));
+	RyanJsonDelete(testItem);
+	RyanJsonDelete(testItem2);
+	isEnableRandomMemFail = RyanJsonTrue;
+
 	RyanJsonAssert(NULL == RyanJsonPrint(NULL, 100, RyanJsonFalse, NULL));
 	RyanJsonAssert(NULL == RyanJsonPrintPreallocated(NULL, NULL, 100, RyanJsonFalse, NULL));
 	RyanJsonAssert(NULL == RyanJsonPrintPreallocated(pJson, NULL, 100, RyanJsonFalse, NULL));
@@ -18,10 +43,13 @@ static RyanJsonBool_e RyanJsonFuzzerTestByParseAndPrint(RyanJson_t pJson, const 
 	RyanJsonAssert(NULL == RyanJsonPrintPreallocated(pJson, (char *)data, 0, RyanJsonFalse, NULL));
 
 	uint32_t len = 0;
-	char *jsonStr =
-		RyanJsonPrint(pJson, size % 5 ? 100 : 0, size % 2 ? RyanJsonFalse : RyanJsonTrue, &len); // 以带格式方式将数据打印出来
+	char *jsonStr = RyanJsonPrint(pJson, size % 5 ? 100 : 0, size % 2 ? RyanJsonFalse : RyanJsonTrue, &len);
 	RyanJsonCheckReturnFalse(NULL != jsonStr && len > 0);
+
+	char *jsonStrCopy = RyanJsonPrint(pJson, size % 5 ? 100 : 0, size % 2 ? RyanJsonFalse : RyanJsonTrue, NULL); // 不传递len
+	RyanJsonAssert(0 == strncmp(jsonStr, jsonStrCopy, len));
 	RyanJsonFree(jsonStr);
+	RyanJsonFree(jsonStrCopy);
 
 	uint32_t bufLen = len * 3;
 	if (bufLen < size * 2) { bufLen = size * 2; }
@@ -121,6 +149,8 @@ static RyanJsonBool_e RyanJsonFuzzerTestByDup(RyanJson_t pJson)
 	{
 		// 测试size不相等
 		RyanJsonDelete(RyanJsonDetachByIndex(pJson, 0));
+		// 增加分支覆盖率
+		if (RyanJsonGetSize(pJson) > 2) { RyanJsonDelete(RyanJsonDetachByIndex(pJson, 1)); }
 
 		if (RyanJsonIsArray(pJson) || RyanJsonIsObject(pJson))
 		{
@@ -186,7 +216,7 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachChange(RyanJson_t pJson, uint32
 
 	if (RyanJsonIsKey(pJson))
 	{
-		char *key = malloc(strlen(RyanJsonGetKey(pJson)) + 1);
+		char *key = (char *)malloc(strlen(RyanJsonGetKey(pJson)) + 1);
 		if (key)
 		{
 			memcpy(key, RyanJsonGetKey(pJson), strlen(RyanJsonGetKey(pJson)));
@@ -216,13 +246,14 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachChange(RyanJson_t pJson, uint32
 
 	if (RyanJsonIsString(pJson))
 	{
-		char *value = malloc(strlen(RyanJsonGetStringValue(pJson)) + 1);
+		char *value = (char *)malloc(strlen(RyanJsonGetStringValue(pJson)) + 1);
 		if (value)
 		{
 			memcpy(value, RyanJsonGetStringValue(pJson), strlen(RyanJsonGetStringValue(pJson)));
 			value[strlen(RyanJsonGetStringValue(pJson))] = 0;
 
 			RyanJsonChangeStringValue(pJson, "hello world");
+			RyanJsonChangeStringValue(pJson, "h");
 			RyanJsonChangeStringValue(pJson, value);
 
 			free(value);
@@ -250,6 +281,7 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachGet2(RyanJson_t lastJson, RyanJ
 	RyanJsonAssert(0 == RyanJsonGetIntValue(NULL));
 	RyanJsonAssert(0 == RyanJsonGetDoubleValue(NULL));
 	RyanJsonAssert(NULL == RyanJsonGetObjectValue(NULL));
+	RyanJsonAssert(NULL == RyanJsonGetArrayValue(NULL));
 
 	RyanJsonAssert(NULL == RyanJsonGetObjectByKey(NULL, NULL));
 	RyanJsonAssert(NULL == RyanJsonGetObjectByKey(pJson, NULL));
@@ -282,6 +314,15 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachGet2(RyanJson_t lastJson, RyanJ
 
 static RyanJsonBool_e RyanJsonFuzzerTestByForEachGet(RyanJson_t pJson, uint32_t size)
 {
+	RyanJsonAssert(RyanJsonFalse == RyanJsonIsKey(NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonIsNull(NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonIsBool(NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonIsNumber(NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonIsString(NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonIsArray(NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonIsObject(NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonIsInt(NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonIsDouble(NULL));
 
 	if (RyanJsonIsArray(pJson) || RyanJsonIsObject(pJson))
 	{
@@ -327,9 +368,9 @@ static RyanJson_t RyanJsonFuzzerCreateRandomNode(RyanJson_t pJson)
 static RyanJsonBool_e RyanJsonFuzzerTestByForEachCreate(RyanJson_t pJson, uint32_t size)
 {
 	// RyanJsonInsert的特殊情况
-	RyanJsonCheckReturnFalse(RyanJsonFalse == RyanJsonInsert(NULL, UINT32_MAX, RyanJsonCreateString("key", "string")));
-	RyanJsonCheckReturnFalse(RyanJsonFalse == RyanJsonInsert(pJson, UINT32_MAX, NULL));
-	RyanJsonCheckReturnFalse(RyanJsonFalse == RyanJsonInsert(NULL, 0, NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonInsert(NULL, UINT32_MAX, RyanJsonCreateString("key", "string")));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonInsert(pJson, UINT32_MAX, NULL));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonInsert(NULL, 0, NULL));
 
 	RyanJsonAssert(NULL == RyanJsonCreateString(NULL, NULL));
 	RyanJsonAssert(NULL == RyanJsonCreateString("NULL", NULL));
@@ -349,6 +390,9 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachCreate(RyanJson_t pJson, uint32
 	{
 		RyanJsonAssert(RyanJsonFalse == RyanJsonChangeKey(pJson, "NULL"));
 	}
+
+	// 测试没有key但是有strValue的
+	if (!RyanJsonIsKey(pJson) && RyanJsonIsString(pJson)) { RyanJsonAssert(RyanJsonFalse == RyanJsonChangeKey(pJson, "NULL")); }
 
 	RyanJsonAssert(RyanJsonFalse == RyanJsonChangeIntValue(NULL, 0));
 	RyanJsonAssert(RyanJsonFalse == RyanJsonChangeDoubleValue(NULL, 0));
@@ -624,7 +668,7 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachDelete(RyanJson_t pJson, uint32
 
 static RyanJsonBool_e RyanJsonFuzzerTestByMinify(const char *data, uint32_t size)
 {
-	char *buf = malloc(size + 100);
+	char *buf = (char *)malloc(size + 100);
 	memcpy(buf, data, size);
 	memset(buf + size, 0, 100);
 

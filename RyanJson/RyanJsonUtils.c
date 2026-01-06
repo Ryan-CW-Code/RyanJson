@@ -115,12 +115,12 @@ RyanJson_t RyanJsonCreateStringArray(const char **strings, uint32_t count)
  */
 RyanJsonBool_e RyanJsonCompareOnlyKey(RyanJson_t leftJson, RyanJson_t rightJson)
 {
-	if (NULL == leftJson || NULL == rightJson) { return RyanJsonFalse; }
+	RyanJsonCheckReturnFalse(NULL != leftJson && NULL != rightJson);
 
 	// 相同的对象相等
 	if (leftJson == rightJson) { return RyanJsonTrue; }
 
-	if (RyanJsonGetType(leftJson) != RyanJsonGetType(rightJson)) { return RyanJsonFalse; }
+	RyanJsonCheckReturnFalse(RyanJsonGetType(leftJson) == RyanJsonGetType(rightJson));
 
 	switch (RyanJsonGetType(leftJson))
 	{
@@ -130,31 +130,27 @@ RyanJsonBool_e RyanJsonCompareOnlyKey(RyanJson_t leftJson, RyanJson_t rightJson)
 	case RyanJsonTypeString: return RyanJsonTrue;
 
 	case RyanJsonTypeArray: {
-		if (RyanJsonGetSize(leftJson) != RyanJsonGetSize(rightJson)) { return RyanJsonFalse; }
+		RyanJsonCheckReturnFalse(RyanJsonGetSize(leftJson) == RyanJsonGetSize(rightJson));
 
 		RyanJson_t item;
 		uint32_t itemIndex = 0;
 		RyanJsonArrayForEach(leftJson, item)
 		{
-			if (RyanJsonTrue != RyanJsonCompareOnlyKey(item, RyanJsonGetObjectByIndex(rightJson, itemIndex)))
-			{
-				return RyanJsonFalse;
-			}
+			RyanJsonCheckReturnFalse(RyanJsonTrue ==
+						 RyanJsonCompareOnlyKey(item, RyanJsonGetObjectByIndex(rightJson, itemIndex)));
 			itemIndex++;
 		}
 		return RyanJsonTrue;
 	}
 
 	case RyanJsonTypeObject: {
-		if (RyanJsonGetSize(leftJson) != RyanJsonGetSize(rightJson)) { return RyanJsonFalse; }
+		RyanJsonCheckReturnFalse(RyanJsonGetSize(leftJson) == RyanJsonGetSize(rightJson));
 
 		RyanJson_t item;
 		RyanJsonObjectForEach(leftJson, item)
 		{
-			if (RyanJsonTrue != RyanJsonCompareOnlyKey(item, RyanJsonGetObjectByKey(rightJson, RyanJsonGetKey(item))))
-			{
-				return RyanJsonFalse;
-			}
+			RyanJsonCheckReturnFalse(RyanJsonTrue ==
+						 RyanJsonCompareOnlyKey(item, RyanJsonGetObjectByKey(rightJson, RyanJsonGetKey(item))));
 		}
 		return RyanJsonTrue;
 	}
