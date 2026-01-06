@@ -19,9 +19,8 @@ extern "C" {
 #include "rtthread.h"
 #define RyanJsonMemset             rt_memset
 #define RyanJsonMemcpy             rt_memcpy
-// rtt的memmove实现比较简单
-// 也可以注释掉这个宏,交给RyanJson内部实现的memmove,RyanJson内部会尽量的使用memcpy
-// #define RyanJsonMemmove            rt_memmove
+// 平台没有memove或者memove实现性能低的，也可以注释掉这个宏,交给RyanJson内部实现的memmove,RyanJson内部会尽量的使用memcpy
+#define RyanJsonMemmove            rt_memmove
 #define RyanJsonStrlen             rt_strlen
 #define RyanJsonStrcmp             rt_strcmp
 #define RyanJsonSnprintf           rt_snprintf

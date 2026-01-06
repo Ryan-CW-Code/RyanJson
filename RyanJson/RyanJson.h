@@ -70,7 +70,7 @@ struct RyanJsonNode
 	 *            11=4字节 (≤UINT32_MAX)
 	 *
 	 * - bit7   : 表示key / strValue 存储模式
-	 *            1:inline 模式, 0=ptr 模式
+	 *            0:inline 模式, 1=ptr 模式
 	 *
 	 * @brief 动态载荷存储区
      * 目的：
@@ -326,8 +326,6 @@ extern RyanJsonBool_e RyanJsonChangeStringValue(RyanJson_t pJson, const char *st
 extern RyanJsonBool_e RyanJsonChangeIntValue(RyanJson_t pJson, int32_t number);
 extern RyanJsonBool_e RyanJsonChangeDoubleValue(RyanJson_t pJson, double number);
 #define RyanJsonChangeBoolValue(pJson, boolean) RyanJsonSetPayloadBoolValueByFlag(pJson, boolean)
-
-// #define RyanJsonChangeStringValue(pJson, strValue) {RyanJson_t* aaaasd = &pJson; RyanJsonChangeStringValue22(aaaasd, strValue);}
 
 // 这是change方法的补充，当需要修改value类型时，使用此函数
 // 请参考 changeJsonTest 示例，严格按照规则来使用
