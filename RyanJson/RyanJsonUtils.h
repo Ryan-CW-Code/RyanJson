@@ -1,5 +1,5 @@
-#ifndef __RyanJsonUtils__
-#define __RyanJsonUtils__
+#ifndef RyanJsonUtils
+#define RyanJsonUtils
 
 #ifdef __cplusplus
 extern "C" {

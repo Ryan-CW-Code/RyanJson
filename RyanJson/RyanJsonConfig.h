@@ -1,5 +1,5 @@
-#ifndef __RyanJsonConfig__
-#define __RyanJsonConfig__
+#ifndef RyanJsonConfig
+#define RyanJsonConfig
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,36 +19,45 @@ extern "C" {
 #include "rtthread.h"
 #define RyanJsonMemset             rt_memset
 #define RyanJsonMemcpy             rt_memcpy
+// rtt的memmove实现比较简单
+// 也可以注释掉这个宏,交给RyanJson内部实现的memmove,RyanJson内部会尽量的使用memcpy
+// #define RyanJsonMemmove            rt_memmove
 #define RyanJsonStrlen             rt_strlen
 #define RyanJsonStrcmp             rt_strcmp
 #define RyanJsonSnprintf           rt_snprintf
 #define RyanJsonPlatformAssert(EX) RT_ASSERT(EX)
+#define RyanJsonMallocHeaderSize   12U
+#define RyanJsonMallocAlign        (uint32_t)(RT_ALIGN_SIZE)
 #else
 #include <assert.h>
 #define RyanJsonMemset             memset
 #define RyanJsonMemcpy             memcpy
+#define RyanJsonMemmove            memmove
 #define RyanJsonStrlen             strlen
 #define RyanJsonStrcmp             strcmp
 #define RyanJsonSnprintf           snprintf
 #define RyanJsonPlatformAssert(EX) assert(EX)
+#define RyanJsonMallocHeaderSize   8U
+#define RyanJsonMallocAlign        4U
 #endif
 
 // 是否启用assert
 // #define RyanJsonEnableAssert
 
-// 是否支持未对齐访问,未定义时会根据平台选择，
-// 一般不用管，如果你明白你的需求就自己定义
-// true 表示支持未对齐访问
-// false 表示不支持未对齐访问
-#ifndef RyanJsonUnalignedAccessSupported
-#define RyanJsonUnalignedAccessSupported true
+#ifndef RyanJsonMallocAlign
+#define RyanJsonMallocAlign 8U
+#endif
+
+//
+#ifndef RyanJsonMallocHeaderSize
+#define RyanJsonMallocHeaderSize 8U
 #endif
 
 // 限制解析数组/对象中嵌套的深度
 // RyanJson使用递归 序列化/反序列化 json
 // 请根据单片机资源合理设置以防止堆栈溢出。
 #ifndef RyanJsonNestingLimit
-#define RyanJsonNestingLimit 3000
+#define RyanJsonNestingLimit 500U
 #endif
 
 // 当 RyanJsonPrint 剩余缓冲空间不足时申请的空间大小
@@ -69,10 +78,16 @@ extern "C" {
 #define RyanJsonAssert(EX) (void)(EX)
 #endif
 
-#if true != RyanJsonUnalignedAccessSupported
-#define RyanJsonAlign sizeof(void *)
-#else
-#define RyanJsonAlign sizeof(uint8_t)
+/**
+ * @brief 检查宏是否合法
+ *
+ */
+#if RyanJsonMallocHeaderSize < 4
+#error "RyanJsonMallocHeaderSize 必须大于或等于4"
+#endif
+
+#if RyanJsonMallocAlign % 4 != 0
+#error "RyanJsonMallocAlign 必须是4的倍数"
 #endif
 
 #ifdef __cplusplus

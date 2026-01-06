@@ -1,13 +1,13 @@
 #include "RyanJsonTest.h"
 
-static void *yy_malloc(void *ctx, size_t size) { return v_malloc(size); }
-static void *yy_realloc(void *ctx, void *ptr, size_t old_size, size_t size) { return v_realloc(ptr, size); }
-static void yy_free(void *ctx, void *ptr) { v_free(ptr); }
+static void *yy_malloc(void *ctx, size_t size) { return v_malloc_tlsf(size); }
+static void *yy_realloc(void *ctx, void *ptr, size_t old_size, size_t size) { return v_realloc_tlsf(ptr, size); }
+static void yy_free(void *ctx, void *ptr) { v_free_tlsf(ptr); }
 
 static int RyanJsonMemoryFootprint(char *jsonstr)
 {
-	int32_t use = vallocGetUse();
-	RyanJsonInitHooks(v_malloc, v_free, v_realloc);
+	int32_t use = vallocGetUseByTlsf();
+	RyanJsonInitHooks(v_malloc_tlsf, v_free_tlsf, v_realloc_tlsf);
 
 	RyanJson_t json = RyanJsonParse(jsonstr);
 	if (json == NULL)
@@ -16,7 +16,7 @@ static int RyanJsonMemoryFootprint(char *jsonstr)
 		return -1;
 	}
 
-	use = vallocGetUse() - use;
+	use = vallocGetUseByTlsf() - use;
 
 	RyanJsonDelete(json);
 	return use;
@@ -24,8 +24,8 @@ static int RyanJsonMemoryFootprint(char *jsonstr)
 
 static int cJSONMemoryFootprint(char *jsonstr)
 {
-	int32_t use = vallocGetUse();
-	cJSON_Hooks hooks = {.malloc_fn = v_malloc, .free_fn = v_free};
+	int32_t use = vallocGetUseByTlsf();
+	cJSON_Hooks hooks = {.malloc_fn = v_malloc_tlsf, .free_fn = v_free_tlsf};
 	cJSON_InitHooks(&hooks);
 
 	cJSON *json = cJSON_Parse(jsonstr);
@@ -35,7 +35,7 @@ static int cJSONMemoryFootprint(char *jsonstr)
 		return -1;
 	}
 
-	use = vallocGetUse() - use;
+	use = vallocGetUseByTlsf() - use;
 	cJSON_Delete(json);
 	return use;
 }
@@ -43,6 +43,8 @@ static int cJSONMemoryFootprint(char *jsonstr)
 static int yyjsonMemoryFootprint(char *jsonstr)
 {
 	static yyjson_alc yyalc = {yy_malloc, yy_realloc, yy_free, NULL};
+	int32_t use = vallocGetUseByTlsf();
+
 	// 先解析成只读文档（可用自定义分配器 yyalc）
 	yyjson_doc *doc = yyjson_read_opts(jsonstr, strlen(jsonstr), YYJSON_READ_NOFLAG, &yyalc, NULL);
 	if (doc == NULL) { return -1; }
@@ -53,8 +55,7 @@ static int yyjsonMemoryFootprint(char *jsonstr)
 	if (mdoc == NULL) { return -1; }
 
 	// 统计当前分配器的占用
-	int area = 0, use = 0;
-	v_mcheck(&area, &use);
+	use = vallocGetUseByTlsf() - use;
 
 	// 用完释放可变文档
 	yyjson_mut_doc_free(mdoc);
@@ -236,6 +237,16 @@ RyanJsonBool_e RyanJsonMemoryFootprintTest(void)
 	printf("\r\n--------------------------- 小对象json 纯字符串内存占用测试 --------------------------\r\n");
 	jsonstr = "{\"inter\":\"16\",\"double\":\"16.89\",\"string\":\"hello\",\"boolTrue\":\"true\",\"boolFalse\":\"false\",\"null\":"
 		  "\"null\"}";
+	printfJsonCompera(jsonstr);
+
+	printf("\r\n--------------------------- 小对象json 纯字符串内存占用测试 --------------------------\r\n");
+	jsonstr = "{\"0\":\"0\",\"1\":\"189774523\",\"2\":{\"7\":\"3\",\"8\":\"103\",\"9\":\"37\",\"20\":\"0\",\"26\":\"37\",\"27\":"
+		  "\"367\",\"28\":\"367\",\"s\":\"0\",\"t\":\"0\",\"a\":\"24.98\",\"2a\":\"0\",\"1p\":\"23628\"},\"3\":\"0\",\"22\":"
+		  "\"epmgrow1105\",\"23\":\"0\",\"29\":\"0\",\"i\":\"4\",\"b\":\"900\",\"c\":\"1\",\"rsrp\":\"-111\",\"rsrq\":\"-4\","
+		  "\"sinr\":\"0\",\"soc\":\"AIR780EPM\",\"j\":\"0\",\"g\":\"898604021025D0152523\",\"h\":\"866965083262839\",\"d\":\"1.3.5."
+		  "00.20260104\",\"f\":\"0\",\"k\":\"1\",\"l\":\"20000\",\"m\":\"20000\",\"u\":\"0\",\"v\":\"0\",\"e\":\"1\",\"w\":\"0."
+		  "00\",\"n\":\"0\",\"2h\":\"0\",\"o\":\"30\",\"1v\":\"12000\",\"2c\":\"0\",\"p\":\"1\",\"q\":\"1\",\"x\":\"0\",\"y\":"
+		  "\"167\",\"r\":\"0\",\"1x\":\"0\",\"1w\":\"0\",\"1y\":\"100.00\",\"1u\":\"0\"}";
 	printfJsonCompera(jsonstr);
 
 	/**

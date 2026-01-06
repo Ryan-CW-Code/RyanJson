@@ -6,7 +6,7 @@
 #include "valloc.h"
 
 #define HEADER_SIZE        sizeof(int)
-#define MALLOC_HEADER_SIZE 12
+#define MALLOC_HEADER_SIZE 0
 
 static int count = 0;
 static int use = 0;

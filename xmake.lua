@@ -14,9 +14,9 @@ target("RyanJson", function()
 
     -- 定义宏：启用 Fuzzer 功能
     -- Fuzzer 与覆盖率相关编译/链接选项
-    add_defines("isEnableFuzzer")
-    add_cxflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true})
-    add_ldflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true})
+    -- add_defines("isEnableFuzzer")
+    -- add_cxflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true})
+    -- add_ldflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true})
 
     -- 编译优化策略
     set_policy("build.ccache", false) -- 禁用 ccache 缓存
@@ -92,7 +92,7 @@ target("RyanJson", function()
         "-Wdisabled-optimization", -- 被禁用的优化
         "-Wreturn-local-addr",     -- 返回局部变量地址
         "-Wdeprecated",            -- 使用已弃用特性
-        "-Wunsafe-buffer-usage",   -- 不安全的数组/指针用法
+        -- "-Wunsafe-buffer-usage",   -- 不安全的数组/指针用法
         "-Wuninitialized",         -- 使用未初始化变量
         "-fstack-protector-strong",-- 栈保护
         "-Wmissing-include-dirs",  -- 头文件目录缺失
@@ -108,6 +108,13 @@ target("RyanJson", function()
         "-Wparentheses-equality",
         "-Wno-documentation",      -- 临时关闭文档警告
         -- "-Wno-parentheses-equality", -- 临时关闭括号比较警告
+        "-Wno-extra-semi-stmt",     -- 关闭分号警告
+        "-Wno-unsafe-buffer-usage", -- 关闭不安全的数组/指针用法警告
+        "-Wno-declaration-after-statement", -- 关闭声明在语句后的警告
+        "-Wno-padded",              -- 关闭结构体填充警告
+        "-Wno-switch-default",      -- 关闭 switch 语句缺少 default 的警告
+        "-Wno-unused-macros",       -- 关闭未使用的宏定义警告
+        "-Wno-unused-includes",     -- 关闭未使用的头文件警告
         {force = true}
     )
 
@@ -117,6 +124,7 @@ target("RyanJson", function()
     add_includedirs('./test/fuzzer', {public = true})
     add_includedirs('./test', {public = true})
     add_includedirs('./test/valloc', {public = true})
+    add_includedirs('./test/tlsf', {public = true})
     add_includedirs('./test/baseTest', {public = true})
     add_includedirs('./externalModule/cJSON', {public = true})
     add_includedirs('./externalModule/yyjson', {public = true})
@@ -127,6 +135,7 @@ target("RyanJson", function()
     add_files('./test/fuzzer/*.c', {public = true})
     add_files('./test/*.c', {public = true}, {cxflags = "-w"})          -- 测试代码，关闭警告
     add_files('./test/valloc/*.c', {public = true}, {cxflags = "-w"})   -- valloc 测试，关闭警告
+    add_files('./test/tlsf/*.c', {public = true}, {cxflags = "-w"})   -- valloc 测试，关闭警告
     add_files('./test/baseTest/*.c', {public = true}, {cxflags = "-w"}) -- 基础测试，关闭警告
     add_files('./externalModule/cJSON/*.c', {public = true}, {cxflags = "-w"}) -- 第三方库 cJSON，关闭警告
     add_files('./externalModule/yyjson/*.c', {public = true}, {cxflags = "-w"}) -- 第三方库 yyjson，关闭警告

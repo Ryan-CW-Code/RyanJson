@@ -8,8 +8,8 @@
  *       \author  Lamdonn
  *      \details  v1.0.0
  ********************************************************************************************************/
-#ifndef __valloc_H
-#define __valloc_H
+#ifndef valloc
+#define valloc
 
 #ifdef __cplusplus
 extern "C" {

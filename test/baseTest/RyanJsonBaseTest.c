@@ -51,7 +51,6 @@ uint64_t platformUptimeMs(void)
 RyanJsonBool_e RyanJsonBaseTest(void)
 {
 	int32_t result = 0;
-	RyanJsonInitHooks(v_malloc, v_free, v_realloc);
 
 	uint32_t testRunCount = 0;
 	uint64_t funcStartMs;

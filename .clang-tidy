@@ -27,8 +27,9 @@
 # Checks: '-*,clang-diagnostic-*,llvm-*,misc-*,-misc-const-correctness,-misc-unused-parameters,-misc-non-private-member-variables-in-classes,-misc-no-recursion,-misc-use-anonymous-namespace,readability-identifier-naming,-misc-include-cleaner'
 
 Checks: 
-  - "-*,clang-diagnostic-*,clang-analyzer-*,llvm-*,concurrency-*,performance-*,cert-*"
+  - "-*,clang-diagnostic-*,clang-analyzer-*,concurrency-*,performance-*,cert-*"
   # 静默的窄化转换交给编译器来判断？
+  - 'llvm-*,-llvm-include-order'
   - 'bugprone-*,-bugprone-easily-swappable-parameters'
   - 'readability-identifier-naming'
   - 'misc-*,-misc-const-correctness,-misc-no-recursion,-misc-include-cleaner'

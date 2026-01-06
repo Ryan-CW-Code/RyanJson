@@ -67,7 +67,7 @@ static int testFile(const char *path, jsonParseData jsonParseDataHandle)
 			int area = 0, use = 0;
 			v_mcheck(&area, &use);
 			printf("内存泄漏 %s len: %ld\r\n", data, len);
-            free(data);
+			free(data);
 			// printf("内存泄漏 %x len: %ld\r\n", (unsigned int)data, len);
 			// printf("内存泄漏 %c len: %ld\r\n", (int)data, len);
 			printf("|||----------->>> area = %d, size = %d\r\n", area, use);
@@ -445,8 +445,7 @@ static void checkadjfladjfl(char *data, uint32_t len, char *str, uint32_t strLen
 static int RyanJsonParseData(char *fileName, char *data, uint32_t len)
 {
 
-	if (strcmp(fileName, "n_structure_100000_opening_arrays.json") == 0 ||
-	    strcmp(fileName, "n_structure_open_array_object.json") == 0 || strcmp(fileName, "n_structure_100000_opening_arrays.json") == 0)
+	if (strcmp(fileName, "n_structure_100000_opening_arrays.json") == 0 || strcmp(fileName, "n_structure_open_array_object.json") == 0)
 	{
 		return -1;
 	}
@@ -489,8 +488,7 @@ err:
 static int cJSONParseData(char *fileName, char *data, uint32_t len)
 {
 
-	if (strcmp(fileName, "n_structure_100000_opening_arrays.json") == 0 ||
-	    strcmp(fileName, "n_structure_open_array_object.json") == 0 || strcmp(fileName, "n_structure_100000_opening_arrays.json") == 0)
+	if (strcmp(fileName, "n_structure_100000_opening_arrays.json") == 0 || strcmp(fileName, "n_structure_open_array_object.json") == 0)
 	{
 		return -1;
 	}
@@ -530,8 +528,7 @@ err:
  */
 static int yyjsonParseData(char *fileName, char *data, uint32_t len)
 {
-	if (strcmp(fileName, "n_structure_100000_opening_arrays.json") == 0 ||
-	    strcmp(fileName, "n_structure_open_array_object.json") == 0 || strcmp(fileName, "n_structure_100000_opening_arrays.json") == 0)
+	if (strcmp(fileName, "n_structure_100000_opening_arrays.json") == 0 || strcmp(fileName, "n_structure_open_array_object.json") == 0)
 	{
 		return -1;
 	}
@@ -566,7 +563,6 @@ err:
 RyanJsonBool_e RFC8259JsonTest(void)
 {
 	int result = 0;
-	RyanJsonInitHooks(v_malloc, v_free, v_realloc);
 
 	cJSON_Hooks hooks = {.malloc_fn = v_malloc, .free_fn = v_free};
 	cJSON_InitHooks(&hooks);

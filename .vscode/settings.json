@@ -1,8 +1,27 @@
 {
-    "clangd.enable": false,
-    "C_Cpp.intelliSenseEngine": "default",
-    "C_Cpp.codeAnalysis.clangTidy.enabled": true,
-    "c-cpp-flylint.enable": true,
+    "Lua.codeLens.enable": false,
+    "Lua.hint.enable": false,
+    "Lua.completion.enable": false,
+    "Lua.format.enable": false,
+    "Lua.hover.enable": false,
+    "Lua.diagnostics.enable": false,
+    "Lua.semantic.enable": false,
+    "Lua.addonManager.enable": false,
+    "Lua.signatureHelp.enable": false,
+    "clangd.enable": true,
+    "clangd.arguments": [
+    ],
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "C_Cpp.errorSquiggles": "disabled", // 关闭微软的波浪线
+    "C_Cpp.autocomplete": "disabled", // 关闭微软的自动补全
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/.vscode/compile_commands.json",
+    "C_Cpp.codeAnalysis.clangTidy.enabled": false,
+    "C_Cpp.codeAnalysis.clangTidy.args": [
+        // "--extra-arg=-ferror-limit=1"
+        // "--extra-arg=-m32",
+        "--extra-arg=--target=arm-none-eabi-gcc"
+    ],
+    "c-cpp-flylint.enable": false,
     "c-cpp-flylint.cppcheck.severityLevels": {
         "error": "Error",
         "warning": "Warning",
@@ -12,49 +31,13 @@
         "information": "Information"
     },
     "c-cpp-flylint.cppcheck.extraArgs": [
-        // "--suppress=constParameterPointer",
-        // "--suppress=constParameterCallback",
+        "--suppress=constParameterPointer",
+        "--suppress=constParameterCallback",
         "--check-level=exhaustive",
-        // "--suppress=variableScope",
-        // "--suppress=unreadVariable",
-        // "--suppress=constVariablePointer",
-        // "--suppress=constParameter",
-    ],
-    "files.watcherExclude": {
-        "**/test/fuzzer/corpus/**": true,
-        "./coverage": true,
-        "./build": true,
-        "./.xmake": true,
-    },
-    "files.exclude": {
-        "**/test/fuzzer/corpus/**": true,
-        "./coverage": true,
-        "./build": true,
-        "./.xmake": true,
-    },
-    "files.associations": {
-        "*.c": "c",
-        "inttypes.h": "c",
-        "float.h": "c",
-        "stdlib.h": "c",
-        "limits.h": "c",
-        "stdio.h": "c",
-        "stdint.h": "c",
-        "ryanjsontest.h": "c",
-        "dirent.h": "c",
-        "valloc.h": "c",
-        "initializer_list": "c",
-        "array": "c",
-        "string_view": "c",
-        "utility": "c",
-        "math.h": "c",
-        "compare": "c",
-        "type_traits": "c",
-        "cjson.h": "c",
-        "ryanjson.h": "c",
-        "string.h": "c",
-        "stdarg.h": "c",
-        "cstdlib": "c",
-        "ryanjsonconfig.h": "c"
-    },
+        "--suppress=variableScope",
+        "--suppress=unreadVariable",
+        "--suppress=constVariablePointer",
+        "--suppress=constParameter",
+        "--suppress=unusedStructMember",
+    ]
 }

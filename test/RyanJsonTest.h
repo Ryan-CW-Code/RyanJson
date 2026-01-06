@@ -1,5 +1,5 @@
-#ifndef __RyanJsonTest__
-#define __RyanJsonTest__
+#ifndef RyanJsonTest
+#define RyanJsonTest
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,6 +38,10 @@ extern "C" {
 	} while (0)
 
 // 定义枚举类型
+extern void *v_malloc_tlsf(size_t size);
+extern void v_free_tlsf(void *block);
+extern void *v_realloc_tlsf(void *block, size_t size);
+extern int32_t vallocGetUseByTlsf(void);
 
 // 定义结构体类型
 
