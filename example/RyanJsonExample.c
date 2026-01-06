@@ -1,20 +1,27 @@
-
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <math.h>
-#include <time.h>
-
 #include "RyanJson.h"
 #include "RyanJsonUtils.h"
 #include "valloc.h"
 
+static inline RyanJsonBool_e RyanJsonCompareDouble(double a, double b)
+{
+	double diff = fabs(a - b);
+	double absA = fabs(a);
+	double absB = fabs(b);
+	double maxVal = (absA > absB ? absA : absB);
+
+	// 允许的容差：相对误差 + 绝对误差
+	double epsilon = DBL_EPSILON * maxVal;
+	double minTolerance = 1e-12; // 可调的绝对容差
+
+	return diff <= (epsilon > minTolerance ? epsilon : minTolerance);
+}
+
 /**
  * @brief 生成json示例
  *
- * @return int
+ * @return RyanJsonBool_e
  */
-static int createJsonExample(void)
+static RyanJsonBool_e createJsonExample(void)
 {
 	char *str = NULL;
 	RyanJson_t jsonRoot, item;
@@ -91,15 +98,15 @@ static int createJsonExample(void)
 
 	RyanJsonDelete(jsonRoot);
 
-	return 0;
+	return RyanJsonTrue;
 }
 
 /**
  * @brief 序列化json文本示例
  *
- * @return int
+ * @return RyanJsonBool_e
  */
-static int loadJsonExample(void)
+static RyanJsonBool_e loadJsonExample(void)
 {
 	char *str = NULL;
 	RyanJson_t jsonRoot;
@@ -117,7 +124,51 @@ static int loadJsonExample(void)
 	if (jsonRoot == NULL)
 	{
 		printf("%s:%d 序列化失败\r\n", __FILE__, __LINE__);
-		return -1;
+		return RyanJsonFalse;
+	}
+
+	// 读取 int 数据
+	int inter = RyanJsonGetIntValue(RyanJsonGetObjectByKey(jsonRoot, "inter"));
+	if (inter != 16)
+	{
+		printf("%s:%d 读取int失败\r\n", __FILE__, __LINE__);
+		RyanJsonDelete(jsonRoot);
+		return RyanJsonFalse;
+	}
+
+	// 读取 double 数据
+	double doubleValue = RyanJsonGetDoubleValue(RyanJsonGetObjectByKey(jsonRoot, "double"));
+	if (RyanJsonFalse == RyanJsonCompareDouble(doubleValue, 16.89))
+	{
+		printf("%s:%d 读取double失败\r\n", __FILE__, __LINE__);
+		RyanJsonDelete(jsonRoot);
+		return RyanJsonFalse;
+	}
+
+	// 读取 string 数据
+	const char *strValue = RyanJsonGetStringValue(RyanJsonGetObjectByKey(jsonRoot, "string"));
+	if (0 != strcmp(strValue, "hello"))
+	{
+		printf("%s:%d 读取string失败\r\n", __FILE__, __LINE__);
+		RyanJsonDelete(jsonRoot);
+		return RyanJsonFalse;
+	}
+
+	// 读取 bool 数据
+	RyanJsonBool_e boolValue = RyanJsonGetBoolValue(RyanJsonGetObjectByKey(jsonRoot, "boolTrue"));
+	if (RyanJsonTrue != boolValue)
+	{
+		printf("%s:%d 读取bool失败\r\n", __FILE__, __LINE__);
+		RyanJsonDelete(jsonRoot);
+		return RyanJsonFalse;
+	}
+
+	// 读取 null 数据
+	if (RyanJsonTrue != RyanJsonIsNull(RyanJsonGetObjectByKey(jsonRoot, "null")))
+	{
+		printf("%s:%d 读取null失败\r\n", __FILE__, __LINE__);
+		RyanJsonDelete(jsonRoot);
+		return RyanJsonFalse;
 	}
 
 	// 将序列化的数据以无格式样式打印出来，并和原始数据进行对比
@@ -127,7 +178,7 @@ static int loadJsonExample(void)
 		printf("%s:%d 序列化与反序列化后的数据不对应\r\n", __FILE__, __LINE__);
 		RyanJsonFree(str);
 		RyanJsonDelete(jsonRoot);
-		return -1;
+		return RyanJsonFalse;
 	}
 	RyanJsonFree(str);
 
@@ -140,36 +191,74 @@ static int loadJsonExample(void)
 	// 删除json对象
 	RyanJsonDelete(jsonRoot);
 
-	return 0;
+	return RyanJsonTrue;
 }
 
 /**
  * @brief 修改json示例
  *
- * @return int
+ * @return RyanJsonBool_e
  */
-static int changeJsonExample(void)
+static RyanJsonBool_e changeJsonExample(void)
 {
 	char *str = NULL;
 	RyanJson_t jsonRoot;
-	const char *jsonstr = "{\"name\":\"Mash\",\"star\":4,\"hits\":[2,2,1,3]}";
+	const char *jsonstr = "{\"name\":\"Mash\",\"star\":4,\"doubleKey\":4.4,\"boolKey\":true,\"hits\":[2,2,1,3]}";
 
 	// 解析json数据
 	jsonRoot = RyanJsonParse(jsonstr);
 	if (jsonRoot == NULL)
 	{
 		printf("%s:%d 序列化失败\r\n", __FILE__, __LINE__);
-		return -1;
+		return RyanJsonFalse;
 	}
 
-	RyanJsonChangeStringValue(RyanJsonGetObjectByKey(jsonRoot, "name"), "Ryan");
-	if (0 != strcmp("Ryan", RyanJsonGetStringValue(RyanJsonGetObjectByKey(jsonRoot, "name"))))
+	// 修改key
+	RyanJsonChangeKey(RyanJsonGetObjectByKey(jsonRoot, "name"), "name2");
+	if (0 != strcmp("name2", RyanJsonGetKey(RyanJsonGetObjectByKey(jsonRoot, "name2"))))
 	{
 		printf("%s:%d 修改失败\r\n", __FILE__, __LINE__);
 		RyanJsonDelete(jsonRoot);
-		return -1;
+		return RyanJsonFalse;
 	}
 
+	// 修改strValue
+	RyanJsonChangeStringValue(RyanJsonGetObjectByKey(jsonRoot, "name2"), "Ryan");
+	if (0 != strcmp("Ryan", RyanJsonGetStringValue(RyanJsonGetObjectByKey(jsonRoot, "name2"))))
+	{
+		printf("%s:%d 修改失败\r\n", __FILE__, __LINE__);
+		RyanJsonDelete(jsonRoot);
+		return RyanJsonFalse;
+	}
+
+	// 修改intValue
+	RyanJsonChangeIntValue(RyanJsonGetObjectByKey(jsonRoot, "star"), 5);
+	if (5 != RyanJsonGetIntValue(RyanJsonGetObjectByKey(jsonRoot, "star")))
+	{
+		printf("%s:%d 修改失败\r\n", __FILE__, __LINE__);
+		RyanJsonDelete(jsonRoot);
+		return RyanJsonFalse;
+	}
+
+	// 修改doubleValue
+	RyanJsonChangeDoubleValue(RyanJsonGetObjectByKey(jsonRoot, "doubleKey"), 5.5);
+	if (RyanJsonFalse == RyanJsonCompareDouble(RyanJsonGetDoubleValue(RyanJsonGetObjectByKey(jsonRoot, "doubleKey")), 5.5))
+	{
+		printf("%s:%d 修改失败\r\n", __FILE__, __LINE__);
+		RyanJsonDelete(jsonRoot);
+		return RyanJsonFalse;
+	}
+
+	// 修改boolValue
+	RyanJsonChangeBoolValue(RyanJsonGetObjectByKey(jsonRoot, "boolKey"), RyanJsonFalse);
+	if (RyanJsonFalse != RyanJsonGetBoolValue(RyanJsonGetObjectByKey(jsonRoot, "boolKey")))
+	{
+		printf("%s:%d 修改失败\r\n", __FILE__, __LINE__);
+		RyanJsonDelete(jsonRoot);
+		return RyanJsonFalse;
+	}
+
+	// 替换节点(修改节点类型)
 	RyanJsonReplaceByKey(jsonRoot, "star", RyanJsonCreateString("", "123456"));
 
 	// 将序列化的数据以有格式样式打印出来
@@ -181,7 +270,7 @@ static int changeJsonExample(void)
 	// 删除json对象
 	RyanJsonDelete(jsonRoot);
 
-	return 0;
+	return RyanJsonTrue;
 }
 
 RyanJsonBool_e RyanJsonExample(void)
@@ -189,13 +278,15 @@ RyanJsonBool_e RyanJsonExample(void)
 	RyanJsonInitHooks(v_malloc, v_free, v_realloc);
 
 	printf("\r\n--------------------------- RyanJson 生成示例 --------------------------\r\n");
-	createJsonExample();
+	RyanJsonCheckReturnFalse(RyanJsonTrue == createJsonExample());
 
 	printf("\r\n--------------------------- RyanJson 序列化json文本示例 --------------------------\r\n");
-	loadJsonExample();
+	RyanJsonCheckReturnFalse(RyanJsonTrue == loadJsonExample());
 
 	printf("\r\n--------------------------- RyanJson 修改json示例 --------------------------\r\n");
-	changeJsonExample();
+	RyanJsonCheckReturnFalse(RyanJsonTrue == changeJsonExample());
+
+    // 更多功能请查看 RyanJson.h 文件，不了解的可以查看 test/baseTest 下的文件
 
 	return RyanJsonTrue;
 }
