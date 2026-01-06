@@ -66,15 +66,15 @@ RyanJsonBool_e RyanJsonBaseTest(void)
 		RyanJsonCheckCodeNoReturn(RyanJsonTrue == result, { goto __exit; });                                                       \
 	} while (0)
 
-	runTestWithLogAndTimer(RyanJsonBaseTestChangeJson);    // JSON 修改功能的条件覆盖测试
-	runTestWithLogAndTimer(RyanJsonBaseTestCompareJson);   // 节点比较与一致性验证
-	runTestWithLogAndTimer(RyanJsonBaseTestCreateJson);    // 节点创建与结构正确性检查
-	runTestWithLogAndTimer(RyanJsonBaseTestDeleteJson);    // JSON 删除功能的条件覆盖测试
-	runTestWithLogAndTimer(RyanJsonBaseTestDetachJson);    // 节点分离操作的条件覆盖测试
-	runTestWithLogAndTimer(RyanJsonBaseTestDuplicateJson); // 节点复制的深拷贝与浅拷贝验证
-	runTestWithLogAndTimer(RyanJsonBaseTestForEachJson);   // 节点遍历与迭代稳定性测试
-	runTestWithLogAndTimer(RyanJsonBaseTestLoadJson);      // JSON 文本解析与加载能力验证
-	runTestWithLogAndTimer(RyanJsonBaseTestReplaceJson);   // 节点替换功能的条件覆盖测试
+	runTestWithLogAndTimer(RyanJsonBaseTestChangeJson);    // 验证 JSON 动态更新及存储模式切换逻辑
+	runTestWithLogAndTimer(RyanJsonBaseTestCompareJson);   // 验证节点及其属性的深度一致性比较逻辑
+	runTestWithLogAndTimer(RyanJsonBaseTestCreateJson);    // 验证全类型节点的构造与初始化逻辑
+	runTestWithLogAndTimer(RyanJsonBaseTestDeleteJson);    // 验证节点及其子项的递归内存回收逻辑
+	runTestWithLogAndTimer(RyanJsonBaseTestDetachJson);    // 验证节点的分离操作及其所属权转移逻辑
+	runTestWithLogAndTimer(RyanJsonBaseTestDuplicateJson); // 验证对象的深拷贝 (Deep Copy) 完整性逻辑
+	runTestWithLogAndTimer(RyanJsonBaseTestForEachJson);   // 验证数组与对象迭代器的稳定性与边界情况
+	runTestWithLogAndTimer(RyanJsonBaseTestLoadJson);      // 验证复杂 JSON 文本解析与内存映射的健壮性
+	runTestWithLogAndTimer(RyanJsonBaseTestReplaceJson);   // 验证节点就地替换与成员管理机制的有效性
 
 	// result = likeReferenceTest(); // 模仿 引用类型实现 示例
 	// if (0 != result)

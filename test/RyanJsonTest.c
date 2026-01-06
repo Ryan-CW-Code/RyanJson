@@ -101,12 +101,17 @@ int main(void)
 
 	showMemoryInfo();
 
-	RyanJsonExample();
+	result = RyanJsonExample();
+	if (RyanJsonTrue != result)
+	{
+		printf("%s:%d RyanJsonExample fail\r\n", __FILE__, __LINE__);
+		return -1;
+	}
 
 	result = RyanJsonBaseTest();
 	if (RyanJsonTrue != result)
 	{
-		printf("%s:%d RyanJsonTest fail\r\n", __FILE__, __LINE__);
+		printf("%s:%d RyanJsonBaseTest fail\r\n", __FILE__, __LINE__);
 		return -1;
 	}
 
