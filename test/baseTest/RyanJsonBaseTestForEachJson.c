@@ -20,7 +20,7 @@ RyanJsonBool_e RyanJsonBaseTestForEachJson(void)
 	RyanJson_t item = NULL;
 	RyanJsonArrayForEach(RyanJsonGetObjectToKey(json, "arrayDouble"), item)
 	{
-		if (!RyanJsonIsDouble(item) || !compare_double(16.89, RyanJsonGetDoubleValue(item))) { goto err; }
+		if (!RyanJsonIsDouble(item) || !RyanJsonCompareDouble(16.89, RyanJsonGetDoubleValue(item))) { goto err; }
 	}
 
 	RyanJsonArrayForEach(RyanJsonGetObjectToKey(json, "arrayInt"), item)

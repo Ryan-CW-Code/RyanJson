@@ -28,7 +28,7 @@ RyanJsonBool_e RyanJsonBaseTestChangeJson(void)
 
 	RyanJsonChangeDoubleValue(RyanJsonGetObjectToKey(jsonRoot, "double"), 20.89);
 	RyanJsonCheckCode(RyanJsonIsDouble(RyanJsonGetObjectToKey(jsonRoot, "double")) &&
-				  compare_double(RyanJsonGetDoubleValue(RyanJsonGetObjectToKey(jsonRoot, "double")), 20.89),
+				  RyanJsonCompareDouble(RyanJsonGetDoubleValue(RyanJsonGetObjectToKey(jsonRoot, "double")), 20.89),
 			  { goto err; });
 
 	// inline模式只修改key，并且不超过inline长度
@@ -95,11 +95,11 @@ RyanJsonBool_e RyanJsonBaseTestChangeJson(void)
 	 * @brief 修改数组元素 (arrayDouble)
 	 */
 	RyanJsonChangeDoubleValue(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(jsonRoot, "arrayDouble"), 1), 99.99);
-	RyanJsonCheckCode(
-		RyanJsonIsDouble(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(jsonRoot, "arrayDouble"), 1)) &&
-			compare_double(RyanJsonGetDoubleValue(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(jsonRoot, "arrayDouble"), 1)),
-				       99.99),
-		{ goto err; });
+	RyanJsonCheckCode(RyanJsonIsDouble(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(jsonRoot, "arrayDouble"), 1)) &&
+				  RyanJsonCompareDouble(RyanJsonGetDoubleValue(RyanJsonGetObjectToIndex(
+								RyanJsonGetObjectToKey(jsonRoot, "arrayDouble"), 1)),
+							99.99),
+			  { goto err; });
 
 	/**
 	 * @brief 修改数组元素 (arrayString)

@@ -15,6 +15,14 @@ static void printfTitle(char *title)
 	printf("*****************************************************************************\r\n");
 }
 
+uint64_t platformUptimeMs(void)
+{
+	struct timespec ts;
+	// CLOCK_MONOTONIC: 单调递增，不受系统时间修改影响，适合做耗时统计
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (uint64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+}
+
 static tlsf_t tlsfHandler;
 
 static size_t total2 = LV_MEM_SIZE, used2 = 0, available = 0;
@@ -50,7 +58,6 @@ int32_t vallocGetUseByTlsf(void)
 void *v_malloc_tlsf(size_t size)
 {
 	if (size == 0) { return NULL; }
-
 	return tlsf_malloc(tlsfHandler, RyanJsonAlign(size + RyanJsonMallocHeaderSize - 4, RyanJsonMallocAlign));
 }
 

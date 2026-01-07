@@ -40,31 +40,11 @@ static RyanJsonBool_e likeReferenceTest()
 	return 0;
 }
 
-uint64_t platformUptimeMs(void)
-{
-	struct timespec ts;
-	// CLOCK_MONOTONIC: 单调递增，不受系统时间修改影响，适合做耗时统计
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return (uint64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-}
-
 RyanJsonBool_e RyanJsonBaseTest(void)
 {
 	int32_t result = 0;
-
 	uint32_t testRunCount = 0;
 	uint64_t funcStartMs;
-#define runTestWithLogAndTimer(fun)                                                                                                        \
-	do                                                                                                                                 \
-	{                                                                                                                                  \
-		testRunCount++;                                                                                                            \
-		printf("┌── [TEST %d] 开始执行: " #fun "()\r\n", testRunCount);                                                            \
-		funcStartMs = platformUptimeMs();                                                                                          \
-		result = fun();                                                                                                            \
-		printf("└── [TEST %" PRIu32 "] 结束执行: 返回值 = %" PRId32 " %s | 耗时: %" PRIu64 " ms\x1b[0m\r\n\r\n", testRunCount,     \
-		       result, (result == RyanJsonTrue) ? "✅" : "❌", (platformUptimeMs() - funcStartMs));                                \
-		RyanJsonCheckCodeNoReturn(RyanJsonTrue == result, { goto __exit; });                                                       \
-	} while (0)
 
 	runTestWithLogAndTimer(RyanJsonBaseTestChangeJson);    // 验证 JSON 动态更新及存储模式切换逻辑
 	runTestWithLogAndTimer(RyanJsonBaseTestCompareJson);   // 验证节点及其属性的深度一致性比较逻辑
@@ -75,6 +55,12 @@ RyanJsonBool_e RyanJsonBaseTest(void)
 	runTestWithLogAndTimer(RyanJsonBaseTestForEachJson);   // 验证数组与对象迭代器的稳定性与边界情况
 	runTestWithLogAndTimer(RyanJsonBaseTestLoadJson);      // 验证复杂 JSON 文本解析与内存映射的健壮性
 	runTestWithLogAndTimer(RyanJsonBaseTestReplaceJson);   // 验证节点就地替换与成员管理机制的有效性
+
+	// 验证节点属性一致性
+	runTestWithLogAndTimer(RyanJsonBaseTestEqualityBool);   // 验证布尔值一致性
+	runTestWithLogAndTimer(RyanJsonBaseTestEqualityDouble); // 验证浮点数一致性
+	runTestWithLogAndTimer(RyanJsonBaseTestEqualityInt);    // 验证整数一致性
+	runTestWithLogAndTimer(RyanJsonBaseTestEqualityString); // 验证字符串一致性
 
 	// result = likeReferenceTest(); // 模仿 引用类型实现 示例
 	// if (0 != result)

@@ -1,10 +1,23 @@
 #include "RyanJsonTest.h"
 
-static void *yy_malloc(void *ctx, size_t size) { return v_malloc_tlsf(size); }
-static void *yy_realloc(void *ctx, void *ptr, size_t old_size, size_t size) { return v_realloc_tlsf(ptr, size); }
-static void yy_free(void *ctx, void *ptr) { v_free_tlsf(ptr); }
+static void *yy_malloc(void *ctx, size_t size)
+{
+	(void)(ctx);
+	return v_malloc_tlsf(size);
+}
+static void *yy_realloc(void *ctx, void *ptr, size_t old_size, size_t size)
+{
+	(void)(ctx);
+	(void)(old_size);
+	return v_realloc_tlsf(ptr, size);
+}
+static void yy_free(void *ctx, void *ptr)
+{
+	(void)(ctx);
+	v_free_tlsf(ptr);
+}
 
-static int RyanJsonMemoryFootprint(char *jsonstr)
+static RyanJsonBool_e RyanJsonMemoryFootprint(char *jsonstr, int32_t *footprint)
 {
 	int32_t use = vallocGetUseByTlsf();
 	RyanJsonInitHooks(v_malloc_tlsf, v_free_tlsf, v_realloc_tlsf);
@@ -13,16 +26,17 @@ static int RyanJsonMemoryFootprint(char *jsonstr)
 	if (json == NULL)
 	{
 		printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-		return -1;
+		return RyanJsonFalse;
 	}
 
 	use = vallocGetUseByTlsf() - use;
 
 	RyanJsonDelete(json);
-	return use;
+	*footprint = use;
+	return RyanJsonTrue;
 }
 
-static int cJSONMemoryFootprint(char *jsonstr)
+static RyanJsonBool_e cJSONMemoryFootprint(char *jsonstr, int32_t *footprint)
 {
 	int32_t use = vallocGetUseByTlsf();
 	cJSON_Hooks hooks = {.malloc_fn = v_malloc_tlsf, .free_fn = v_free_tlsf};
@@ -32,44 +46,54 @@ static int cJSONMemoryFootprint(char *jsonstr)
 	if (json == NULL)
 	{
 		printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
-		return -1;
+		return RyanJsonFalse;
 	}
 
 	use = vallocGetUseByTlsf() - use;
 	cJSON_Delete(json);
-	return use;
+	*footprint = use;
+	return RyanJsonTrue;
 }
 
-static int yyjsonMemoryFootprint(char *jsonstr)
+static RyanJsonBool_e yyjsonMemoryFootprint(char *jsonstr, int32_t *footprint)
 {
 	static yyjson_alc yyalc = {yy_malloc, yy_realloc, yy_free, NULL};
 	int32_t use = vallocGetUseByTlsf();
 
 	// 先解析成只读文档（可用自定义分配器 yyalc）
 	yyjson_doc *doc = yyjson_read_opts(jsonstr, strlen(jsonstr), YYJSON_READ_NOFLAG, &yyalc, NULL);
-	if (doc == NULL) { return -1; }
+	if (doc == NULL) { return RyanJsonFalse; }
 
 	// 从只读文档拷贝为可变文档（用于后续读写修改）
 	yyjson_mut_doc *mdoc = yyjson_doc_mut_copy(doc, &yyalc);
 	yyjson_doc_free(doc);
-	if (mdoc == NULL) { return -1; }
+	if (mdoc == NULL) { return RyanJsonFalse; }
 
 	// 统计当前分配器的占用
 	use = vallocGetUseByTlsf() - use;
 
 	// 用完释放可变文档
 	yyjson_mut_doc_free(mdoc);
-	return use;
+	*footprint = use;
+	return RyanJsonTrue;
 }
 
-static void printfJsonCompera(char *jsonstr)
+static RyanJsonBool_e printfJsonCompare(char *jsonstr)
 {
-	int RyanJsonCount = 0;
-	int cJSONCount = 0;
-	int yyjsonCount = 0;
-	RyanJsonCount = RyanJsonMemoryFootprint(jsonstr);
-	cJSONCount = cJSONMemoryFootprint(jsonstr);
-	yyjsonCount = yyjsonMemoryFootprint(jsonstr);
+	int32_t RyanJsonCount = 0;
+	int32_t cJSONCount = 0;
+	int32_t yyjsonCount = 0;
+	RyanJsonBool_e status = RyanJsonFalse;
+
+	status = RyanJsonMemoryFootprint(jsonstr, &RyanJsonCount);
+	if (RyanJsonTrue != status) { return RyanJsonFalse; }
+
+	status = cJSONMemoryFootprint(jsonstr, &cJSONCount);
+	if (RyanJsonTrue != status) { return RyanJsonFalse; }
+
+	status = yyjsonMemoryFootprint(jsonstr, &yyjsonCount);
+	if (RyanJsonTrue != status) { return RyanJsonFalse; }
+
 	printf("json原始文本长度为 %ld, 序列化后RyanJson内存占用: %d, cJSON内存占用: %d, yyjson内存占用: %d\r\n", strlen(jsonstr),
 	       RyanJsonCount, cJSONCount, yyjsonCount);
 
@@ -77,61 +101,62 @@ static void printfJsonCompera(char *jsonstr)
 	double save_vs_yyjson = 100.0 - ((double)RyanJsonCount * 100.0) / (double)yyjsonCount;
 
 	printf("比cJSON节省: %.2f%% 内存占用, 比yyjson节省: %.2f%% 内存占用\r\n", save_vs_cjson, save_vs_yyjson);
+	return RyanJsonTrue;
 }
 
-RyanJsonBool_e RyanJsonMemoryFootprintTest(void)
+static RyanJsonBool_e testMixedJsonMemory(void)
 {
-	char *jsonstr;
+	char *jsonstr =
+		"{\"item1\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,"
+		"\"item\":{\"inter\":16,"
+		"\"double\":16.89,\"string\":\"hello\","
+		"\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,"
+		"16.89,16.89],"
+		"\"arrayString\":[\"hello\",\"hello\",\"hello\","
+		"\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,"
+		"\"string\":\"hello\","
+		"\"boolTrue\":true,\"boolFalse\":false,"
+		"\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]"
+		"},\"item2\":{"
+		"\"inter\":16,\"double\":16.89,\"string\":"
+		"\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":"
+		"\"hello\",\"boolTrue\":"
+		"true,\"boolFalse\":false,\"null\":null},"
+		"\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\","
+		"\"hello\",\"hello\","
+		"\"hello\"],\"array\":[16,16.89,\"hello\","
+		"true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":"
+		"false,\"null\":null},{"
+		"\"inter\":16,\"double\":16.89,\"string\":"
+		"\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]},\"item3\":{\"inter\":16,\"double\":16.89,\"string\":"
+		"\"hello\",\"boolTrue\":"
+		"true,\"boolFalse\":false,\"null\":null,"
+		"\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},"
+		"\"arrayInt\":[16,16,16,16,"
+		"16],\"arrayDouble\":[16.89,16.89,16.89,"
+		"16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,"
+		"false,null],"
+		"\"arrayItem\":[{\"inter\":16,\"double\":16.89,"
+		"\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":"
+		"\"hello\",\"boolTrue\":"
+		"true,\"boolFalse\":false,\"null\":null}]}"
+		",\"item4\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,"
+		"\"item\":{\"inter\":16,"
+		"\"double\":16.89,\"string\":\"hello\","
+		"\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,"
+		"16.89,16.89],"
+		"\"arrayString\":[\"hello\",\"hello\",\"hello\","
+		"\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,"
+		"\"string\":\"hello\","
+		"\"boolTrue\":true,\"boolFalse\":false,"
+		"\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]"
+		"}}";
+	return printfJsonCompare(jsonstr);
+}
 
-	printf("\r\n--------------------------- 混合类型json数据测试 --------------------------\r\n");
-	jsonstr = "{\"item1\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,"
-		  "\"item\":{\"inter\":16,"
-		  "\"double\":16.89,\"string\":\"hello\","
-		  "\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,"
-		  "16.89,16.89],"
-		  "\"arrayString\":[\"hello\",\"hello\",\"hello\","
-		  "\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,"
-		  "\"string\":\"hello\","
-		  "\"boolTrue\":true,\"boolFalse\":false,"
-		  "\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]"
-		  "},\"item2\":{"
-		  "\"inter\":16,\"double\":16.89,\"string\":"
-		  "\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":{\"inter\":16,\"double\":16.89,\"string\":"
-		  "\"hello\",\"boolTrue\":"
-		  "true,\"boolFalse\":false,\"null\":null},"
-		  "\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\","
-		  "\"hello\",\"hello\","
-		  "\"hello\"],\"array\":[16,16.89,\"hello\","
-		  "true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":"
-		  "false,\"null\":null},{"
-		  "\"inter\":16,\"double\":16.89,\"string\":"
-		  "\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]},\"item3\":{\"inter\":16,\"double\":16.89,\"string\":"
-		  "\"hello\",\"boolTrue\":"
-		  "true,\"boolFalse\":false,\"null\":null,"
-		  "\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},"
-		  "\"arrayInt\":[16,16,16,16,"
-		  "16],\"arrayDouble\":[16.89,16.89,16.89,"
-		  "16.89,16.89],\"arrayString\":[\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,"
-		  "false,null],"
-		  "\"arrayItem\":[{\"inter\":16,\"double\":16.89,"
-		  "\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":"
-		  "\"hello\",\"boolTrue\":"
-		  "true,\"boolFalse\":false,\"null\":null}]}"
-		  ",\"item4\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,"
-		  "\"item\":{\"inter\":16,"
-		  "\"double\":16.89,\"string\":\"hello\","
-		  "\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,"
-		  "16.89,16.89],"
-		  "\"arrayString\":[\"hello\",\"hello\",\"hello\","
-		  "\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,\"double\":16.89,"
-		  "\"string\":\"hello\","
-		  "\"boolTrue\":true,\"boolFalse\":false,"
-		  "\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]"
-		  "}}";
-	printfJsonCompera(jsonstr);
-
-	printf("\r\n--------------------------- 全是对象json数据测试 --------------------------\r\n");
-	jsonstr =
+static RyanJsonBool_e testObjectJsonMemory(void)
+{
+	char *jsonstr =
 		"{\"message\":\"success感谢又拍云(upyun.com)提供CDN赞助\",\"status\":200,\"date\":\"20230822\",\"time\":\"2023-08-22 "
 		"09:44:54\",\"cityInfo\":{\"city\":\"郑州市\",\"citykey\":\"101180101\",\"parent\":\"河南\",\"updateTime\":\"07:46\"},"
 		"\"data\":{\"shidu\":"
@@ -203,56 +228,77 @@ RyanJsonBool_e RyanJsonMemoryFootprintTest(void)
 		"星期一\",\"sunrise\":\"05:50\",\"sunset\":\"19:07\",\"aqi\":60,\"fx\":\"西风\",\"fl\":\"2级\",\"type\":\"小雨\","
 		"\"notice\":"
 		"\"雨虽小，注意保暖别感冒\"}}}";
-	printfJsonCompera(jsonstr);
+	return printfJsonCompare(jsonstr);
+}
 
-	printf("\r\n--------------------------- 数组占多json数据测试 --------------------------\r\n");
-	jsonstr = "{\"item1\":{\"arrayInt\":[16,16,16,16,16,16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89,16.89,16.89,16."
-		  "89,16.89,16.89],"
-		  "\"arrayString\":[\"hello\",\"hello\","
-		  "\"hello\",\"hello\",\"hello\",\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,"
-		  "false,null,16,16.89,"
-		  "\"hello\",true,false,null]},\"item2\":{"
-		  "\"arrayInt\":[16,16,16,16,16,16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89,16."
-		  "89],\"arrayString\":["
-		  "\"hello\",\"hello\",\"hello\",\"hello\","
-		  "\"hello\",\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null,16,16.89,"
-		  "\"hello\",true,false,"
-		  "null]},\"item3\":{\"arrayInt\":[16,16,16,"
-		  "16,16,16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89],\"arrayString\":["
-		  "\"hello\",\"hello\","
-		  "\"hello\",\"hello\",\"hello\",\"hello\","
-		  "\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null,16,16.89,\"hello\",true,false,"
-		  "null]},\"item4\":{"
-		  "\"arrayInt\":[16,16,16,16,16,16,16,16,16,16],"
-		  "\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\","
-		  "\"hello\",\"hello\","
-		  "\"hello\",\"hello\",\"hello\",\"hello\","
-		  "\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null,16,16.89,\"hello\",true,false,null]}}";
-	printfJsonCompera(jsonstr);
+static RyanJsonBool_e testArrayJsonMemory(void)
+{
+	char *jsonstr =
+		"{\"item1\":{\"arrayInt\":[16,16,16,16,16,16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89,16.89,16.89,16."
+		"89,16.89,16.89],"
+		"\"arrayString\":[\"hello\",\"hello\","
+		"\"hello\",\"hello\",\"hello\",\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,"
+		"false,null,16,16.89,"
+		"\"hello\",true,false,null]},\"item2\":{"
+		"\"arrayInt\":[16,16,16,16,16,16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89,16."
+		"89],\"arrayString\":["
+		"\"hello\",\"hello\",\"hello\",\"hello\","
+		"\"hello\",\"hello\",\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null,16,16.89,"
+		"\"hello\",true,false,"
+		"null]},\"item3\":{\"arrayInt\":[16,16,16,"
+		"16,16,16,16,16,16,16],\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89],\"arrayString\":["
+		"\"hello\",\"hello\","
+		"\"hello\",\"hello\",\"hello\",\"hello\","
+		"\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null,16,16.89,\"hello\",true,false,"
+		"null]},\"item4\":{"
+		"\"arrayInt\":[16,16,16,16,16,16,16,16,16,16],"
+		"\"arrayDouble\":[16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\",\"hello\","
+		"\"hello\",\"hello\","
+		"\"hello\",\"hello\",\"hello\",\"hello\","
+		"\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null,16,16.89,\"hello\",true,false,null]}}";
+	return printfJsonCompare(jsonstr);
+}
 
-	printf("\r\n--------------------------- 小对象json 混合类型内存占用测试 --------------------------\r\n");
-	jsonstr = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}";
-	printfJsonCompera(jsonstr);
+static RyanJsonBool_e testSmallMixedJsonMemory(void)
+{
+	char *jsonstr = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}";
+	return printfJsonCompare(jsonstr);
+}
 
-	printf("\r\n--------------------------- 小对象json 纯字符串内存占用测试 --------------------------\r\n");
-	jsonstr = "{\"inter\":\"16\",\"double\":\"16.89\",\"string\":\"hello\",\"boolTrue\":\"true\",\"boolFalse\":\"false\",\"null\":"
-		  "\"null\"}";
-	printfJsonCompera(jsonstr);
+static RyanJsonBool_e testSmallStringJsonMemory(void)
+{
+	char *jsonstr =
+		"{\"inter\":\"16\",\"double\":\"16.89\",\"string\":\"hello\",\"boolTrue\":\"true\",\"boolFalse\":\"false\",\"null\":"
+		"\"null\"}";
+	return printfJsonCompare(jsonstr);
+}
 
-	printf("\r\n--------------------------- 压缩后的json业务对象内存占用测试 --------------------------\r\n");
-	jsonstr = "{\"0\":\"0\",\"1\":\"189774523\",\"2\":{\"7\":\"3\",\"8\":\"103\",\"9\":\"37\",\"20\":\"0\",\"26\":\"37\",\"27\":"
-		  "\"367\",\"28\":\"367\",\"s\":\"0\",\"t\":\"0\",\"a\":\"24.98\",\"2a\":\"0\",\"1p\":\"23628\"},\"3\":\"0\",\"22\":"
-		  "\"epmgrow1105\",\"23\":\"0\",\"29\":\"0\",\"i\":\"4\",\"b\":\"900\",\"c\":\"1\",\"rsrp\":\"-111\",\"rsrq\":\"-4\","
-		  "\"sinr\":\"0\",\"soc\":\"XXXXXXX\",\"j\":\"0\",\"g\":\"898604asdf0210\",\"h\":\"866968798839\",\"d\":\"1.3.5."
-		  "00.20991231\",\"f\":\"0\",\"k\":\"1\",\"l\":\"20000\",\"m\":\"20000\",\"u\":\"0\",\"v\":\"0\",\"e\":\"1\",\"w\":\"0."
-		  "00\",\"n\":\"0\",\"2h\":\"0\",\"o\":\"30\",\"1v\":\"12000\",\"2c\":\"0\",\"p\":\"1\",\"q\":\"1\",\"x\":\"0\",\"y\":"
-		  "\"167\",\"r\":\"0\",\"1x\":\"0\",\"1w\":\"0\",\"1y\":\"100.00\",\"1u\":\"0\"}";
-	printfJsonCompera(jsonstr);
+static RyanJsonBool_e testCompressedBusinessJsonMemory(void)
+{
+	char *jsonstr =
+		"{\"0\":\"0\",\"1\":\"189774523\",\"2\":{\"7\":\"3\",\"8\":\"103\",\"9\":\"37\",\"20\":\"0\",\"26\":\"37\",\"27\":"
+		"\"367\",\"28\":\"367\",\"s\":\"0\",\"t\":\"0\",\"a\":\"24.98\",\"2a\":\"0\",\"1p\":\"23628\"},\"3\":\"0\",\"22\":"
+		"\"epmgrow1105\",\"23\":\"0\",\"29\":\"0\",\"i\":\"4\",\"b\":\"900\",\"c\":\"1\",\"rsrp\":\"-111\",\"rsrq\":\"-4\","
+		"\"sinr\":\"0\",\"soc\":\"XXXXXXX\",\"j\":\"0\",\"g\":\"898604asdf0210\",\"h\":\"866968798839\",\"d\":\"1.3.5."
+		"00.20991231\",\"f\":\"0\",\"k\":\"1\",\"l\":\"20000\",\"m\":\"20000\",\"u\":\"0\",\"v\":\"0\",\"e\":\"1\",\"w\":\"0."
+		"00\",\"n\":\"0\",\"2h\":\"0\",\"o\":\"30\",\"1v\":\"12000\",\"2c\":\"0\",\"p\":\"1\",\"q\":\"1\",\"x\":\"0\",\"y\":"
+		"\"167\",\"r\":\"0\",\"1x\":\"0\",\"1w\":\"0\",\"1y\":\"100.00\",\"1u\":\"0\"}";
+	printfJsonCompare(jsonstr);
+	return RyanJsonTrue;
+}
 
-	/**
-	 * @brief 反序列化为文本，内存占用没什么特别的优化点，和cjson实现思路差不多，内存占用也就差不多，就不进行对比了
-	 *
-	 */
+RyanJsonBool_e RyanJsonMemoryFootprintTest(void)
+{
+	int32_t result = 0;
+	uint32_t testRunCount = 0;
+	uint64_t funcStartMs;
+
+	runTestWithLogAndTimer(testMixedJsonMemory);
+	runTestWithLogAndTimer(testObjectJsonMemory);
+	runTestWithLogAndTimer(testArrayJsonMemory);
+	runTestWithLogAndTimer(testSmallMixedJsonMemory);
+	runTestWithLogAndTimer(testSmallStringJsonMemory);
+	runTestWithLogAndTimer(testCompressedBusinessJsonMemory);
 
 	return RyanJsonTrue;
 }

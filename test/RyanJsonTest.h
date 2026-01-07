@@ -13,6 +13,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <dirent.h>
 #include <ctype.h>
+#include <inttypes.h>
 #include "valloc.h"
 #include "RyanJson.h"
 #include "RyanJsonUtils.h"
@@ -44,6 +45,19 @@ extern void *v_realloc_tlsf(void *block, size_t size);
 extern int32_t vallocGetUseByTlsf(void);
 
 // 定义结构体类型
+uint64_t platformUptimeMs(void);
+
+#define runTestWithLogAndTimer(fun)                                                                                                        \
+	do                                                                                                                                 \
+	{                                                                                                                                  \
+		testRunCount++;                                                                                                            \
+		printf("┌── [TEST %d] 开始执行: " #fun "()\r\n", testRunCount);                                                            \
+		funcStartMs = platformUptimeMs();                                                                                          \
+		result = fun();                                                                                                            \
+		printf("└── [TEST %" PRIu32 "] 结束执行: 返回值 = %" PRId32 " %s | 耗时: %" PRIu64 " ms\x1b[0m\r\n\r\n", testRunCount,     \
+		       result, (result == RyanJsonTrue) ? "✅" : "❌", (platformUptimeMs() - funcStartMs));                                \
+		RyanJsonCheckCodeNoReturn(RyanJsonTrue == result, { return RyanJsonFalse; });                                              \
+	} while (0)
 
 /* extern variables-----------------------------------------------------------*/
 extern RyanJsonBool_e RyanJsonExample(void);

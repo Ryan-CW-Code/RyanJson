@@ -2,12 +2,6 @@
 #include "RyanJsonBaseTest.h"
 
 /* --------------------------------------- jsonTest ------------------------------------------- */
-// !(fabs(RyanJsonGetDoubleValue(RyanJsonGetObjectToKey(json, "double")) - 16.89) < 1e-6)
-RyanJsonBool_e compare_double(double a, double b)
-{
-	double maxVal = fabs(a) > fabs(b) ? fabs(a) : fabs(b);
-	return (fabs(a - b) <= maxVal * DBL_EPSILON);
-}
 
 void printJsonDebug(RyanJson_t json)
 {
@@ -24,7 +18,7 @@ RyanJsonBool_e rootNodeCheckTest(RyanJson_t json)
 	}
 
 	if (!RyanJsonIsDouble(RyanJsonGetObjectToKey(json, "double")) ||
-	    !compare_double(RyanJsonGetDoubleValue(RyanJsonGetObjectToKey(json, "double")), 16.89))
+	    !RyanJsonCompareDouble(RyanJsonGetDoubleValue(RyanJsonGetObjectToKey(json, "double")), 16.89))
 	{
 		RyanJsonCheckReturnFalse(NULL);
 	}
@@ -85,7 +79,7 @@ RyanJsonBool_e arrayNodeCheckTest(RyanJson_t json)
 	}
 
 	if (!RyanJsonIsDouble(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 1)) ||
-	    !compare_double(RyanJsonGetDoubleValue(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 1)), 16.89))
+	    !RyanJsonCompareDouble(RyanJsonGetDoubleValue(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 1)), 16.89))
 	{
 		printf("%s:%d 解析失败 %f\r\n", __FILE__, __LINE__,
 		       RyanJsonGetDoubleValue(RyanJsonGetObjectByIndex(RyanJsonGetObjectToKey(json, "array"), 1)));

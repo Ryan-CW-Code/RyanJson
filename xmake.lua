@@ -14,9 +14,9 @@ target("RyanJson", function()
 
     -- 定义宏：启用 Fuzzer 功能
     -- Fuzzer 与覆盖率相关编译/链接选项
-    -- add_defines("isEnableFuzzer")
-    -- add_cxflags("-fsanitize=fuzzer", {force = true})
-    -- add_ldflags("-fsanitize=fuzzer", {force = true})
+    add_defines("isEnableFuzzer")
+    add_cxflags("-fsanitize=fuzzer", {force = true})
+    add_ldflags("-fsanitize=fuzzer", {force = true})
     add_cxflags("-fprofile-instr-generate", "-fcoverage-mapping", {force = true})
     add_ldflags("-fprofile-instr-generate", "-fcoverage-mapping", {force = true})
 
@@ -126,6 +126,7 @@ target("RyanJson", function()
     add_includedirs('./test/fuzzer', {public = true})
     add_includedirs('./test', {public = true})
     add_includedirs('./test/baseTest', {public = true})
+    add_includedirs('./test/baseTest/equality', {public = true})
     add_includedirs('./test/externalModule/valloc', {public = true})
     add_includedirs('./test/externalModule/tlsf', {public = true})
     add_includedirs('./test/externalModule/cJSON', {public = true})
@@ -137,6 +138,7 @@ target("RyanJson", function()
     add_files('./test/fuzzer/*.c', {public = true})
     add_files('./test/*.c', {public = true}, {cxflags = "-w"})          -- 测试代码，关闭警告
     add_files('./test/baseTest/*.c', {public = true}, {cxflags = "-w"}) -- 基础测试，关闭警告
+    add_files('./test/baseTest/equality/*.c', {public = true}, {cxflags = "-w"}) -- 一致性测试
     add_files('./test/externalModule/valloc/*.c', {public = true}, {cxflags = "-w"})   -- valloc，关闭警告
     add_files('./test/externalModule/tlsf/*.c', {public = true}, {cxflags = "-w"})     -- tlsf，关闭警告
     add_files('./test/externalModule/cJSON/*.c', {public = true}, {cxflags = "-w"}) -- 第三方库 cJSON，关闭警告
