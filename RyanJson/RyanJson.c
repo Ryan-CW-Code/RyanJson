@@ -1289,33 +1289,42 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
 	{
 		RyanJsonCheckReturnFalse(printBufAppend(printfBuf, 64)); // 浮点数用64可以适应大部分情况
 		double doubleValue = RyanJsonGetDoubleValue(pJson);
+		double absDoubleValue = fabs(doubleValue);
 
-		// use full transformation within bounded space
-		if (fabs(floor(doubleValue) - doubleValue) <= DBL_EPSILON && fabs(doubleValue) < 1.0e60)
+		// 判断是否为整数
+		if (fabs(floor(doubleValue) - doubleValue) <= DBL_EPSILON && absDoubleValue < 1.0e60)
 		{
+			// 整数情况，保留一位小数 (例如 5.0)
 			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%.1lf", doubleValue);
+			RyanJsonCheckReturnFalse(len > 0); // snprintf 失败
 		}
 
-		// use exponential form conversion beyond the limited range
-		else if (fabs(doubleValue) < 1.0e-6 || fabs(doubleValue) > 1.0e9)
+		// 判定是否需要科学计数法 (过小或过大)
+		else if (absDoubleValue < 1.0e-6 || absDoubleValue > 1.0e9)
 		{
 			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%e", doubleValue);
+			RyanJsonCheckReturnFalse(len > 0); // snprintf 失败
 		}
 
-		// default conversion
+		// 默认浮点数格式化
 		else
 		{
 			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%lf", doubleValue);
+			RyanJsonCheckReturnFalse(len > 0); // snprintf 失败
+
+			// 删除小数部分中无效的 0
+			while (len >= 3)
+			{
+				// 最后一位字符不是 '0'，说明有效数字结束了
+				if ('0' != printBufCurrentPtr(printfBuf)[len - 1]) { break; }
+				// 检查倒数第二位是否为 '.' (避免把 "1.0" 删成 "1.")
+				if ('.' == printBufCurrentPtr(printfBuf)[len - 2]) { break; }
+
+				// 删除的刚好是0, 不需要再尾部补充"\0"
+				len--;
+			}
 		}
 
-		RyanJsonCheckReturnFalse(len > 0); // snprintf 失败
-
-		// 删除小数部分中无效的 0
-		while (len >= 3)
-		{
-			if ('0' != printBufCurrentPtr(printfBuf)[len - 1] && '.' != printBufCurrentPtr(printfBuf)[len - 2]) { break; }
-			len--;
-		}
 		printfBuf->cursor += (uint32_t)len;
 	}
 
