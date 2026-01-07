@@ -78,11 +78,11 @@ extern "C" {
  * @brief 检查宏是否合法
  *
  */
-#if RyanJsonMallocHeaderSize < 4
-#error "RyanJsonMallocHeaderSize 必须大于或等于4"
+#if 0 != RyanJsonMallocHeaderSize && RyanJsonMallocHeaderSize % 4 != 0
+#error "RyanJsonMallocHeaderSize 必须是4的倍数"
 #endif
 
-#if RyanJsonMallocAlign % 4 != 0
+#if 0 != RyanJsonMallocAlign && RyanJsonMallocAlign % 4 != 0
 #error "RyanJsonMallocAlign 必须是4的倍数"
 #endif
 

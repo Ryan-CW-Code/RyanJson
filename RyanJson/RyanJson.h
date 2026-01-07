@@ -228,6 +228,7 @@ extern char *RyanJsonPrintPreallocated(RyanJson_t pJson, char *buffer, uint32_t 
 extern RyanJson_t RyanJsonDuplicate(RyanJson_t pJson); // 需用户释放内存
 extern uint32_t RyanJsonMinify(char *text, int32_t textLen);
 extern RyanJsonBool_e RyanJsonCompare(RyanJson_t leftJson, RyanJson_t rightJson);
+extern RyanJsonBool_e RyanJsonCompareDouble(double a, double b);
 extern uint32_t RyanJsonGetSize(RyanJson_t pJson);
 #define RyanJsonGetArraySize(pJson) RyanJsonGetSize(pJson)
 

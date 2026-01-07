@@ -308,27 +308,6 @@ static inline uint8_t RyanJsonCalcLenBytes(uint32_t len)
 }
 
 /**
- * @brief 安全的浮点数比较
- *
- * @param a
- * @param b
- * @return RyanJsonBool_e
- */
-static inline RyanJsonBool_e RyanJsonCompareDouble(double a, double b)
-{
-	double diff = fabs(a - b);
-	double absA = fabs(a);
-	double absB = fabs(b);
-	double maxVal = (absA > absB ? absA : absB);
-
-	// 允许的容差：相对误差 + 绝对误差
-	double epsilon = DBL_EPSILON * maxVal;
-	double minTolerance = 1e-12; // 可调的绝对容差
-
-	return diff <= (epsilon > minTolerance ? epsilon : minTolerance);
-}
-
-/**
  * @brief 申请buf容量, 决定是否进行扩容
  *
  * @param buf
@@ -901,7 +880,6 @@ static RyanJsonBool_e RyanJsonParseStringBuffer(RyanJsonParseBuffer *parseBuf, c
 		case '/': *outCurrentPtr++ = *parseBuf->currentPtr; break;
 
 		case 'u': {
-
 			// 获取 Unicode 字符
 			uint64_t codepoint = 0;
 			RyanJsonCheckCode(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 4), { goto error__; });
@@ -2294,6 +2272,27 @@ uint32_t RyanJsonMinify(char *text, int32_t textLen)
 
 	*t = '\0';    // 调用者需保证缓冲区有空间
 	return count; // 返回压缩后大小
+}
+
+/**
+ * @brief 安全的浮点数比较
+ *
+ * @param a
+ * @param b
+ * @return RyanJsonBool_e
+ */
+RyanJsonBool_e RyanJsonCompareDouble(double a, double b)
+{
+	double diff = fabs(a - b);
+	double absA = fabs(a);
+	double absB = fabs(b);
+	double maxVal = (absA > absB ? absA : absB);
+
+	// 允许的容差：相对误差 + 绝对误差
+	double epsilon = DBL_EPSILON * maxVal;
+	double minTolerance = 1e-12; // 可调的绝对容差
+
+	return diff <= (epsilon > minTolerance ? epsilon : minTolerance);
 }
 
 /**
