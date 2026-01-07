@@ -50,6 +50,7 @@ extern RyanJsonBool_e RyanJsonExample(void);
 extern RyanJsonBool_e RyanJsonBaseTest(void);
 extern RyanJsonBool_e RFC8259JsonTest(void);
 extern RyanJsonBool_e RyanJsonMemoryFootprintTest(void);
+extern RyanJsonBool_e RyanJsonTestFun(void);
 #ifdef __cplusplus
 }
 #endif

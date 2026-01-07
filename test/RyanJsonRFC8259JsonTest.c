@@ -74,17 +74,6 @@ static int testFile(const char *path, jsonParseData jsonParseDataHandle)
 			break;
 		}
 
-		// if (use != (len + 10))
-		// {
-		// 	int area = 0, use = 0;
-		// 	v_mcheck(&area, &use);
-		// 	free(data);
-		// 	printf("内存泄漏 %s len: %ld\r\n", data, len);
-		// 	// printf("内存泄漏 %x len: %ld\r\n", (unsigned int)data, len);
-		// 	// printf("内存泄漏 %c len: %ld\r\n", (int)data, len);
-		// 	printf("|||----------->>> area = %d, size = %d\r\n", area, use);
-		// 	break;
-		// }
 		free(data);
 	}
 
@@ -564,13 +553,13 @@ RyanJsonBool_e RFC8259JsonTest(void)
 {
 	int result = 0;
 
-	cJSON_Hooks hooks = {.malloc_fn = v_malloc, .free_fn = v_free};
+	cJSON_Hooks hooks = {.malloc_fn = v_malloc_tlsf, .free_fn = v_free_tlsf};
 	cJSON_InitHooks(&hooks);
 
-	printf("开始 RFC 8259 JSON 测试");
+#define TEST_FILE_PATH "./test/RFC8259JsonData"
 
 	printf("\r\n--------------------------- RFC8259  RyanJson --------------------------\r\n");
-	result = testFile("../../../../test//RFC8259JsonData", RyanJsonParseData);
+	result = testFile(TEST_FILE_PATH, RyanJsonParseData);
 	if (0 != result)
 	{
 		printf("%s:%d RyanJson RFC8259JsonTest fail\r\n", __FILE__, __LINE__);
@@ -578,7 +567,7 @@ RyanJsonBool_e RFC8259JsonTest(void)
 	}
 
 	printf("\r\n--------------------------- RFC8259  cJSON --------------------------\r\n");
-	result = testFile("../../../../test//RFC8259JsonData", cJSONParseData);
+	result = testFile(TEST_FILE_PATH, cJSONParseData);
 	if (0 != result)
 	{
 		printf("%s:%d cJSON RFC8259JsonTest fail\r\n", __FILE__, __LINE__);
@@ -586,14 +575,13 @@ RyanJsonBool_e RFC8259JsonTest(void)
 	}
 
 	printf("\r\n--------------------------- RFC8259  yyjson --------------------------\r\n");
-	result = testFile("../../../../test//RFC8259JsonData", yyjsonParseData);
+	result = testFile(TEST_FILE_PATH, yyjsonParseData);
 	if (0 != result)
 	{
 		printf("%s:%d yyjson RFC8259JsonTest fail\r\n", __FILE__, __LINE__);
 		goto err;
 	}
 
-	displayMem();
 	return RyanJsonTrue;
 
 err:

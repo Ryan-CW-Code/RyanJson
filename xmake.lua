@@ -15,8 +15,10 @@ target("RyanJson", function()
     -- 定义宏：启用 Fuzzer 功能
     -- Fuzzer 与覆盖率相关编译/链接选项
     -- add_defines("isEnableFuzzer")
-    -- add_cxflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true})
-    -- add_ldflags("-fsanitize=fuzzer", "-fprofile-instr-generate", "-fcoverage-mapping", {force = true})
+    -- add_cxflags("-fsanitize=fuzzer", {force = true})
+    -- add_ldflags("-fsanitize=fuzzer", {force = true})
+    add_cxflags("-fprofile-instr-generate", "-fcoverage-mapping", {force = true})
+    add_ldflags("-fprofile-instr-generate", "-fcoverage-mapping", {force = true})
 
     -- 编译优化策略
     set_policy("build.ccache", false) -- 禁用 ccache 缓存
@@ -123,20 +125,20 @@ target("RyanJson", function()
     add_includedirs('./example', {public = true})
     add_includedirs('./test/fuzzer', {public = true})
     add_includedirs('./test', {public = true})
-    add_includedirs('./test/valloc', {public = true})
-    add_includedirs('./test/tlsf', {public = true})
     add_includedirs('./test/baseTest', {public = true})
-    add_includedirs('./externalModule/cJSON', {public = true})
-    add_includedirs('./externalModule/yyjson', {public = true})
+    add_includedirs('./test/externalModule/valloc', {public = true})
+    add_includedirs('./test/externalModule/tlsf', {public = true})
+    add_includedirs('./test/externalModule/cJSON', {public = true})
+    add_includedirs('./test/externalModule/yyjson', {public = true})
 
     -- 源文件分开列出，保持清晰结构
     add_files('./RyanJson/*.c', {public = true})
     add_files('./example/*.c', {public = true})
     add_files('./test/fuzzer/*.c', {public = true})
     add_files('./test/*.c', {public = true}, {cxflags = "-w"})          -- 测试代码，关闭警告
-    add_files('./test/valloc/*.c', {public = true}, {cxflags = "-w"})   -- valloc 测试，关闭警告
-    add_files('./test/tlsf/*.c', {public = true}, {cxflags = "-w"})   -- valloc 测试，关闭警告
     add_files('./test/baseTest/*.c', {public = true}, {cxflags = "-w"}) -- 基础测试，关闭警告
-    add_files('./externalModule/cJSON/*.c', {public = true}, {cxflags = "-w"}) -- 第三方库 cJSON，关闭警告
-    add_files('./externalModule/yyjson/*.c', {public = true}, {cxflags = "-w"}) -- 第三方库 yyjson，关闭警告
+    add_files('./test/externalModule/valloc/*.c', {public = true}, {cxflags = "-w"})   -- valloc，关闭警告
+    add_files('./test/externalModule/tlsf/*.c', {public = true}, {cxflags = "-w"})     -- tlsf，关闭警告
+    add_files('./test/externalModule/cJSON/*.c', {public = true}, {cxflags = "-w"}) -- 第三方库 cJSON，关闭警告
+    add_files('./test/externalModule/yyjson/*.c', {public = true}, {cxflags = "-w"}) -- 第三方库 yyjson，关闭警告
 end)

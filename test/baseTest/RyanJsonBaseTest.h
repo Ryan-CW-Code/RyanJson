@@ -16,6 +16,8 @@ extern "C" {
 #include "cJSON.h"
 #include "valloc.h"
 #include "RyanJsonTest.h"
+
+#undef jsonLog
 #define jsonLog(fmt, ...) printf("%s:%d " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 
 // 定义枚举类型

@@ -1,20 +1,5 @@
 #include "RyanJson.h"
 #include "RyanJsonUtils.h"
-#include "valloc.h"
-
-static inline RyanJsonBool_e RyanJsonCompareDouble(double a, double b)
-{
-	double diff = fabs(a - b);
-	double absA = fabs(a);
-	double absB = fabs(b);
-	double maxVal = (absA > absB ? absA : absB);
-
-	// 允许的容差：相对误差 + 绝对误差
-	double epsilon = DBL_EPSILON * maxVal;
-	double minTolerance = 1e-12; // 可调的绝对容差
-
-	return diff <= (epsilon > minTolerance ? epsilon : minTolerance);
-}
 
 /**
  * @brief 生成json示例
@@ -97,7 +82,6 @@ static RyanJsonBool_e createJsonExample(void)
 	RyanJsonFree(str);
 
 	RyanJsonDelete(jsonRoot);
-
 	return RyanJsonTrue;
 }
 
@@ -109,19 +93,19 @@ static RyanJsonBool_e createJsonExample(void)
 static RyanJsonBool_e loadJsonExample(void)
 {
 	char *str = NULL;
-	RyanJson_t jsonRoot;
-	const char jsonstr[] = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,"
-			       "\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\","
-			       "\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,"
-			       "16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\","
-			       "\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{"
-			       "\"inter\":16,\"double\":16.89,\"string\":\"hello\","
-			       "\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\","
-			       "\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}";
+	RyanJson_t jsonRoot = NULL;
+	const char *jsonstr = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,"
+			      "\"item\":{\"inter\":16,\"double\":16.89,\"string\":\"hello\","
+			      "\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,"
+			      "16.89,16.89,16.89,16.89],\"arrayString\":[\"hello\","
+			      "\"hello\",\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{"
+			      "\"inter\":16,\"double\":16.89,\"string\":\"hello\","
+			      "\"boolTrue\":true,\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\","
+			      "\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]}";
 
 	// 解析json数据
 	jsonRoot = RyanJsonParse(jsonstr);
-	if (jsonRoot == NULL)
+	if (NULL == jsonRoot)
 	{
 		printf("%s:%d 序列化失败\r\n", __FILE__, __LINE__);
 		return RyanJsonFalse;
@@ -275,7 +259,7 @@ static RyanJsonBool_e changeJsonExample(void)
 
 RyanJsonBool_e RyanJsonExample(void)
 {
-	RyanJsonInitHooks(v_malloc, v_free, v_realloc);
+	RyanJsonInitHooks(malloc, free, NULL);
 
 	printf("\r\n--------------------------- RyanJson 生成示例 --------------------------\r\n");
 	RyanJsonCheckReturnFalse(RyanJsonTrue == createJsonExample());
@@ -286,7 +270,7 @@ RyanJsonBool_e RyanJsonExample(void)
 	printf("\r\n--------------------------- RyanJson 修改json示例 --------------------------\r\n");
 	RyanJsonCheckReturnFalse(RyanJsonTrue == changeJsonExample());
 
-    // 更多功能请查看 RyanJson.h 文件，不了解的可以查看 test/baseTest 下的文件
+	// 更多功能请查看 RyanJson.h 文件，不了解的可以查看 test/baseTest 下的文件
 
 	return RyanJsonTrue;
 }

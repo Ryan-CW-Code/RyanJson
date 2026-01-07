@@ -17,50 +17,60 @@ static void printfTitle(char *title)
 
 static tlsf_t tlsfHandler;
 
-static int32_t total2 = LV_MEM_SIZE, used2 = 0, available = 0;
+static size_t total2 = LV_MEM_SIZE, used2 = 0, available = 0;
 bool tlsf_walker_callback(void *ptr, size_t size, int used, void *user)
 {
+	(void)ptr;
+	(void)user; // suppress unused warnings
 	if (1 == used) { used2 += size + tlsf_alloc_overhead(); }
 	return true;
 }
 
 void showMemoryInfo(void)
 {
-	int32_t total = 0, used = 0, max_used = 0;
+	size_t total = 0, used = 0, max_used = 0;
 	rt_memory_info22(tlsfHandler, &total, &used, &max_used);
-	jsonLogByTest("total: %d, used: %d, max_used: %d, available: %d\r\n", total, used, max_used, total - used);
+	jsonLogByTest("total: %zu, used: %zu, max_used: %zu, available: %zu\r\n", total, used, max_used, total - used);
 
-	used2 = 0, available = 0;
+	used2 = 0;
+	available = 0;
 	total2 = total;
 	tlsf_walk_pool(tlsf_get_pool(tlsfHandler), tlsf_walker_callback, NULL);
-	jsonLogByTest("total2: %d, used2: %d, max_used2: %d, available2: %d\r\n", total2, used2, 0, total2 - used2);
+	jsonLogByTest("total2: %zu, used2: %zu, max_used2: %d, available2: %zu\r\n", total2, used2, 0, total2 - used2);
 }
 
 int32_t vallocGetUseByTlsf(void)
 {
-	int32_t total = 0, used = 0, max_used = 0;
+	size_t total = 0, used = 0, max_used = 0;
 	rt_memory_info22(tlsfHandler, &total, &used, &max_used);
-	return used;
+	return (int32_t)used;
 }
 
+#define RyanJsonAlign(size, align) (((size) + (align) - 1) & ~((align) - 1))
 void *v_malloc_tlsf(size_t size)
 {
 	if (size == 0) { return NULL; }
 
-	return tlsf_malloc(tlsfHandler, size);
+	return tlsf_malloc(tlsfHandler, RyanJsonAlign(size + RyanJsonMallocHeaderSize - 4, RyanJsonMallocAlign));
 }
 
 void v_free_tlsf(void *block)
 {
-	if (!block) { return; }
-
-	tlsf_free(tlsfHandler, block);
+	if (block) { tlsf_free(tlsfHandler, block); }
 }
 
-void *v_realloc_tlsf(void *block, size_t size) { return tlsf_realloc(tlsfHandler, block, size); }
+void *v_realloc_tlsf(void *block, size_t size)
+{
+	void *newBlock = v_malloc_tlsf(size);
+	if (newBlock) { memmove(newBlock, block, size); }
 
-#ifndef isEnableFuzzer
-int main(void)
+	v_free_tlsf(block);
+	return newBlock;
+
+	// return tlsf_realloc(tlsfHandler, block, size);
+}
+
+RyanJsonBool_e RyanJsonTestFun(void)
 {
 	char *tlsfMemBuf = v_malloc(LV_MEM_SIZE);
 	tlsfHandler = tlsf_create_with_pool((void *)tlsfMemBuf, LV_MEM_SIZE, LV_MEM_SIZE);
@@ -101,22 +111,29 @@ int main(void)
 
 	showMemoryInfo();
 
+	// example内部会替换hooks，所以需要重新设置
 	result = RyanJsonExample();
+	RyanJsonInitHooks(v_malloc_tlsf, v_free_tlsf, v_realloc_tlsf);
 	if (RyanJsonTrue != result)
 	{
 		printf("%s:%d RyanJsonExample fail\r\n", __FILE__, __LINE__);
-		return -1;
+		return RyanJsonFalse;
 	}
 
 	result = RyanJsonBaseTest();
 	if (RyanJsonTrue != result)
 	{
 		printf("%s:%d RyanJsonBaseTest fail\r\n", __FILE__, __LINE__);
-		return -1;
+		return RyanJsonFalse;
 	}
 
 	printfTitle("RyanJson / cJSON / yyjson RFC8259标准测试");
-	RFC8259JsonTest();
+	result = RFC8259JsonTest();
+	if (RyanJsonTrue != result)
+	{
+		printf("%s:%d RFC8259JsonTest fail\r\n", __FILE__, __LINE__);
+		return RyanJsonFalse;
+	}
 
 	printfTitle("RyanJson / cJSON / yyjson 内存对比程序");
 	RyanJsonMemoryFootprintTest();
@@ -125,6 +142,14 @@ int main(void)
 	showMemoryInfo();
 	v_free(tlsfMemBuf);
 	displayMem();
+
+	return RyanJsonTrue;
+}
+
+#ifndef isEnableFuzzer
+int main(void)
+{
+	RyanJsonTestFun();
 	return 0;
 }
 
