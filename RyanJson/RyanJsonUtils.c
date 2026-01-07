@@ -14,7 +14,8 @@ RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, const char *key, ...)
 
 	const char *nextKey = key;
 	RyanJson_t nextItem = RyanJsonGetObjectByKey(pJson, nextKey);
-	RyanJsonCheckReturnNull(NULL != nextItem && RyanJsonIsKey(nextItem));
+	RyanJsonCheckReturnNull(NULL != nextItem);
+	RyanJsonCheckNeverNoAssert(RyanJsonIsKey(nextItem));
 
 	va_list args;
 	va_start(args, key);

@@ -19,6 +19,7 @@ static RyanJsonBool_e RyanJsonFuzzerTestByParseAndPrint(RyanJson_t pJson, const 
 	RyanJsonAssert(NULL == RyanJsonPrint(testItem, 100, RyanJsonFalse, NULL));
 	RyanJsonAssert(NULL == RyanJsonDuplicate(testItem));
 	RyanJsonAssert(RyanJsonFalse == RyanJsonCompare(testItem, testItem2));
+	RyanJsonAssert(RyanJsonFalse == RyanJsonCompareOnlyKey(testItem, testItem2));
 
 	// 测试pJson类型错误情况
 	RyanJsonAssert(RyanJsonFalse == RyanJsonInsert(testItem, 0, RyanJsonCreateString("key", "true")));
@@ -286,6 +287,10 @@ static RyanJsonBool_e RyanJsonFuzzerTestByForEachGet2(RyanJson_t lastJson, RyanJ
 	RyanJsonAssert(NULL == RyanJsonGetObjectByKey(NULL, NULL));
 	RyanJsonAssert(NULL == RyanJsonGetObjectByKey(pJson, NULL));
 	RyanJsonAssert(NULL == RyanJsonGetObjectByKey(NULL, "NULL"));
+
+	RyanJsonAssert(NULL == RyanJsonGetObjectByKeys(NULL, NULL));
+	RyanJsonAssert(NULL == RyanJsonGetObjectByKeys(pJson, NULL));
+	RyanJsonAssert(NULL == RyanJsonGetObjectByKeys(NULL, "NULL"));
 	if (!RyanJsonIsObject(pJson)) // pJson类型错误
 	{
 		RyanJsonAssert(NULL == RyanJsonGetObjectByKey(pJson, "NULL"));
