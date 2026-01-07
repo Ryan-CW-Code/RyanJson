@@ -73,16 +73,6 @@ typedef struct
 #define _checkType(info, type)         ((info) == (type))
 #define RyanJsonUnused(x)              (void)(x)
 
-#ifdef RyanJsonEnableAssert
-#define RyanJsonCheckNeverNoAssert(EX)                                                                                                     \
-	do                                                                                                                                 \
-	{                                                                                                                                  \
-		if (!(EX)) RyanJsonAssert(NULL && #EX);                                                                                    \
-	} while (0)
-#else
-#define RyanJsonCheckNeverNoAssert(EX) (void)(EX)
-#endif
-
 /**
  * @brief printBuf相关宏
  *
@@ -717,6 +707,68 @@ static RyanJsonBool_e RyanJsonParseHex(const uint8_t *text, uint32_t *value)
 }
 
 /**
+ * @brief 内部函数：解析数字字符串为 double（用于序列化往返检查）
+ * 替代 strtod 以提高嵌入式平台兼容性
+ *
+ * @param str 数字字符串
+ * @return double 解析后的值
+ */
+static double RyanJsonInternalParseDouble(const char *str)
+{
+	double number = 0;
+	int32_t scale = 0;
+	int32_t e_sign = 1;
+	int32_t e_scale = 0;
+	RyanJsonBool_e isNegative = RyanJsonFalse;
+
+	// 处理符号
+	if ('-' == *str)
+	{
+		isNegative = RyanJsonTrue;
+		str++;
+	}
+
+	// 整数部分
+	while (*str >= '0' && *str <= '9')
+	{
+		number = number * 10.0 + (*str - '0');
+		str++;
+	}
+
+	// 小数部分
+	if ('.' == *str)
+	{
+		str++;
+		while (*str >= '0' && *str <= '9')
+		{
+			number = number * 10.0 + (*str - '0');
+			scale--;
+			str++;
+		}
+	}
+
+	// 指数部分
+	if ('e' == *str || 'E' == *str)
+	{
+		str++;
+		if ('+' == *str || '-' == *str)
+		{
+			e_sign = ('-' == *str) ? -1 : 1;
+			str++;
+		}
+		while (*str >= '0' && *str <= '9')
+		{
+			e_scale = e_scale * 10 + (*str - '0');
+			str++;
+		}
+	}
+
+	// 应用符号和指数
+	if (isNegative) { number = -number; }
+	return number * pow(10.0, scale + e_sign * e_scale);
+}
+
+/**
  * @brief 解析文本中的数字，添加到json节点中
  *
  * @param buf 解析缓冲区
@@ -728,17 +780,13 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 {
 	RyanJsonCheckAssert(NULL != parseBuf && NULL != out);
 
-	double number = 0;
-	int32_t scale = 0;
-	int32_t e_sign = 1;
-	int32_t e_scale = 0;
-	RyanJsonBool_e isNegative = RyanJsonFalse;
+	// 记录数字起始位置
+	const char *numberStart = (const char *)parseBuf->currentPtr;
 	RyanJsonBool_e isInt = RyanJsonTrue;
 
 	// 处理符号
 	if ('-' == *parseBuf->currentPtr)
 	{
-		isNegative = RyanJsonTrue;
 		// 这个不会失败因为进来前已经判断过 parseBufHasRemain(parseBuf)
 		RyanJsonCheckNeverNoAssert(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9');
@@ -755,7 +803,6 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 	// 整数部分
 	while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
 	{
-		number = number * 10.0 + (*parseBuf->currentPtr - '0');
 		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 	}
 
@@ -767,8 +814,6 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 
 		while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
 		{
-			number = number * 10.0 + (*parseBuf->currentPtr - '0');
-			scale--; // 每读一位小数，scale减一
 			RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 		}
 		isInt = RyanJsonFalse;
@@ -779,29 +824,31 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 	{
 		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf));
-		if ('+' == *parseBuf->currentPtr || '-' == *parseBuf->currentPtr) { e_sign = ('-' == *parseBuf->currentPtr) ? -1 : 1; }
-		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
+
+		// 只有遇到 +/- 符号时才跳过
+		if ('+' == *parseBuf->currentPtr || '-' == *parseBuf->currentPtr)
+		{
+			RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
+		}
+
 		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9');
 
 		while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
 		{
-			e_scale = e_scale * 10 + (*parseBuf->currentPtr - '0');
 			RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 		}
 		isInt = RyanJsonFalse;
 	}
 
-	// 判断符号
-	if (RyanJsonTrue == isNegative) { number = -number; }
+	// 使用内部解析函数计算数值
+	double number = RyanJsonInternalParseDouble(numberStart);
 
 	// 创建 JSON 节点
 	RyanJson_t newItem = NULL;
 	if (RyanJsonTrue == isInt && number >= INT32_MIN && number <= INT32_MAX) { newItem = RyanJsonCreateInt(key, (int32_t)number); }
 	else
 	{
-		// 避免 pow 调用过多，直接计算指数
-		double expFactor = pow(10.0, scale + e_sign * e_scale);
-		newItem = RyanJsonCreateDouble(key, number * expFactor);
+		newItem = RyanJsonCreateDouble(key, number);
 	}
 
 	RyanJsonCheckReturnFalse(NULL != newItem);
@@ -1276,30 +1323,18 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
 			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%.1lf", doubleValue);
 			RyanJsonCheckReturnFalse(len > 0); // snprintf 失败
 		}
-
-		// 判定是否需要科学计数法 (过小或过大)
-		else if (absDoubleValue < 1.0e-6 || absDoubleValue > 1.0e9)
-		{
-			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%e", doubleValue);
-			RyanJsonCheckReturnFalse(len > 0); // snprintf 失败
-		}
-
-		// 默认浮点数格式化
 		else
 		{
-			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%lf", doubleValue);
+			// 先用 %.15g 尝试序列化（输出更简洁）
+			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%.15g", doubleValue);
 			RyanJsonCheckReturnFalse(len > 0); // snprintf 失败
 
-			// 删除小数部分中无效的 0
-			while (len >= 3)
+			// 往返检查：如果 %.15g 精度不够，改用 %.17g
+			if (RyanJsonFalse ==
+			    RyanJsonCompareDouble(RyanJsonInternalParseDouble((char *)printBufCurrentPtr(printfBuf)), doubleValue))
 			{
-				// 最后一位字符不是 '0'，说明有效数字结束了
-				if ('0' != printBufCurrentPtr(printfBuf)[len - 1]) { break; }
-				// 检查倒数第二位是否为 '.' (避免把 "1.0" 删成 "1.")
-				if ('.' == printBufCurrentPtr(printfBuf)[len - 2]) { break; }
-
-				// 删除的刚好是0, 不需要再尾部补充"\0"
-				len--;
+				len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%.17g", doubleValue);
+				RyanJsonCheckReturnFalse(len > 0); // snprintf 失败
 			}
 		}
 

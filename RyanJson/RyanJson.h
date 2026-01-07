@@ -26,8 +26,14 @@ extern "C" {
 // !没有使能assert时RyanJsonCheckAssert不执行的
 #ifdef RyanJsonEnableAssert
 #define RyanJsonCheckAssert(EX) RyanJsonCheckCode(EX, RyanJsonAssert(NULL &&#EX);)
+#define RyanJsonCheckNeverNoAssert(EX)                                                                                                     \
+	do                                                                                                                                 \
+	{                                                                                                                                  \
+		if (!(EX)) RyanJsonAssert(NULL && #EX);                                                                                    \
+	} while (0)
 #else
-#define RyanJsonCheckAssert(EX) ((void)0)
+#define RyanJsonCheckAssert(EX)        ((void)0)
+#define RyanJsonCheckNeverNoAssert(EX) (void)(EX)
 #endif
 
 // Json 的最基础节点，所有 Json 元素都由该节点表示。
