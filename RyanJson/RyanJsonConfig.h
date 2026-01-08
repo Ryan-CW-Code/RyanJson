@@ -53,12 +53,37 @@ extern "C" {
 // RyanJson使用递归 序列化/反序列化 json
 // 请根据单片机资源合理设置以防止堆栈溢出。
 #ifndef RyanJsonNestingLimit
-#define RyanJsonNestingLimit 500U
+#define RyanJsonNestingLimit 300U
 #endif
 
 // 当 RyanJsonPrint 剩余缓冲空间不足时申请的空间大小
 #ifndef RyanJsonPrintfPreAlloSize
 #define RyanJsonPrintfPreAlloSize (64U)
+#endif
+
+// 浮点数比较可调的绝对容差,一般场景 1e-8 足够了.
+// 可以根据自己需求进行调整
+// 容差必须大于 0.0,同时小于 1.0
+#ifndef RyanJsonAbsTolerance
+#define RyanJsonAbsTolerance 1e-8
+#endif
+
+// 用户需声明目标平台的 snprintf 是否支持科学计数法输出, (库内部是否使用 %g/%e)
+#ifndef RyanJsonSnprintfSupportScientific
+#define RyanJsonSnprintfSupportScientific false
+#endif
+
+// 用户需声明 double 序列化时的缓冲区大小
+// 如果 snprintf 支持科学计数法，建议值 ≥ 32
+// 如果不支持科学计数法，建议值 ≥ 330
+#ifndef RyanJsonDoubleBufferSize
+#if true == RyanJsonSnprintfSupportScientific
+#define RyanJsonDoubleBufferSize 32
+#else
+// 不支持科学计数法的平台使用 ".17lf" 最大将会输出 330+ 字节的数据,对于此库来说占用太高了.
+// 如果用户可以接受,就修改 RyanJsonDoubleBufferSize 宏,由你来决定RyanJson给 ".17lf" 提供多大缓冲区
+#define RyanJsonDoubleBufferSize 64
+#endif
 #endif
 
 /**

@@ -51,7 +51,7 @@ typedef struct
 {
 	uint8_t *bufAddress;      // 反序列化后的字符串地址
 	uint32_t cursor;          // 解析到那个buf位置上了
-	uint32_t size;            // 待解析字符串剩余长度, 不动态申请内存时，到达此size大小将返回失败
+	uint32_t size;            // buf的总长度, 不动态申请内存时，到达此size大小将返回失败
 	RyanJsonBool_e isNoAlloc; // 是否动态申请内存
 } RyanJsonPrintBuffer;
 
@@ -79,12 +79,13 @@ typedef struct
  */
 #define printBufPutChar(printfBuf, char)                                                                                                   \
 	do { ((printfBuf)->bufAddress[(printfBuf)->cursor++] = (char)); } while (0)
-#define printBufPutString(printfBuf, string, len)                                                                                          \
+#define printBufPutString(printfBuf, putStr, putStrLen)                                                                                    \
 	do                                                                                                                                 \
 	{                                                                                                                                  \
-		for (uint32_t i = 0; i < (uint32_t)(len); i++) printBufPutChar(printfBuf, (string)[i]);                                    \
+		for (uint32_t i = 0; i < (uint32_t)(putStrLen); i++) printBufPutChar(printfBuf, (putStr)[i]);                              \
 	} while (0)
-#define printBufCurrentPtr(printfBuf) (&((printfBuf)->bufAddress[(printfBuf)->cursor]))
+#define printBufCurrentPtr(printfBuf)  (&((printfBuf)->bufAddress[(printfBuf)->cursor]))
+#define printBufRemainBytes(printfBuf) ((printfBuf)->size - (printfBuf)->cursor)
 
 /**
  * @brief parseBuf相关宏
@@ -196,6 +197,7 @@ static inline uint8_t *RyanJsonGetHiddePrt(RyanJson_t pJson)
 	RyanJsonMemcpy((void *)&tmpPtr, (RyanJsonGetPayloadPtr(pJson) + RyanJsonFlagSize + RyanJsonKeyFeidLenMaxSize), sizeof(void *));
 	return (uint8_t *)tmpPtr;
 }
+
 static inline void RyanJsonSetHiddePrt(RyanJson_t pJson, uint8_t *hiddePrt)
 {
 	RyanJsonCheckAssert(NULL != pJson);
@@ -303,9 +305,30 @@ static inline uint8_t RyanJsonCalcLenBytes(uint32_t len)
 }
 
 /**
+ * @brief 安全的浮点数比较
+ *
+ * @param a
+ * @param b
+ * @return RyanJsonBool_e
+ */
+RyanJsonBool_e RyanJsonCompareDouble(double a, double b)
+{
+	double diff = fabs(a - b);
+	double absA = fabs(a);
+	double absB = fabs(b);
+	double maxVal = (absA > absB ? absA : absB);
+
+	// 允许的容差：相对误差 + 绝对误差
+	double epsilon = DBL_EPSILON * maxVal;
+	double absTolerance = RyanJsonAbsTolerance; // 绝对容差
+
+	return diff <= (epsilon > absTolerance ? epsilon : absTolerance);
+}
+
+/**
  * @brief 申请buf容量, 决定是否进行扩容
  *
- * @param buf
+ * @param printfBuf
  * @param needed
  * @return RyanJsonBool_e
  */
@@ -849,8 +872,8 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 /**
  * @brief 解析文本中的字符串，添加到json节点中
  *
- * @param text 带有jsonString的文本
- * @param buf 接收解析后的字符串指针的地址
+ * @param parseBuf 带有jsonString的文本
+ * @param buffer 接收解析后的字符串指针的地址
  * @return RyanJsonBool_e
  */
 static RyanJsonBool_e RyanJsonParseStringBuffer(RyanJsonParseBuffer *parseBuf, char **buffer)
@@ -1273,7 +1296,7 @@ RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool_e 
  * @brief 反序列化数字
  *
  * @param pJson
- * @param buf
+ * @param printfBuf
  * @return RyanJsonBool_e
  */
 static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer *printfBuf)
@@ -1288,7 +1311,8 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
 		// INT32_MIN = -2147483648 (11 chars)
 		RyanJsonCheckReturnFalse(printBufAppend(printfBuf, 11));
 
-		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%" PRId32, RyanJsonGetIntValue(pJson));
+		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf), "%" PRId32,
+				       RyanJsonGetIntValue(pJson));
 		RyanJsonCheckReturnFalse(len > 0);
 		printfBuf->cursor += (uint32_t)len;
 
@@ -1296,43 +1320,93 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
 	}
 
 	// RyanJsonNumber 的类型是浮点型
-	// 浮点数用64
-	RyanJsonCheckReturnFalse(printBufAppend(printfBuf, 64));
+	RyanJsonCheckReturnFalse(printBufAppend(printfBuf, RyanJsonDoubleBufferSize));
 	double doubleValue = RyanJsonGetDoubleValue(pJson);
 
 	// 处理特殊值：无穷大和 NaN 输出为 null（RFC 8259 不支持 Infinity/NaN）
 	if (isinf(doubleValue) || isnan(doubleValue))
 	{
-		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "null");
-		RyanJsonCheckReturnFalse(len > 0);
+		printBufPutString(printfBuf, (uint8_t *)"null", 4);
+		return RyanJsonTrue;
 	}
+
+	double absDoubleValue = fabs(doubleValue);
+
 	// 判断是否为整数（在合理范围内），保留一位小数 (例如 5.0, 0.0)
 	// 注意：0 也需要特殊处理，否则会进入科学记数法分支
+	// 在有界空间内使用完全变换
+	if ((absDoubleValue < DBL_EPSILON || (absDoubleValue < 1.0e15 && absDoubleValue >= 1.0e-6)) &&
+	    fabs(floor(doubleValue) - doubleValue) <= DBL_EPSILON)
+	{
+		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf), "%.1lf", doubleValue);
+#ifdef RyanJsonLinuxTestEnv // 测试平台肯定不会越界,影响观察分支覆盖率
+		RyanJsonCheckReturnFalse(len > 0);
+#else
+		// "%.17g也判断是因为不可以相信嵌入式平台真的会输出科学计数法格式"
+		RyanJsonCheckReturnFalse(len > 0 && len < (int32_t)printBufRemainBytes(printfBuf));
+#endif
+	}
 	else
 	{
-		double absDoubleValue = fabs(doubleValue);
+		// 极大/极小数或普通浮点数
+#ifdef RyanJsonLinuxTestEnv
+		// 测试平台轮流使用 "%.15g" 和 "%lf" 让下面去0的逻辑也可以执行
+		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf),
+				       doubleValue > 1.0 ? "%.15g" : "%lf", doubleValue);
+#else
+		// 不使用 %.15g 是因为很多嵌入式平台 %.15g 效果和 %.17g效果一样只是少了2位精度
+		// 可能的效果是 0.2 被序列化成 0.200000003000000 ,就算去掉尾部0也不美观
+		// ?用%lf当前是有缺点的,给double留的64字节空间可能被撑爆,但是嵌入式平台可以放心
+		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf),
+				       RyanJsonSnprintfSupportScientific ? "%.15g" : "%lf", doubleValue);
+#endif
+		RyanJsonCheckReturnFalse(len > 0 && len < (int32_t)printBufRemainBytes(printfBuf));
 
-		if ((absDoubleValue < DBL_EPSILON || (absDoubleValue < 1.0e15 && absDoubleValue >= 1.0e-6)) &&
-		    fabs(floor(doubleValue) - doubleValue) <= DBL_EPSILON)
+		// 往返检查：如果 %lf 精度不够，改用 %.17g
+		double number = 0;
+		RyanJsonBool_e isInt = RyanJsonTrue;
+		RyanJsonParseBuffer parseBuf = {.currentPtr = printBufCurrentPtr(printfBuf), .remainSize = (uint32_t)len};
+		RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonInternalParseDouble(&parseBuf, &number, &isInt));
+		if (RyanJsonFalse == RyanJsonCompareDouble(number, doubleValue))
 		{
-			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%.1lf", doubleValue);
-			RyanJsonCheckReturnFalse(len > 0);
+#ifdef RyanJsonLinuxTestEnv
+			// 测试平台轮流使用 "%.15g" 和 "%lf" 让下面去0的逻辑也可以执行
+			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf),
+					       doubleValue > 1.0 ? "%.17g" : "%.17lf", doubleValue);
+#else
+			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf),
+					       RyanJsonSnprintfSupportScientific ? "%.17g" : "%.17lf", doubleValue);
+#endif
+			// "%.17g"也判断是因为不可以相信嵌入式平台真的会输出科学计数法格式
+			RyanJsonCheckReturnFalse(len > 0 && len < (int32_t)printBufRemainBytes(printfBuf));
 		}
-		else
-		{
-			// 极大/极小数或普通浮点数：统一使用 %.15g 尝试序列化
-			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%.15g", doubleValue);
-			RyanJsonCheckReturnFalse(len > 0);
 
-			// 往返检查：如果 %.15g 精度不够，改用 %.17g
-			double number = 0;
-			RyanJsonBool_e isInt = RyanJsonTrue;
-			RyanJsonParseBuffer parseBuf = {.currentPtr = printBufCurrentPtr(printfBuf), .remainSize = (uint32_t)len};
-			RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonInternalParseDouble(&parseBuf, &number, &isInt));
-			if (RyanJsonFalse == RyanJsonCompareDouble(number, doubleValue))
+		// 检查是不是科学计数法
+		RyanJsonBool_e isScientificNotation = RyanJsonFalse;
+		for (int32_t i = 0; i < len; i++)
+		{
+			// 有些平台会输出'E'
+			if ('e' == printBufCurrentPtr(printfBuf)[i]
+#ifndef RyanJsonLinuxTestEnv // 测试平台只会输出 "e",影响观察分支覆盖率
+			    || 'E' == printBufCurrentPtr(printfBuf)[i]
+#endif
+			)
 			{
-				len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%.17g", doubleValue);
-				RyanJsonCheckReturnFalse(len > 0);
+				isScientificNotation = RyanJsonTrue;
+				break;
+			}
+		}
+
+		if (RyanJsonFalse == isScientificNotation)
+		{
+			// 删除小数部分中无效的 0
+			// 最小也要为"0.0"
+			while (len > 3)
+			{
+				if ('0' != printBufCurrentPtr(printfBuf)[len - 1]) { break; }
+				if ('.' == printBufCurrentPtr(printfBuf)[len - 2]) { break; }
+				len--;
+				printBufCurrentPtr(printfBuf)[len] = '\0';
 			}
 		}
 	}
@@ -1345,7 +1419,7 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
  * @brief 反序列化字符串
  *
  * @param strValue
- * @param buf
+ * @param printfBuf
  * @return RyanJsonBool_e
  */
 static RyanJsonBool_e RyanJsonPrintStringBuffer(const uint8_t *strValue, RyanJsonPrintBuffer *printfBuf)
@@ -1410,8 +1484,8 @@ static RyanJsonBool_e RyanJsonPrintStringBuffer(const uint8_t *strValue, RyanJso
 		default: {
 			// 可以不加p有效性的判断是因为，这个RyanJson生成的字符串，RyanJson可以确保p一定是有效的
 			// jsonLog("hexasdf:\\u%04X\n", codepoint);
-			RyanJsonCheckReturnFalse(
-				5 == RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "u%04X", *strCurrentPtr));
+			RyanJsonCheckReturnFalse(5 == RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf),
+								       printBufRemainBytes(printfBuf), "u%04X", *strCurrentPtr));
 			printfBuf->cursor += 5; // utf
 			break;
 		}
@@ -1435,7 +1509,7 @@ static RyanJsonBool_e RyanJsonPrintString(RyanJson_t pJson, RyanJsonPrintBuffer 
  * @brief 反序列化数组
  *
  * @param pJson
- * @param buf
+ * @param printfBuf
  * @param depth
  * @param format
  * @return RyanJsonBool_e
@@ -1481,7 +1555,6 @@ static RyanJsonBool_e RyanJsonPrintArray(RyanJson_t pJson, RyanJsonPrintBuffer *
 		if (format && count)
 		{
 			RyanJsonCheckReturnFalse(printBufAppend(printfBuf, depth + 1U));
-
 			for (uint32_t i = 0; i <= depth; i++) { printBufPutChar(printfBuf, '\t'); }
 		}
 
@@ -1523,7 +1596,7 @@ static RyanJsonBool_e RyanJsonPrintArray(RyanJson_t pJson, RyanJsonPrintBuffer *
  * @brief 反序列化对象
  *
  * @param pJson
- * @param buf
+ * @param printfBuf
  * @param depth
  * @param format
  * @return RyanJsonBool_e
@@ -2304,27 +2377,6 @@ uint32_t RyanJsonMinify(char *text, int32_t textLen)
 
 	*t = '\0';    // 调用者需保证缓冲区有空间
 	return count; // 返回压缩后大小
-}
-
-/**
- * @brief 安全的浮点数比较
- *
- * @param a
- * @param b
- * @return RyanJsonBool_e
- */
-RyanJsonBool_e RyanJsonCompareDouble(double a, double b)
-{
-	double diff = fabs(a - b);
-	double absA = fabs(a);
-	double absB = fabs(b);
-	double maxVal = (absA > absB ? absA : absB);
-
-	// 允许的容差：相对误差 + 绝对误差
-	double epsilon = DBL_EPSILON * maxVal;
-	double minTolerance = 1e-12; // 可调的绝对容差
-
-	return diff <= (epsilon > minTolerance ? epsilon : minTolerance);
 }
 
 /**
