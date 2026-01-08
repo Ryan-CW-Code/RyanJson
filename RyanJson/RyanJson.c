@@ -785,29 +785,41 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 {
 	RyanJsonCheckAssert(NULL != parseBuf && NULL != out);
 
-	// 记录数字起始位置
-	const char *numberStart = (const char *)parseBuf->currentPtr;
+	double number = 0;
+	int32_t scale = 0;
+	int32_t e_sign = 1;
+	int32_t e_scale = 0;
+	RyanJsonBool_e isNegative = RyanJsonFalse;
 	RyanJsonBool_e isInt = RyanJsonTrue;
 
 	// 处理符号
 	if ('-' == *parseBuf->currentPtr)
 	{
+		isNegative = RyanJsonTrue;
 		// 这个不会失败因为进来前已经判断过 parseBufHasRemain(parseBuf)
 		RyanJsonCheckNeverNoAssert(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9');
 	}
 
-	// 跳过前导零
+	// 前导0是非法的
 	while ('0' == *parseBuf->currentPtr)
 	{
 		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-		// 前导0后面不允许跟数组，比如"0123"
+		// 前导0后面不允许跟数据，比如"0123"
 		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf) && (*parseBuf->currentPtr < '0' || *parseBuf->currentPtr > '9'));
 	}
+
+	// 允许多个前导零
+	// while ('0' == *parseBuf->currentPtr)
+	// {
+	// 	RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
+	// 	RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf));
+	// }
 
 	// 整数部分
 	while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
 	{
+		number = number * 10.0 + (*parseBuf->currentPtr - '0');
 		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 	}
 
@@ -819,6 +831,8 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 
 		while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
 		{
+			number = number * 10.0 + (*parseBuf->currentPtr - '0');
+			scale--; // 每读一位小数，scale减一
 			RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 		}
 		isInt = RyanJsonFalse;
@@ -829,10 +843,9 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 	{
 		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf));
-
-		// 只有遇到 +/- 符号时才跳过
 		if ('+' == *parseBuf->currentPtr || '-' == *parseBuf->currentPtr)
 		{
+			e_sign = ('-' == *parseBuf->currentPtr) ? -1 : 1;
 			RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 		}
 
@@ -840,20 +853,23 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 
 		while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
 		{
+			e_scale = e_scale * 10 + (*parseBuf->currentPtr - '0');
 			RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 		}
 		isInt = RyanJsonFalse;
 	}
 
-	// 使用内部解析函数计算数值
-	double number = RyanJsonInternalParseDouble(numberStart);
+	// 判断符号
+	if (RyanJsonTrue == isNegative) { number = -number; }
 
 	// 创建 JSON 节点
 	RyanJson_t newItem = NULL;
 	if (RyanJsonTrue == isInt && number >= INT32_MIN && number <= INT32_MAX) { newItem = RyanJsonCreateInt(key, (int32_t)number); }
 	else
 	{
-		newItem = RyanJsonCreateDouble(key, number);
+		// 避免 pow 调用过多，直接计算指数
+		double expFactor = pow(10.0, scale + e_sign * e_scale);
+		newItem = RyanJsonCreateDouble(key, number * expFactor);
 	}
 
 	RyanJsonCheckReturnFalse(NULL != newItem);
