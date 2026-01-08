@@ -5,10 +5,10 @@ static void *yy_malloc(void *ctx, size_t size)
 	(void)(ctx);
 	return v_malloc_tlsf(size);
 }
-static void *yy_realloc(void *ctx, void *ptr, size_t old_size, size_t size)
+static void *yy_realloc(void *ctx, void *ptr, size_t oldSize, size_t size)
 {
 	(void)(ctx);
-	(void)(old_size);
+	(void)(oldSize);
 	return v_realloc_tlsf(ptr, size);
 }
 static void yy_free(void *ctx, void *ptr)
@@ -23,11 +23,10 @@ static RyanJsonBool_e RyanJsonMemoryFootprint(char *jsonstr, int32_t *footprint)
 	RyanJsonInitHooks(v_malloc_tlsf, v_free_tlsf, v_realloc_tlsf);
 
 	RyanJson_t json = RyanJsonParse(jsonstr);
-	if (json == NULL)
-	{
+	RyanJsonCheckCode(NULL != json, {
 		printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
 		return RyanJsonFalse;
-	}
+	});
 
 	use = vallocGetUseByTlsf() - use;
 
@@ -43,11 +42,10 @@ static RyanJsonBool_e cJSONMemoryFootprint(char *jsonstr, int32_t *footprint)
 	cJSON_InitHooks(&hooks);
 
 	cJSON *json = cJSON_Parse(jsonstr);
-	if (json == NULL)
-	{
+	RyanJsonCheckCode(NULL != json, {
 		printf("%s:%d 解析失败\r\n", __FILE__, __LINE__);
 		return RyanJsonFalse;
-	}
+	});
 
 	use = vallocGetUseByTlsf() - use;
 	cJSON_Delete(json);
@@ -62,12 +60,12 @@ static RyanJsonBool_e yyjsonMemoryFootprint(char *jsonstr, int32_t *footprint)
 
 	// 先解析成只读文档（可用自定义分配器 yyalc）
 	yyjson_doc *doc = yyjson_read_opts(jsonstr, strlen(jsonstr), YYJSON_READ_NOFLAG, &yyalc, NULL);
-	if (doc == NULL) { return RyanJsonFalse; }
+	RyanJsonCheckReturnFalse(NULL != doc);
 
 	// 从只读文档拷贝为可变文档（用于后续读写修改）
 	yyjson_mut_doc *mdoc = yyjson_doc_mut_copy(doc, &yyalc);
 	yyjson_doc_free(doc);
-	if (mdoc == NULL) { return RyanJsonFalse; }
+	RyanJsonCheckReturnFalse(NULL != mdoc);
 
 	// 统计当前分配器的占用
 	use = vallocGetUseByTlsf() - use;
@@ -86,13 +84,13 @@ static RyanJsonBool_e printfJsonCompare(char *jsonstr)
 	RyanJsonBool_e status = RyanJsonFalse;
 
 	status = RyanJsonMemoryFootprint(jsonstr, &RyanJsonCount);
-	if (RyanJsonTrue != status) { return RyanJsonFalse; }
+	RyanJsonCheckReturnFalse(RyanJsonTrue == status);
 
 	status = cJSONMemoryFootprint(jsonstr, &cJSONCount);
-	if (RyanJsonTrue != status) { return RyanJsonFalse; }
+	RyanJsonCheckReturnFalse(RyanJsonTrue == status);
 
 	status = yyjsonMemoryFootprint(jsonstr, &yyjsonCount);
-	if (RyanJsonTrue != status) { return RyanJsonFalse; }
+	RyanJsonCheckReturnFalse(RyanJsonTrue == status);
 
 	printf("json原始文本长度为 %ld, 序列化后RyanJson内存占用: %d, cJSON内存占用: %d, yyjson内存占用: %d\r\n", strlen(jsonstr),
 	       RyanJsonCount, cJSONCount, yyjsonCount);

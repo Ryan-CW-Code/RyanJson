@@ -104,7 +104,10 @@ RyanJsonBool_e RyanJsonBaseTestEqualityInt(void)
 	{
 		const char *jsonIntStr = IntStringTable[i];
 		RyanJson_t jsonRoot = RyanJsonParse(jsonIntStr);
-		RyanJsonCheckReturnFalse(NULL != jsonRoot);
+		RyanJsonCheckCode(NULL != jsonRoot, {
+			jsonLog("str: %s", jsonIntStr);
+			goto err;
+		});
 		RyanJsonCheckReturnFalse(RyanJsonIsInt(RyanJsonGetObjectToKey(jsonRoot, "int")));
 
 		// 验证解析后的数值是否正确

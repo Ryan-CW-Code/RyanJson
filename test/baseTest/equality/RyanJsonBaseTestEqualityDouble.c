@@ -82,6 +82,7 @@
 	X(0.6)                                                                                                                             \
 	X(0.7)                                                                                                                             \
 	X(0.9)                                                                                                                             \
+	X(0.123456)                                                                                                                        \
 	/* ========== 整数边界值 ========== */                                                                                             \
 	X(2147483647.0)                                                                                                                    \
 	X(-2147483648.0)                                                                                                                   \
@@ -135,6 +136,11 @@ RyanJsonBool_e RyanJsonBaseTestEqualityDouble(void)
 	{
 		const char *jsondoubleStr = DoubleStringTable[i];
 		RyanJson_t jsonRoot = RyanJsonParse(jsondoubleStr);
+		RyanJsonCheckCode(NULL != jsonRoot, {
+			jsonLog("str: %s", jsondoubleStr);
+			goto err;
+		});
+
 		RyanJsonCheckReturnFalse(NULL != jsonRoot);
 		RyanJsonCheckReturnFalse(RyanJsonIsDouble(RyanJsonGetObjectToKey(jsonRoot, "double")));
 
