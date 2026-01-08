@@ -145,12 +145,17 @@ static RyanJsonBool_e parseBufSkipWhitespace(RyanJsonParseBuffer *parseBuf)
 	RyanJsonCheckReturnFalse(0 != jsonskipCount % RyanJsonRandRange(10, 2000));
 #endif
 
-	const uint8_t *cursor = parseBuf->currentPtr;
-	while (parseBufHasRemain(parseBuf) && *cursor && (' ' == *cursor || '\n' == *cursor || '\r' == *cursor))
+	while (parseBufHasRemain(parseBuf))
 	{
-		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-		// 更新本地指针以反映 buf->address 的变化（若 parseBufTyrAdvanceCurrentPrt 移动 address）
-		cursor = parseBuf->currentPtr;
+		uint8_t cursor = *parseBuf->currentPtr;
+		if (' ' == cursor || '\n' == cursor || '\r' == cursor)
+		{
+			RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
+		}
+		else
+		{
+			break;
+		}
 	}
 
 	return RyanJsonTrue;
@@ -1249,17 +1254,11 @@ static RyanJsonBool_e RyanJsonParseCheckNullTerminator(RyanJsonParseBuffer *pars
 
 	if (requireNullTerminator)
 	{
-		// 故意不检查
-		RyanJsonCheckCode(RyanJsonTrue == parseBufSkipWhitespace(parseBuf), {});
+		// 故意不检查，允许空白
+		(void)parseBufSkipWhitespace(parseBuf);
 
-		// 后面还有数据非空字符
-		RyanJsonCheckReturnFalse(!(parseBufHasRemain(parseBuf) && *parseBuf->currentPtr));
-
-		// // 后面还有数据
-		// RyanJsonCheckReturnFalse(!parseBufHasRemainBytes(parseBuf, 1));
-
-		// // 非空字符
-		// RyanJsonCheckReturnFalse(!(parseBufHasRemain(parseBuf) && *parseBuf->currentPtr));
+		// 上面已经去掉空白，如果后面还有数据，则失败
+		RyanJsonCheckReturnFalse(!parseBufHasRemain(parseBuf));
 	}
 
 	return RyanJsonTrue;
@@ -1302,45 +1301,56 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
 	// RyanJsonNumber 类型是一个整数
 	if (RyanJsonFalse == RyanJsonGetPayloadNumberIsDoubleByFlag(pJson))
 	{
-		// RyanJsonCheckReturnFalse(printBufAppend(buf, 21)); // 64 位整数最多包含  20 个数字字符、1 符号
 		// INT32_MIN = -2147483648 (11 chars)
 		RyanJsonCheckReturnFalse(printBufAppend(printfBuf, 11));
 
 		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%" PRId32, RyanJsonGetIntValue(pJson));
-		RyanJsonCheckReturnFalse(len > 0); // snprintf 失败
+		RyanJsonCheckReturnFalse(len > 0);
 		printfBuf->cursor += (uint32_t)len;
+
+		return RyanJsonTrue;
 	}
-	else // RyanJsonNumber 的类型是浮点型
+
+	// RyanJsonNumber 的类型是浮点型
+	// 浮点数用64
+	RyanJsonCheckReturnFalse(printBufAppend(printfBuf, 64));
+	double doubleValue = RyanJsonGetDoubleValue(pJson);
+
+	// 处理特殊值：无穷大和 NaN 输出为 null（RFC 8259 不支持 Infinity/NaN）
+	if (isinf(doubleValue) || isnan(doubleValue))
 	{
-		RyanJsonCheckReturnFalse(printBufAppend(printfBuf, 64)); // 浮点数用64可以适应大部分情况
-		double doubleValue = RyanJsonGetDoubleValue(pJson);
+		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "null");
+		RyanJsonCheckReturnFalse(len > 0);
+	}
+	// 判断是否为整数（在合理范围内），保留一位小数 (例如 5.0, 0.0)
+	// 注意：0 也需要特殊处理，否则会进入科学记数法分支
+	else
+	{
 		double absDoubleValue = fabs(doubleValue);
 
-		// 判断是否为整数
-		if (fabs(floor(doubleValue) - doubleValue) <= DBL_EPSILON && absDoubleValue < 1.0e60)
+		if ((absDoubleValue < DBL_EPSILON || (absDoubleValue < 1.0e15 && absDoubleValue >= 1.0e-6)) &&
+		    fabs(floor(doubleValue) - doubleValue) <= DBL_EPSILON)
 		{
-			// 整数情况，保留一位小数 (例如 5.0)
 			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%.1lf", doubleValue);
-			RyanJsonCheckReturnFalse(len > 0); // snprintf 失败
+			RyanJsonCheckReturnFalse(len > 0);
 		}
 		else
 		{
-			// 先用 %.15g 尝试序列化（输出更简洁）
+			// 极大/极小数或普通浮点数：统一使用 %.15g 尝试序列化
 			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%.15g", doubleValue);
-			RyanJsonCheckReturnFalse(len > 0); // snprintf 失败
+			RyanJsonCheckReturnFalse(len > 0);
 
 			// 往返检查：如果 %.15g 精度不够，改用 %.17g
 			if (RyanJsonFalse ==
 			    RyanJsonCompareDouble(RyanJsonInternalParseDouble((char *)printBufCurrentPtr(printfBuf)), doubleValue))
 			{
 				len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%.17g", doubleValue);
-				RyanJsonCheckReturnFalse(len > 0); // snprintf 失败
+				RyanJsonCheckReturnFalse(len > 0);
 			}
 		}
-
-		printfBuf->cursor += (uint32_t)len;
 	}
 
+	printfBuf->cursor += (uint32_t)len;
 	return RyanJsonTrue;
 }
 
