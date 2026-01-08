@@ -712,78 +712,17 @@ static RyanJsonBool_e RyanJsonParseHex(const uint8_t *text, uint32_t *value)
 }
 
 /**
- * @brief 内部函数：解析数字字符串为 double（用于序列化往返检查）
+ * @brief 解析数字字符串
  * 替代 strtod 以提高嵌入式平台兼容性
  *
- * @param str 数字字符串
- * @return double 解析后的值
+ * @param parseBuf
+ * @param numberValuePtr 解析后的值
+ * @param isIntPtr 解析后的值
+ * @return RyanJsonBool_e
  */
-static double RyanJsonInternalParseDouble(const char *str)
+static RyanJsonBool_e RyanJsonInternalParseDouble(RyanJsonParseBuffer *parseBuf, double *numberValuePtr, RyanJsonBool_e *isIntPtr)
 {
-	double number = 0;
-	int32_t scale = 0;
-	int32_t e_sign = 1;
-	int32_t e_scale = 0;
-	RyanJsonBool_e isNegative = RyanJsonFalse;
-
-	// 处理符号
-	if ('-' == *str)
-	{
-		isNegative = RyanJsonTrue;
-		str++;
-	}
-
-	// 整数部分
-	while (*str >= '0' && *str <= '9')
-	{
-		number = number * 10.0 + (*str - '0');
-		str++;
-	}
-
-	// 小数部分
-	if ('.' == *str)
-	{
-		str++;
-		while (*str >= '0' && *str <= '9')
-		{
-			number = number * 10.0 + (*str - '0');
-			scale--;
-			str++;
-		}
-	}
-
-	// 指数部分
-	if ('e' == *str || 'E' == *str)
-	{
-		str++;
-		if ('+' == *str || '-' == *str)
-		{
-			e_sign = ('-' == *str) ? -1 : 1;
-			str++;
-		}
-		while (*str >= '0' && *str <= '9')
-		{
-			e_scale = e_scale * 10 + (*str - '0');
-			str++;
-		}
-	}
-
-	// 应用符号和指数
-	if (isNegative) { number = -number; }
-	return number * pow(10.0, scale + e_sign * e_scale);
-}
-
-/**
- * @brief 解析文本中的数字，添加到json节点中
- *
- * @param buf 解析缓冲区
- * @param key 对应的key
- * @param out 用于接收解析后的pJson对象的地址
- * @return RyanJsonBool_e 成功或失败
- */
-static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *key, RyanJson_t *out)
-{
-	RyanJsonCheckAssert(NULL != parseBuf && NULL != out);
+	RyanJsonCheckAssert(NULL != parseBuf && NULL != numberValuePtr && NULL != isIntPtr);
 
 	double number = 0;
 	int32_t scale = 0;
@@ -843,6 +782,8 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 	{
 		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
 		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf));
+
+		// 只有遇到 +/- 符号时才跳过
 		if ('+' == *parseBuf->currentPtr || '-' == *parseBuf->currentPtr)
 		{
 			e_sign = ('-' == *parseBuf->currentPtr) ? -1 : 1;
@@ -862,14 +803,41 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
 	// 判断符号
 	if (RyanJsonTrue == isNegative) { number = -number; }
 
+	// 浮点数还需要处理
+	if (RyanJsonFalse == isInt)
+	{
+		// 避免 pow 调用过多，直接计算指数
+		double expFactor = pow(10.0, scale + e_sign * e_scale);
+		number *= expFactor;
+	}
+
+	*numberValuePtr = number;
+	*isIntPtr = isInt;
+	return RyanJsonTrue;
+}
+
+/**
+ * @brief 解析文本中的数字，添加到json节点中
+ *
+ * @param parseBuf 解析缓冲区
+ * @param key 对应的key
+ * @param out 用于接收解析后的pJson对象的地址
+ * @return RyanJsonBool_e 成功或失败
+ */
+static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *key, RyanJson_t *out)
+{
+	RyanJsonCheckAssert(NULL != parseBuf && NULL != out);
+
+	double number = 0;
+	RyanJsonBool_e isInt = RyanJsonTrue;
+	RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonInternalParseDouble(parseBuf, &number, &isInt));
+
 	// 创建 JSON 节点
 	RyanJson_t newItem = NULL;
 	if (RyanJsonTrue == isInt && number >= INT32_MIN && number <= INT32_MAX) { newItem = RyanJsonCreateInt(key, (int32_t)number); }
 	else
 	{
-		// 避免 pow 调用过多，直接计算指数
-		double expFactor = pow(10.0, scale + e_sign * e_scale);
-		newItem = RyanJsonCreateDouble(key, number * expFactor);
+		newItem = RyanJsonCreateDouble(key, number);
 	}
 
 	RyanJsonCheckReturnFalse(NULL != newItem);
@@ -1357,8 +1325,11 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
 			RyanJsonCheckReturnFalse(len > 0);
 
 			// 往返检查：如果 %.15g 精度不够，改用 %.17g
-			if (RyanJsonFalse ==
-			    RyanJsonCompareDouble(RyanJsonInternalParseDouble((char *)printBufCurrentPtr(printfBuf)), doubleValue))
+			double number = 0;
+			RyanJsonBool_e isInt = RyanJsonTrue;
+			RyanJsonParseBuffer parseBuf = {.currentPtr = printBufCurrentPtr(printfBuf), .remainSize = (uint32_t)len};
+			RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonInternalParseDouble(&parseBuf, &number, &isInt));
+			if (RyanJsonFalse == RyanJsonCompareDouble(number, doubleValue))
 			{
 				len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printfBuf->size, "%.17g", doubleValue);
 				RyanJsonCheckReturnFalse(len > 0);
