@@ -111,6 +111,10 @@ extern "C" {
 #error "RyanJsonMallocAlign 必须是4的倍数"
 #endif
 
+#if RyanJsonDoubleBufferSize < 8
+#error "RyanJsonDoubleBufferSize 必须大于8"
+#endif
+
 #ifdef __cplusplus
 }
 #endif

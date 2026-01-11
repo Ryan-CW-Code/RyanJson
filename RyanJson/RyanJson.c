@@ -1,6 +1,6 @@
 #include "RyanJson.h"
 
-#ifdef isEnableFuzzer
+#ifdef RyanJsonLinuxTestEnv
 #undef RyanJsonNestingLimit
 #define RyanJsonNestingLimit 350U
 
@@ -10,30 +10,26 @@
 
 static uint32_t RyanJsonRandRange(uint32_t min, uint32_t max)
 {
-	// int32_t seedp = (int32_t)time(NULL);
-	// return min + rand_r(&seedp) % (max - min + 1);
+	// Xorshift32 算法，运行时种子（每次运行不同）
+	static uint32_t state = 0;
+	if (0 == state) { state = (uint32_t)time(NULL) | 1; }
+	// Xorshift32 算法
+	state ^= state << 13;
+	state ^= state >> 17;
+	state ^= state << 5;
 
-	static uint64_t state = 0;
-	// 初始化一次种子
-	if (state == 0) { state = (uint64_t)time(NULL); }
-
-	// Xorshift64* 算法
-	state ^= state >> 12;
-	state ^= state << 25;
-	state ^= state >> 27;
-	uint64_t result = state * 2685821657736338717ULL;
-
-	return min + (uint32_t)(result % (max - min + 1));
+	return min + (state % (max - min + 1));
 }
 
 static int32_t RyanJsonSnprintf(char *buf, size_t size, const char *fmt, ...)
 {
-	static uint32_t jsonsnprintCount = 1;
-	jsonsnprintCount++;
-	if (jsonsnprintCount % RyanJsonRandRange(10, 500) == 0) { return 0; }
+#ifdef isEnableFuzzer
+	// Fuzzer 模式：随机触发失败，测试错误处理路径
+	if (0 == RyanJsonRandRange(0, 500)) { return 0; }
+#endif
 
 	va_list args;
-	va_start(args, fmt); // 每 500 次随机触发一次“失败”
+	va_start(args, fmt);
 	int32_t ret = vsnprintf(buf, size, fmt, args);
 	va_end(args);
 	return ret;
@@ -116,9 +112,7 @@ static inline RyanJsonBool_e parseBufTyrAdvanceCurrentPrt(RyanJsonParseBuffer *p
 	RyanJsonCheckAssert(NULL != parseBuf);
 
 #ifdef isEnableFuzzer
-	static uint32_t count = 0;
-	count++;
-	RyanJsonCheckReturnFalse(0 != count % RyanJsonRandRange(10, 2000));
+	RyanJsonCheckReturnFalse(0 != RyanJsonRandRange(0, 1500));
 #endif
 
 	if (parseBufHasRemainBytes(parseBuf, bytesToAdvance))
@@ -141,9 +135,7 @@ static RyanJsonBool_e parseBufSkipWhitespace(RyanJsonParseBuffer *parseBuf)
 	RyanJsonCheckAssert(NULL != parseBuf);
 
 #ifdef isEnableFuzzer
-	static uint32_t jsonskipCount = 1;
-	jsonskipCount++;
-	RyanJsonCheckReturnFalse(0 != jsonskipCount % RyanJsonRandRange(10, 2000));
+	RyanJsonCheckReturnFalse(0 != RyanJsonRandRange(0, 1500));
 #endif
 
 	while (parseBufHasRemain(parseBuf))
@@ -1293,6 +1285,64 @@ RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool_e 
 }
 
 /**
+ * @brief 规范化浮点数输出：删除尾部无效的0（非科学计数法时）
+ *
+ * @param printfBuf 打印缓冲区
+ * @param len 当前输出长度
+ * @return int32_t 处理后的长度
+ */
+static int32_t RyanJsonTrimDoubleTrailingZeros(RyanJsonPrintBuffer *printfBuf, int32_t len)
+{
+	// ?测试平台输出偶尔输出大写 "E",测试用
+#ifdef RyanJsonLinuxTestEnv
+	int32_t eIndex = INT32_MIN;
+	if (0 == RyanJsonRandRange(0, 20))
+	{
+		for (int32_t i = 0; i < len; i++)
+		{
+			if ('e' == printBufCurrentPtr(printfBuf)[i])
+			{
+				printBufCurrentPtr(printfBuf)[i] = 'E';
+				eIndex = i;
+				break;
+			}
+		}
+	}
+#endif
+
+	// 检查是不是科学计数法
+	RyanJsonBool_e isScientificNotation = RyanJsonFalse;
+	for (int32_t i = 0; i < len; i++)
+	{
+		// 有些平台会输出'E'
+		if ('e' == printBufCurrentPtr(printfBuf)[i] || 'E' == printBufCurrentPtr(printfBuf)[i])
+		{
+			isScientificNotation = RyanJsonTrue;
+			break;
+		}
+	}
+
+	// ?恢复测试平台输出的大写"E"
+#ifdef RyanJsonLinuxTestEnv
+	if (INT32_MIN != eIndex) { printBufCurrentPtr(printfBuf)[eIndex] = 'e'; }
+#endif
+
+	if (RyanJsonFalse == isScientificNotation)
+	{
+		// 删除小数部分中无效的 0
+		// 最小也要为"0.0"
+		while (len > 3)
+		{
+			if ('0' != printBufCurrentPtr(printfBuf)[len - 1]) { break; }
+			if ('.' == printBufCurrentPtr(printfBuf)[len - 2]) { break; }
+			len--;
+			printBufCurrentPtr(printfBuf)[len] = '\0';
+		}
+	}
+
+	return len;
+}
+/**
  * @brief 反序列化数字
  *
  * @param pJson
@@ -1339,76 +1389,58 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
 	    fabs(floor(doubleValue) - doubleValue) <= DBL_EPSILON)
 	{
 		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf), "%.1lf", doubleValue);
-#ifdef RyanJsonLinuxTestEnv // 测试平台肯定不会越界,影响观察分支覆盖率
+		// 有外层限制 1e-6 ~ 1e15, 所以肯定不会越界
 		RyanJsonCheckReturnFalse(len > 0);
-#else
-		// "%.17g也判断是因为不可以相信嵌入式平台真的会输出科学计数法格式"
-		RyanJsonCheckReturnFalse(len > 0 && len < (int32_t)printBufRemainBytes(printfBuf));
+
+		// 嵌入式平台为了保险还是加上吧，用户可能设置的bufSize会比较小
+#ifndef RyanJsonLinuxTestEnv
+		RyanJsonCheckReturnFalse(len < (int32_t)printBufRemainBytes(printfBuf));
 #endif
 	}
 	else
 	{
-		// 极大/极小数或普通浮点数
+
+// ?测试平台轮流使用 "%.15g" 和 "%lf" 让下面去0的逻辑也可以执行
 #ifdef RyanJsonLinuxTestEnv
-		// 测试平台轮流使用 "%.15g" 和 "%lf" 让下面去0的逻辑也可以执行
-		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf),
-				       doubleValue > 1.0 ? "%.15g" : "%lf", doubleValue);
-#else
-		// 不使用 %.15g 是因为很多嵌入式平台 %.15g 效果和 %.17g效果一样只是少了2位精度
+#undef RyanJsonSnprintfSupportScientific
+		// 基于 double 值本身选择格式（确定性），保证同一个值总是用相同格式
+		// %lf 在 [1e-6, 1e6] 范围内输出安全
+		// 极端值（>1e6 或 <1e-6）必须使用科学记数法，否则可能超出缓冲区
+		RyanJsonBool_e RyanJsonSnprintfSupportScientific = doubleValue > 1.0 ? RyanJsonTrue : RyanJsonFalse;
+
+#endif
+
+		// 极大/极小数或普通浮点数
+		// 不使用 %.15g 是因为很多嵌入式平台 %.15g 效果和 %.17g效果一样
 		// 可能的效果是 0.2 被序列化成 0.200000003000000 ,就算去掉尾部0也不美观
-		// ?用%lf当前是有缺点的,给double留的64字节空间可能被撑爆,但是嵌入式平台可以放心
+		// ?用%lf当前是有缺点的,给double留的64字节空间可能被撑爆,但是大部分嵌入式平台可以放心
 		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf),
 				       RyanJsonSnprintfSupportScientific ? "%.15g" : "%lf", doubleValue);
+#ifdef RyanJsonLinuxTestEnv
+		// 测试环境：偶尔模拟溢出以触发防御性检查分支
+		if (0 == RyanJsonRandRange(0, 1000) && len > 0) { len = (int32_t)printBufRemainBytes(printfBuf) + 1; }
 #endif
 		RyanJsonCheckReturnFalse(len > 0 && len < (int32_t)printBufRemainBytes(printfBuf));
 
-		// 往返检查：如果 %lf 精度不够，改用 %.17g
+		// 往返检查：在去0之前进行，确保原始精度足够
+		// 如果精度不够，改用 %.17g
 		double number = 0;
 		RyanJsonBool_e isInt = RyanJsonTrue;
 		RyanJsonParseBuffer parseBuf = {.currentPtr = printBufCurrentPtr(printfBuf), .remainSize = (uint32_t)len};
 		RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonInternalParseDouble(&parseBuf, &number, &isInt));
 		if (RyanJsonFalse == RyanJsonCompareDouble(number, doubleValue))
 		{
-#ifdef RyanJsonLinuxTestEnv
-			// 测试平台轮流使用 "%.15g" 和 "%lf" 让下面去0的逻辑也可以执行
-			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf),
-					       doubleValue > 1.0 ? "%.17g" : "%.17lf", doubleValue);
-#else
-			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf),
-					       RyanJsonSnprintfSupportScientific ? "%.17g" : "%.17lf", doubleValue);
-#endif
+			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf), "%.17g", doubleValue);
+			RyanJsonCheckReturnFalse(len > 0);
+
+#ifndef RyanJsonLinuxTestEnv
 			// "%.17g"也判断是因为不可以相信嵌入式平台真的会输出科学计数法格式
-			RyanJsonCheckReturnFalse(len > 0 && len < (int32_t)printBufRemainBytes(printfBuf));
-		}
-
-		// 检查是不是科学计数法
-		RyanJsonBool_e isScientificNotation = RyanJsonFalse;
-		for (int32_t i = 0; i < len; i++)
-		{
-			// 有些平台会输出'E'
-			if ('e' == printBufCurrentPtr(printfBuf)[i]
-#ifndef RyanJsonLinuxTestEnv // 测试平台只会输出 "e",影响观察分支覆盖率
-			    || 'E' == printBufCurrentPtr(printfBuf)[i]
+			RyanJsonCheckReturnFalse(len < (int32_t)printBufRemainBytes(printfBuf));
 #endif
-			)
-			{
-				isScientificNotation = RyanJsonTrue;
-				break;
-			}
 		}
 
-		if (RyanJsonFalse == isScientificNotation)
-		{
-			// 删除小数部分中无效的 0
-			// 最小也要为"0.0"
-			while (len > 3)
-			{
-				if ('0' != printBufCurrentPtr(printfBuf)[len - 1]) { break; }
-				if ('.' == printBufCurrentPtr(printfBuf)[len - 2]) { break; }
-				len--;
-				printBufCurrentPtr(printfBuf)[len] = '\0';
-			}
-		}
+		// 进行去0处理,理论上只有lf需要，但是保险可以都去
+		len = RyanJsonTrimDoubleTrailingZeros(printfBuf, len);
 	}
 
 	printfBuf->cursor += (uint32_t)len;
