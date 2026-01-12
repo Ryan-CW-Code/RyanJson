@@ -92,7 +92,7 @@ RyanJsonBool_e RyanJsonTestFun(void)
 		RyanJson_t jsonRoot, item;
 
 		// const char *jsonstr = "{\"emoji\":\"\\uD83D\\uDE00\"} ";
-		const char *jsonstr = "{\"name\":\"Mash\",\"star\":4,\"hits\":[2,2,1,3]}";
+		const char *jsonstr = "{\"name\":\"Mash\",\"star\":0.2,\"hits\":[2,2,1,3]}";
 		// const char *jsonstr = "{\"star\":4}";
 		// const char *jsonstr = "\"name\"";
 		// const char *jsonstr =
@@ -121,6 +121,7 @@ RyanJsonBool_e RyanJsonTestFun(void)
 	// example内部会替换hooks，所以需要重新设置
 	result = RyanJsonExample();
 	RyanJsonInitHooks(v_malloc_tlsf, v_free_tlsf, v_realloc_tlsf);
+	// RyanJsonInitHooks(v_malloc, v_free, v_realloc);
 	if (RyanJsonTrue != result)
 	{
 		printf("%s:%d RyanJsonExample fail\r\n", __FILE__, __LINE__);

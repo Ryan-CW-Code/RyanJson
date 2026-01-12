@@ -280,8 +280,8 @@ RyanJsonBool_e RFC8259JsonTest(void)
 	(void)cJSON_InitHooks(&hooks);
 
 	runTestWithLogAndTimer(testRFC8259RyanJson);
-	runTestWithLogAndTimer(testRFC8259cJSON);
 	runTestWithLogAndTimer(testRFC8259yyjson);
+	runTestWithLogAndTimer(testRFC8259cJSON);
 
 	return RyanJsonTrue;
 }

@@ -19,8 +19,6 @@ llvm-profdata merge -sparse default.profraw -o default.profdata
 # 3. 生成覆盖率报告（文本汇总）
 # ================================
 # 注意：llvm-cov report 只支持汇总统计，不支持行级参数
-# --show-functions       显示函数级覆盖率
-# --show-region-summary  显示区域覆盖率
 llvm-cov report ./build/linux/x86/release/RyanJson \
   -instr-profile=default.profdata \
   -show-mcdc-summary \

@@ -9,7 +9,11 @@
     "Lua.addonManager.enable": false,
     "Lua.signatureHelp.enable": false,
     "clangd.enable": true,
-    "clangd.arguments": [
+    "clangd.arguments": [],
+    "liveServer.settings.file": "${workspaceFolder}/coverage/**",
+    "liveServer.settings.ignoreFiles": [
+        "**", // 第一步：先忽略所有文件（简单粗暴）
+        "!coverage/**" // 第二步：用感叹号 ! 把 coverage 目录“救”回来
     ],
     "C_Cpp.intelliSenseEngine": "disabled",
     "C_Cpp.errorSquiggles": "disabled", // 关闭微软的波浪线
@@ -39,5 +43,7 @@
         "--suppress=constVariablePointer",
         "--suppress=constParameter",
         "--suppress=unusedStructMember",
-    ]
+    ],
+    "makefile.configureOnOpen": false,
+    "liveServer.settings.port": 5501
 }

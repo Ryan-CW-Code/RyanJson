@@ -154,6 +154,10 @@ RyanJsonBool_e RyanJsonBaseTestEqualityDouble(void)
 
 		// 验证序列化后再解析，然后判断double是否一致（往返测试）
 		char *serializedStr = RyanJsonPrint(jsonRoot, 128, RyanJsonFalse, NULL);
+		RyanJsonCheckCode(NULL != serializedStr, {
+			printf("serializedStr: %s, doubleString: %s, doubleValue: %g\r\n", serializedStr, jsondoubleStr, doubleValue);
+			goto err;
+		});
 		RyanJsonDelete(jsonRoot);
 
 		RyanJson_t roundtripJson = RyanJsonParse(serializedStr);

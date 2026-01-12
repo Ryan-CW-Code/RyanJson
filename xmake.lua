@@ -12,6 +12,16 @@ target("RyanJson", function()
     set_arch("x86")           -- 架构：x86（32位）
     set_languages("gnu99")    -- 使用 GNU C99 标准，启用 GNU 扩展
 
+    -- 编译优化策略
+    set_policy("build.ccache", false) -- 禁用 ccache 缓存
+    set_optimize("fastest")           -- 使用 -O3，最高级别优化
+
+    -- 警告设置：启用所有警告（Clang 下相当于 -Weverything）
+    set_warnings("everything")
+
+    add_defines("RyanJsonSnprintfSupportScientific=true")
+    add_defines("RyanJsonLinuxTestEnv")
+
     -- 定义宏：启用 Fuzzer 功能
     -- Fuzzer 与覆盖率相关编译/链接选项
     add_defines("isEnableFuzzer")
@@ -19,13 +29,6 @@ target("RyanJson", function()
     add_ldflags("-fsanitize=fuzzer", {force = true})
     add_cxflags("-fprofile-instr-generate", "-fcoverage-mapping", {force = true})
     add_ldflags("-fprofile-instr-generate", "-fcoverage-mapping", {force = true})
-
-    -- 编译优化策略
-    set_policy("build.ccache", false) -- 禁用 ccache 缓存
-    set_optimize("fastest")           -- 使用 -O3，最高级别优化
-
-    -- 警告设置：启用所有警告（Clang 下相当于 -Weverything）
-    set_warnings("everything")
 
     -- 链接器安全硬化与优化选项
     add_ldflags(
@@ -120,25 +123,27 @@ target("RyanJson", function()
         {force = true}
     )
 
-    -- 公共头文件目录
+    -- 头文件
     add_includedirs('./RyanJson', {public = true})
     add_includedirs('./example', {public = true})
     add_includedirs('./test/fuzzer', {public = true})
     add_includedirs('./test', {public = true})
     add_includedirs('./test/baseTest', {public = true})
     add_includedirs('./test/baseTest/equality', {public = true})
+    add_includedirs('./test/RFC8259Test', {public = true})
     add_includedirs('./test/externalModule/valloc', {public = true})
     add_includedirs('./test/externalModule/tlsf', {public = true})
     add_includedirs('./test/externalModule/cJSON', {public = true})
     add_includedirs('./test/externalModule/yyjson', {public = true})
 
-    -- 源文件分开列出，保持清晰结构
+    -- 源文件
     add_files('./RyanJson/*.c', {public = true})
     add_files('./example/*.c', {public = true})
     add_files('./test/fuzzer/*.c', {public = true})
     add_files('./test/*.c', {public = true}, {cxflags = "-w"})          -- 测试代码，关闭警告
     add_files('./test/baseTest/*.c', {public = true}, {cxflags = "-w"}) -- 基础测试，关闭警告
     add_files('./test/baseTest/equality/*.c', {public = true}, {cxflags = "-w"}) -- 一致性测试
+    add_files('./test/RFC8259Test/*.c', {public = true}, {cxflags = "-w"})      -- 
     add_files('./test/externalModule/valloc/*.c', {public = true}, {cxflags = "-w"})   -- valloc，关闭警告
     add_files('./test/externalModule/tlsf/*.c', {public = true}, {cxflags = "-w"})     -- tlsf，关闭警告
     add_files('./test/externalModule/cJSON/*.c', {public = true}, {cxflags = "-w"}) -- 第三方库 cJSON，关闭警告

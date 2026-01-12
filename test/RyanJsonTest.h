@@ -28,11 +28,11 @@ extern "C" {
 		v_mcheck(&area, &use);                                                                                                     \
 		if (area != 0 || use != 0)                                                                                                 \
 		{                                                                                                                          \
-			RyanMqttLog_e("内存泄漏");                                                                                         \
+			printf("内存泄漏\r\n");                                                                                            \
 			while (1)                                                                                                          \
 			{                                                                                                                  \
 				v_mcheck(&area, &use);                                                                                     \
-				RyanMqttLog_e("|||----------->>> area = %d, size = %d", area, use);                                        \
+				printf("|||----------->>> area = %d, size = %d\r\n", area, use);                                           \
 				delay(3000);                                                                                               \
 			}                                                                                                                  \
 		}                                                                                                                          \
@@ -51,11 +51,17 @@ uint64_t platformUptimeMs(void);
 	do                                                                                                                                 \
 	{                                                                                                                                  \
 		testRunCount++;                                                                                                            \
-		printf("┌── [TEST %d] 开始执行: " #fun "()\r\n", testRunCount);                                                            \
+		/* 开始执行：绿色高亮，文件名放在 [TEST n] 后面 */                                                                         \
+		printf("\x1b[32m┌── [TEST %d | %s:%d] 开始执行: %s()\x1b[0m\r\n", testRunCount, __FILE__, __LINE__, #fun);                 \
+                                                                                                                                           \
 		funcStartMs = platformUptimeMs();                                                                                          \
 		result = fun();                                                                                                            \
-		printf("└── [TEST %" PRIu32 "] 结束执行: 返回值 = %" PRId32 " %s | 耗时: %" PRIu64 " ms\x1b[0m\r\n\r\n", testRunCount,     \
-		       result, (result == RyanJsonTrue) ? "✅" : "❌", (platformUptimeMs() - funcStartMs));                                \
+                                                                                                                                           \
+		/* 结束执行：根据结果显示绿色或红色，文件名放在 [TEST n] 后面 */                                                           \
+		printf("%s└── [TEST %" PRIu32 " | %s:%d] 结束执行: 结果 %s | 耗时: %" PRIu64 " ms\x1b[0m\r\n\r\n",                         \
+		       (result == RyanJsonTrue) ? "\x1b[32m" : "\x1b[31m", testRunCount, __FILE__, __LINE__,                               \
+		       (result == RyanJsonTrue) ? "✅" : "❌", (platformUptimeMs() - funcStartMs));                                        \
+                                                                                                                                           \
 		RyanJsonCheckCodeNoReturn(RyanJsonTrue == result, { return RyanJsonFalse; });                                              \
 	} while (0)
 

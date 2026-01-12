@@ -159,7 +159,7 @@ static RyanJsonBool_e loadJsonExample(void)
 	str = RyanJsonPrint(jsonRoot, 250, RyanJsonFalse, NULL);
 	if (strcmp(str, jsonstr) != 0)
 	{
-		printf("%s:%d 序列化与反序列化后的数据不对应\r\n", __FILE__, __LINE__);
+		printf("%s:%d 序列化与反序列化后的数据不对应  %s\r\n", __FILE__, __LINE__, str);
 		RyanJsonFree(str);
 		RyanJsonDelete(jsonRoot);
 		return RyanJsonFalse;

@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e  # 遇到错误立即退出
 
+xmake
+echo "xmake build success"
+
+# git clone -b coverage git@github.com:Ryan-CW-Code/RyanJson.git coverage
 # ================================
 # 1. 运行 fuzzer
 # ================================
@@ -11,7 +15,7 @@ set -e  # 遇到错误立即退出
   -runs=99999999 \
   -verbosity=0 \
   -max_len=8192 \
-  -workers=5 \
+  -workers=10 \
   -jobs=10
 
 
@@ -41,6 +45,7 @@ llvm-cov show ./build/linux/x86/release/RyanJson \
   -format=html \
   -output-dir=coverage/docs \
   -show-mcdc-summary \
+  -show-branches=count \
   -show-expansions \
   -show-regions \
   -show-line-counts-or-regions \
