@@ -15,18 +15,18 @@
 
 #### ✅ 特性亮点
 
-- 💡 **极致内存优化：**通过动态内存扩展与紧凑结构设计，相比 cJSON 减少 **50% 左右的内存占用**，且运行速度基本持平。
-- 🔍 **模糊测试保障：**基于[LLVM Fuzzer](https://llvm.org/docs/LibFuzzer.html) 生成上亿级测试用例，分支覆盖率 **100%**，确保在各种非法输入和极端场景下依旧安全。**[点击在线查看覆盖率信息](https://ryan-cw-code.github.io/RyanJson/)** 
-- 🧪 **9 大类专项测试用例：**覆盖广泛场景，全链路内存泄漏检测，强化稳定性与可靠性
-- 🛡️ **运行时安全分析验证：**使用 **[Sanitizer](https://clang.llvm.org/docs/index.html#sanitizers)** 系列工具，捕获内存越界、Use-after-free、数据竞争、未定义行为、内存泄漏等问题，提升代码健壮性与安全性
-- 📐**高质量代码保障：** 引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 与 **[Cppcheck](https://cppcheck.sourceforge.io/)** 进行静态分析，代码质量接近语法级的"**零缺陷**"
-- 🤖  **AI 辅助开发与审查：**结合  **[Gemini Code Assist](https://codeassist.google/)** 、**[coderabbitai](https://www.coderabbit.ai)** 、 **[Copilot](https://github.com/features/copilot)** ，在编码与代码审查阶段持续优化代码质量，构建多层安全防线
-- 👩‍💻 **开发者友好：**类 cJSON 接口设计，迁移成本低
-- 📜 **严格但不严苛：**符合  **[RFC 8259](https://github.com/nst/JSONTestSuite)** 绝大部分标准，支持无限嵌套（受限于栈空间），支持注释与尾随逗号（可配置）
+- 💡 **极致内存优化：** 通过动态内存扩展与紧凑结构设计，相比 cJSON 减少 **50% 左右的内存占用**。
+- 🔍 **模糊测试保障：** 基于[LLVM Fuzzer](https://llvm.org/docs/LibFuzzer.html) 生成上亿级测试用例，**分支覆盖率 100%**，确保非法输入和极端场景下依旧安全。**[点击在线查看覆盖率信息](https://ryan-cw-code.github.io/RyanJson/)** 
+- 🧪 **9 大类专项测试用例：** 覆盖广泛场景，全链路内存泄漏检测，强化稳定性与可靠性
+- 🛡️ **运行时安全分析验证：** 使用 **[Sanitizer](https://clang.llvm.org/docs/index.html#sanitizers)** 系列工具，捕获内存越界、Use-after-free、数据竞争、未定义行为、内存泄漏等问题，提升代码健壮性与安全性
+- 📐**高质量代码保障：**  引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 与 **[Cppcheck](https://cppcheck.sourceforge.io/)** 进行静态分析，代码质量接近语法级的"**零缺陷**"
+- 🤖  **AI 辅助开发与审查：** 结合  **[Gemini Code Assist](https://codeassist.google/)** 、**[coderabbitai](https://www.coderabbit.ai)** 、 **[Copilot](https://github.com/features/copilot)** ，在编码与代码审查阶段持续优化代码质量，构建多层安全防线
+- 👩‍💻 **开发者友好：** 类 cJSON 接口设计，迁移成本低
+- 📜 **严格但不严苛：** 符合  **[RFC 8259](https://github.com/nst/JSONTestSuite)** 绝大部分标准，支持无限嵌套（受限于栈空间），支持注释与尾随逗号（可配置）
 
 ### 2、设计
 
-**RyanJson设计时借鉴了 [json](https://api.gitee.com/Lamdonn/json) 和 [cJSON](https://github.com/DaveGamble/cJSON) ! **
+**RyanJson设计时借鉴了 [json](https://api.gitee.com/Lamdonn/json) 和 [cJSON](https://github.com/DaveGamble/cJSON) !**  
 
 Json语法是**JavaScript**对象语法的子集，可通过下面两个连接学习json语法。
 
@@ -177,7 +177,7 @@ LLVM Fuzzing 模糊测试是 RyanJson 的 **核心稳定性保障**。
 **[点击在线查看覆盖率信息](https://ryan-cw-code.github.io/RyanJson/)** 
 
 - **上亿级测试样本**：[LLVM Fuzzer](https://llvm.org/docs/LibFuzzer.html)  自动生成并执行上亿级随机与非法 JSON 输入
-- **覆盖率极高**：分支覆盖率 **100%**（希望以后也能保持），无崩溃、无泄漏
+- **覆盖率极高**：**分支覆盖率 100%**（希望以后也能保持），无崩溃、无泄漏
 - **鲁棒性验证**：内存申请失败、扩容失败、非法转义字符、尾随逗号、嵌套过深、随机类型切换
 - **内存安全验证**：结合 **[Sanitizer](https://clang.llvm.org/docs/index.html#sanitizers)** 工具链，确保无泄漏、无悬空指针、无越界
 
@@ -359,7 +359,7 @@ RFC 8259 JSON: (305/322)
 
 ### 5、局限性与注意事项
 
-- **数值精度**：内部使用 `int` / `double` 存储 Number。对于超过 double 精度的 64 位整数或高精度浮点数，建议作为 String 处理以避免精度丢失。
+- **数值精度**：内部使用 `int` / `double` 存储 Number。对于超过 double 精度的 64 位整数或高精度浮点数，double内部使用 snprintf 打印，如果你的平台不支持科学计数法，建议使用 String 类型存储以避免精度丢失。
 - **重复 Key**：RyanJson 允许对象中存在重复 Key（解析时不报错），但在查找时只会返回链表中第一个匹配项。
 
 ### 6、文档
