@@ -82,7 +82,7 @@ scientific="${RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC:-true}"
 caseName="strict_${strictKey}__head_${addAtHead}__sci_${scientific}"
 
 # 覆盖率目录固定为 coverage/fuzz，每次执行前清理，保证只保留最新结果
-coverageRoot="coverage/fuzz"
+coverageRoot="test/fuzzer/coverage"
 rm -rf "${coverageRoot}"
 profileRoot="${coverageRoot}/profiles"
 mkdir -p "${profileRoot}"

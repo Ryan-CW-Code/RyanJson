@@ -1,0 +1,47 @@
+# 部署静态内容到 GitHub Pages
+name: 部署 Fuzz 覆盖率报告到 Pages
+
+on:
+  # 当 main 或 next 分支有新提交时自动部署
+  push:
+    branches: ["main", "next"]
+
+  # 允许在 Actions 页面手动触发
+  workflow_dispatch:
+
+# 授予 GITHUB_TOKEN 部署 Pages 所需权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只保留一个 Pages 部署任务，不中断正在进行的部署
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # 单一部署任务
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出触发分支代码
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: 配置 GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上传 Fuzz 覆盖率页面产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # 仅上传静态 HTML 目录，避免把整个仓库上传到 Pages
+          path: './test/fuzzer/coverage/html'
+
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
