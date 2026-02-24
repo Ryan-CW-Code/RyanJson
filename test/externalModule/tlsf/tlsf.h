@@ -47,7 +47,7 @@ size_t tlsf_size(tlsf_t tlsf);
 size_t tlsf_pool_overhead(void);
 size_t tlsf_alloc_overhead(void);
 
-void rt_memory_info22(tlsf_t tlsf, size_t *total, size_t *used, size_t *max_used);
+void tlsf_memory_info(tlsf_t tlsf, size_t *total, size_t *used, size_t *max_used);
 
 /**
  * @brief Return the allocable size based on the size passed

@@ -1,0 +1,4 @@
+interface:
+  display_name: "RyanJson 测试工程"
+  short_description: "基于现有分类的 unit/fuzz 覆盖补强与所有权断言"
+  default_prompt: "使用 $ryanjson-test-engineering 在现有分类中扩展 RyanJson 单测与模糊测试：优先补失败路径、边界分支和所有权断言（区分 Add/Insert 与 Replace 失败语义）；语义不清时按 example -> unityTest -> fuzzer 取证并给出回归证据。"

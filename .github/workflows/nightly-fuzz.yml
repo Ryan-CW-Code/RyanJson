@@ -1,0 +1,336 @@
+name: nightly-fuzz
+
+on:
+  # 每天夜间巡检一次（UTC 时间）
+  schedule:
+    - cron: "0 18 * * *"
+  # 手动触发：既能跑 nightly，也能跑 full（替代原 release 工作流）
+  workflow_dispatch:
+    inputs:
+      unitSkipCov:
+        description: "单测是否跳过覆盖率（true/false）"
+        required: true
+        default: false
+        type: boolean
+      fuzzProfile:
+        description: "fuzz 档位（nightly/full）"
+        required: true
+        default: "nightly"
+        type: choice
+        options:
+          - nightly
+          - full
+      fuzzSkipCov:
+        description: "fuzz 是否跳过覆盖率（true/false）"
+        required: true
+        default: true
+        type: boolean
+      fuzzMaxTotalTime:
+        description: "fuzz 每个 job 总时长预算（秒）"
+        required: true
+        default: "300"
+        type: string
+      fuzzWorkers:
+        description: "fuzz workers"
+        required: true
+        default: "4"
+        type: string
+      fuzzJobs:
+        description: "fuzz jobs"
+        required: true
+        default: "4"
+        type: string
+      runFuzzCoverageBaseline:
+        description: "nightly 档是否额外跑 1 组覆盖率基线"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  unitSuite:
+    name: unit-suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+
+      - name: 安装 clang/llvm（覆盖率工具）
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm
+
+      - name: 执行单元测试 full 矩阵（8 组配置全覆盖）
+        run: |
+          chmod +x ./scripts/ci/runBaseCoverage.sh
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            unitMode="full"
+            if [[ "${{ inputs.unitSkipCov }}" == "true" ]]; then
+              unitSkipCov=1
+            else
+              unitSkipCov=0
+            fi
+          else
+            # schedule 固定跑 full，确保 8 组配置都覆盖
+            unitMode="full"
+            unitSkipCov=0
+          fi
+
+          UNIT_MODE="${unitMode}" \
+          UNIT_SKIP_COV="${unitSkipCov}" \
+          UNIT_STOP_ON_FAIL=0 \
+          bash ./scripts/ci/runBaseCoverage.sh
+
+      - name: 上传单测产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-suite-artifacts
+          path: |
+            coverage/
+            build/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  fuzzNightlyMatrix:
+    name: fuzz-nightly-${{ matrix.caseId }}
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.fuzzProfile == 'nightly') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # nightly：重点覆盖 strict × addAtHead 的四种组合
+          # scientific 固定为 true，减少组合爆炸
+          - caseId: s0h0
+            strict: "false"
+            head: "false"
+            scientific: "true"
+          - caseId: s0h1
+            strict: "false"
+            head: "true"
+            scientific: "true"
+          - caseId: s1h0
+            strict: "true"
+            head: "false"
+            scientific: "true"
+          - caseId: s1h1
+            strict: "true"
+            head: "true"
+            scientific: "true"
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+
+      - name: 安装 clang/llvm
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm
+
+      - name: 执行 nightly fuzz 矩阵
+        env:
+          RYANJSON_STRICT_OBJECT_KEY_CHECK: ${{ matrix.strict }}
+          RYANJSON_DEFAULT_ADD_AT_HEAD: ${{ matrix.head }}
+          RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC: ${{ matrix.scientific }}
+        run: |
+          chmod +x ./scripts/ci/runCoverage.sh
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.fuzzSkipCov }}" == "true" ]]; then
+              fuzzSkipCov=1
+            else
+              fuzzSkipCov=0
+            fi
+            fuzzMaxTotalTime="${{ inputs.fuzzMaxTotalTime }}"
+            fuzzWorkers="${{ inputs.fuzzWorkers }}"
+            fuzzJobs="${{ inputs.fuzzJobs }}"
+          else
+            # schedule 固定 nightly 默认预算
+            fuzzSkipCov=1
+            fuzzMaxTotalTime=240
+            fuzzWorkers=4
+            fuzzJobs=4
+          fi
+
+          FUZZ_MODE=nightly \
+          FUZZ_SKIP_COV="${fuzzSkipCov}" \
+          FUZZ_MAX_TOTAL_TIME="${fuzzMaxTotalTime}" \
+          FUZZ_WORKERS="${fuzzWorkers}" \
+          FUZZ_JOBS="${fuzzJobs}" \
+          bash ./scripts/ci/runCoverage.sh
+
+      - name: 上传 nightly fuzz 产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-nightly-${{ matrix.caseId }}-artifacts
+          path: |
+            coverage/
+            build/
+            *.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  fuzzNightlyCoverage:
+    name: fuzz-nightly-coverage-baseline
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.fuzzProfile == 'nightly' && inputs.runFuzzCoverageBaseline) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+
+      - name: 安装 clang/llvm
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm
+
+      - name: 执行 nightly 覆盖率基线
+        env:
+          RYANJSON_STRICT_OBJECT_KEY_CHECK: "false"
+          RYANJSON_DEFAULT_ADD_AT_HEAD: "true"
+          RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC: "true"
+        run: |
+          chmod +x ./scripts/ci/runCoverage.sh
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            fuzzMaxTotalTime="${{ inputs.fuzzMaxTotalTime }}"
+            fuzzWorkers="${{ inputs.fuzzWorkers }}"
+            fuzzJobs="${{ inputs.fuzzJobs }}"
+          else
+            fuzzMaxTotalTime=300
+            fuzzWorkers=4
+            fuzzJobs=4
+          fi
+
+          FUZZ_MODE=nightly \
+          FUZZ_SKIP_COV=0 \
+          FUZZ_MAX_TOTAL_TIME="${fuzzMaxTotalTime}" \
+          FUZZ_WORKERS="${fuzzWorkers}" \
+          FUZZ_JOBS="${fuzzJobs}" \
+          bash ./scripts/ci/runCoverage.sh
+
+      - name: 上传 nightly 覆盖率基线产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-nightly-coverage-artifacts
+          path: |
+            coverage/
+            build/
+            *.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  fuzzFullMatrix:
+    name: fuzz-full-${{ matrix.caseId }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.fuzzProfile == 'full' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # full：三个布尔宏全组合（2 × 2 × 2 = 8）
+          - caseId: s0h0c0
+            strict: "false"
+            head: "false"
+            scientific: "false"
+          - caseId: s0h0c1
+            strict: "false"
+            head: "false"
+            scientific: "true"
+          - caseId: s0h1c0
+            strict: "false"
+            head: "true"
+            scientific: "false"
+          - caseId: s0h1c1
+            strict: "false"
+            head: "true"
+            scientific: "true"
+          - caseId: s1h0c0
+            strict: "true"
+            head: "false"
+            scientific: "false"
+          - caseId: s1h0c1
+            strict: "true"
+            head: "false"
+            scientific: "true"
+          - caseId: s1h1c0
+            strict: "true"
+            head: "true"
+            scientific: "false"
+          - caseId: s1h1c1
+            strict: "true"
+            head: "true"
+            scientific: "true"
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+
+      - name: 安装 clang/llvm
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm
+
+      - name: 执行 full fuzz 矩阵
+        env:
+          RYANJSON_STRICT_OBJECT_KEY_CHECK: ${{ matrix.strict }}
+          RYANJSON_DEFAULT_ADD_AT_HEAD: ${{ matrix.head }}
+          RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC: ${{ matrix.scientific }}
+        run: |
+          chmod +x ./scripts/ci/runCoverage.sh
+
+          if [[ "${{ inputs.fuzzSkipCov }}" == "true" ]]; then
+            fuzzSkipCov=1
+          else
+            fuzzSkipCov=0
+          fi
+
+          FUZZ_MODE=full \
+          FUZZ_SKIP_COV="${fuzzSkipCov}" \
+          FUZZ_MAX_TOTAL_TIME="${{ inputs.fuzzMaxTotalTime }}" \
+          FUZZ_WORKERS="${{ inputs.fuzzWorkers }}" \
+          FUZZ_JOBS="${{ inputs.fuzzJobs }}" \
+          bash ./scripts/ci/runCoverage.sh
+
+      - name: 上传 full fuzz 产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-full-${{ matrix.caseId }}-artifacts
+          path: |
+            coverage/
+            build/
+            *.log
+          if-no-files-found: ignore
+          retention-days: 30

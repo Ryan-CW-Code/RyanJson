@@ -2,6 +2,7 @@
 # 编译器设置
 CC = gcc
 C_FLAGS = -std=gnu99 -O2 -Wall -Wextra -Wno-unused-parameter
+C_FLAGS += -DRyanJsonProjectRootPath=\"$(shell pwd)\"
 
 # 头文件包含目录
 CFLAGS_INC = -I ./RyanJson

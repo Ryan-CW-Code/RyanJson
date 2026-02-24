@@ -5,17 +5,39 @@
 #include <unistd.h>
 #include "valloc.h"
 
+#if defined(RyanJsonTestPlatformQemu)
+#include "FreeRTOS.h"
+#endif
+
 #define HEADER_SIZE        sizeof(int)
 #define MALLOC_HEADER_SIZE 0
 
 static int count = 0;
 static int use = 0;
 
+static void *vallocPlatformMalloc(size_t size)
+{
+#if defined(RyanJsonTestPlatformQemu)
+	return pvPortMalloc(size);
+#else
+	return malloc(size);
+#endif
+}
+
+static void vallocPlatformFree(void *ptr)
+{
+#if defined(RyanJsonTestPlatformQemu)
+	vPortFree(ptr);
+#else
+	free(ptr);
+#endif
+}
+
 void *v_malloc(size_t size)
 {
 	if (size == 0) { return NULL; }
 
-	void *p = malloc(size + HEADER_SIZE);
+	void *p = vallocPlatformMalloc(size + HEADER_SIZE);
 	if (!p) { return NULL; }
 
 	*(int *)p = (int)size;
@@ -44,7 +66,7 @@ void v_free(void *block)
 	count--;
 	use -= size + MALLOC_HEADER_SIZE;
 
-	free(p);
+	vallocPlatformFree(p);
 }
 
 void *v_realloc(void *block, size_t size)
@@ -64,8 +86,20 @@ void *v_realloc(void *block, size_t size)
 		old_size = *(int *)raw;
 	}
 
-	void *p = realloc(raw, size + HEADER_SIZE);
+	void *p = NULL;
+#if defined(RyanJsonTestPlatformQemu)
+	p = vallocPlatformMalloc(size + HEADER_SIZE);
 	if (!p) { return NULL; }
+	if (block && old_size > 0)
+	{
+		size_t copySize = (size < (size_t)old_size) ? size : (size_t)old_size;
+		memcpy((char *)p + HEADER_SIZE, block, copySize);
+		vallocPlatformFree(raw);
+	}
+#else
+	p = realloc(raw, size + HEADER_SIZE);
+	if (!p) { return NULL; }
+#endif
 
 	*(int *)p = (int)size;
 

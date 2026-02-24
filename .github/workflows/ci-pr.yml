@@ -1,0 +1,99 @@
+name: ci-pr
+
+on:
+  # PR 触发：用于主分支合并前的快速回归
+  pull_request:
+    branches:
+      - main
+      - master
+  # 手动触发：便于在分支上临时复跑
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unitFull:
+    name: unit-full
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+
+      - name: 安装 clang/llvm（覆盖率工具）
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm
+
+      - name: 单元测试 full 模式（8 组配置全覆盖，跳过覆盖率）
+        run: |
+          chmod +x ./scripts/ci/runBaseCoverage.sh
+          UNIT_MODE=full \
+          UNIT_SKIP_COV=1 \
+          UNIT_STOP_ON_FAIL=1 \
+          bash ./scripts/ci/runBaseCoverage.sh
+
+      # 即使 full 模式跳过覆盖率，也保留执行产物，便于失败排查
+      - name: 上传单测产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-full-artifacts
+          path: |
+            coverage/
+            build/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  fuzzQuick:
+    name: fuzz-quick-default
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+
+      - name: 安装 clang/llvm（fuzzer + 覆盖率工具）
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm
+
+      - name: Fuzz quick 模式（跳过覆盖率）
+        env:
+          # PR 只跑一组默认语义，优先保证反馈速度
+          RYANJSON_STRICT_OBJECT_KEY_CHECK: "false"
+          RYANJSON_DEFAULT_ADD_AT_HEAD: "true"
+          RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC: "true"
+        run: |
+          chmod +x ./scripts/ci/runCoverage.sh
+          FUZZ_MODE=quick \
+          FUZZ_SKIP_COV=1 \
+          FUZZ_MAX_TOTAL_TIME=45 \
+          FUZZ_WORKERS=2 \
+          FUZZ_JOBS=2 \
+          bash ./scripts/ci/runCoverage.sh
+
+      - name: 上传 fuzz 产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-quick-default-artifacts
+          path: |
+            coverage/
+            build/
+            *.log
+          if-no-files-found: ignore
+          retention-days: 7

@@ -8,16 +8,16 @@
     "Lua.semantic.enable": false,
     "Lua.addonManager.enable": false,
     "Lua.signatureHelp.enable": false,
-    "clangd.enable": true,
+    "clangd.enable": false,
     "clangd.arguments": [],
     "liveServer.settings.file": "${workspaceFolder}/coverage/**",
     "liveServer.settings.ignoreFiles": [
         "**", // 第一步：先忽略所有文件（简单粗暴）
         "!coverage/**" // 第二步：用感叹号 ! 把 coverage 目录“救”回来
     ],
-    "C_Cpp.intelliSenseEngine": "disabled",
-    "C_Cpp.errorSquiggles": "disabled", // 关闭微软的波浪线
-    "C_Cpp.autocomplete": "disabled", // 关闭微软的自动补全
+    // "C_Cpp.intelliSenseEngine": "disabled",
+    // "C_Cpp.errorSquiggles": "disabled", // 关闭微软的波浪线
+    // "C_Cpp.autocomplete": "disabled", // 关闭微软的自动补全
     "C_Cpp.default.compileCommands": "${workspaceFolder}/.vscode/compile_commands.json",
     "C_Cpp.codeAnalysis.clangTidy.enabled": false,
     "C_Cpp.codeAnalysis.clangTidy.args": [
@@ -45,5 +45,31 @@
         "--suppress=unusedStructMember",
     ],
     "makefile.configureOnOpen": false,
-    "liveServer.settings.port": 5501
+    "liveServer.settings.port": 5501,
+    "files.associations": {
+        "*.rules": "makefile",
+        "*.vars": "makefile",
+        "optional": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp",
+        "system_error": "cpp",
+        "array": "cpp",
+        "functional": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "string": "cpp",
+        "deque": "cpp",
+        "vector": "cpp",
+        "iterator": "cpp",
+        "string_view": "cpp",
+        "string.h": "c",
+        "testbase.h": "c",
+        "ryanjson.h": "c",
+        "chrono": "c",
+        "random": "c",
+        "limits": "c",
+        "algorithm": "c",
+        "time.h": "c"
+    }
 }

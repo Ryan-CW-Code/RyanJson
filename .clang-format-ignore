@@ -1,3 +1,10 @@
-# 忽略外部包
-/test/externalModule/cJSON/**
-/test/externalModule/yyjson/**
+# 第三方代码：不做本仓风格重排，避免升级/同步时产生大 diff
+/test/externalModule/**
+
+# 生成目录：格式化无意义
+/build/**
+/.xmake/**
+/coverage/**
+
+# Fuzz 语料：不是源码
+/test/fuzzer/corpus/**

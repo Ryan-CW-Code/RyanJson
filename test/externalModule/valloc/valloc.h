@@ -24,7 +24,6 @@ extern void v_free(void *block);
 extern void *v_realloc(void *block, size_t size);
 extern int v_mcheck(int *dstCount, int *dstUse);
 extern void displayMem(void);
-extern void vallocInit(void);
 extern int32_t vallocGetArea(void);
 extern int32_t vallocGetUse(void);
 

@@ -579,7 +579,7 @@ void *tlsf_memalign_offs(tlsf_t tlsf, size_t align, size_t size, size_t data_off
  * The pointer returned is aligned on `align`.
  */
 void *tlsf_memalign(tlsf_t tlsf, size_t align, size_t size) { return tlsf_memalign_offs(tlsf, align, size, 0); }
-void rt_memory_info22(tlsf_t tlsf, size_t *total, size_t *used, size_t *max_used)
+void tlsf_memory_info(tlsf_t tlsf, size_t *total, size_t *used, size_t *max_used)
 {
 	control_t *control = tlsf_cast(control_t *, tlsf);
 	if (total) { *total = control->mem_rec.total; }

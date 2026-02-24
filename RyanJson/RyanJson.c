@@ -1,274 +1,50 @@
-#include "RyanJson.h"
-
-#ifdef RyanJsonLinuxTestEnv
-#undef RyanJsonNestingLimit
-#define RyanJsonNestingLimit 350U
-
-#undef RyanJsonSnprintf
-#include <stdarg.h>
-#include <time.h>
-
-static uint32_t RyanJsonRandRange(uint32_t min, uint32_t max)
-{
-	// Xorshift32 算法，运行时种子（每次运行不同）
-	static uint32_t state = 0;
-	if (0 == state) { state = (uint32_t)time(NULL) | 1; }
-	// Xorshift32 算法
-	state ^= state << 13;
-	state ^= state >> 17;
-	state ^= state << 5;
-
-	return min + (state % (max - min + 1));
-}
-
-static int32_t RyanJsonSnprintf(char *buf, size_t size, const char *fmt, ...)
-{
-#ifdef isEnableFuzzer
-	// Fuzzer 模式：随机触发失败，测试错误处理路径
-	if (0 == RyanJsonRandRange(0, 500)) { return 0; }
-#endif
-
-	va_list args;
-	va_start(args, fmt);
-	int32_t ret = vsnprintf(buf, size, fmt, args);
-	va_end(args);
-	return ret;
-}
-#endif
-
-typedef struct
-{
-	const uint8_t *currentPtr; // 待解析字符串地址
-	uint32_t remainSize;       // 待解析字符串剩余长度
-	uint32_t depth;            // How deeply nested (in arrays/objects) is the input at the current offset.
-} RyanJsonParseBuffer;
-
-typedef struct
-{
-	uint8_t *bufAddress;      // 反序列化后的字符串地址
-	uint32_t cursor;          // 解析到那个buf位置上了
-	uint32_t size;            // buf的总长度, 不动态申请内存时，到达此size大小将返回失败
-	RyanJsonBool_e isNoAlloc; // 是否动态申请内存
-} RyanJsonPrintBuffer;
-
-// !这部分跟 struct RyanJsonNode 要保持一致
-typedef struct
-{
-	const char *key;
-	const char *strValue;
-
-	RyanjsonType_e type;
-	RyanJsonBool_e boolIsTrueFlag;
-	RyanJsonBool_e numberIsDoubleFlag;
-} RyanJsonNodeInfo_t;
-
-#define RyanJsonFlagSize               sizeof(uint8_t)
-#define RyanJsonKeyFeidLenMaxSize      sizeof(uint32_t)
-#define RyanJsonAlign(size, align)     (((size) + (align) - 1) & ~((align) - 1))
-#define RyanJsonAlignDown(size, align) ((size) & ~((align) - 1))
-#define _checkType(info, type)         ((info) == (type))
-#define RyanJsonUnused(x)              (void)(x)
+#include "RyanJsonInternal.h"
 
 /**
- * @brief printBuf相关宏
- *
+ * @brief 全局内存钩子。
+ * @note 由 RyanJsonInitHooks 在运行前初始化。
  */
-#define printBufPutChar(printfBuf, char)                                                                                                   \
-	do { ((printfBuf)->bufAddress[(printfBuf)->cursor++] = (char)); } while (0)
-#define printBufPutString(printfBuf, putStr, putStrLen)                                                                                    \
-	do                                                                                                                                 \
-	{                                                                                                                                  \
-		for (uint32_t i = 0; i < (uint32_t)(putStrLen); i++) printBufPutChar(printfBuf, (putStr)[i]);                              \
-	} while (0)
-#define printBufCurrentPtr(printfBuf)  (&((printfBuf)->bufAddress[(printfBuf)->cursor]))
-#define printBufRemainBytes(printfBuf) ((printfBuf)->size - (printfBuf)->cursor)
+RyanJsonMalloc_t jsonMalloc = NULL;
+RyanJsonFree_t jsonFree = NULL;
+RyanJsonRealloc_t jsonRealloc = NULL;
 
 /**
- * @brief parseBuf相关宏
+ * @brief 初始化内存钩子（malloc/free/realloc）
  *
+ * @param userMalloc 用户自定义 malloc
+ * @param userFree 用户自定义 free
+ * @param userRealloc 用户自定义 realloc，可为 NULL
+ * @return RyanJsonBool_e 初始化是否成功
  */
-#define parseBufAdvanceCurrentPrt(parseBuf, bytesToAdvance)                                                                                \
-	do                                                                                                                                 \
-	{                                                                                                                                  \
-		(parseBuf)->currentPtr += (bytesToAdvance);                                                                                \
-		(parseBuf)->remainSize -= (bytesToAdvance);                                                                                \
-	} while (0)
-
-// 是否还有可读的待解析文本在指定索引处
-#define parseBufHasRemainAtIndex(parseBuf, index) ((index) < (parseBuf)->remainSize)
-// 是否还有可读的待解析文本
-#define parseBufHasRemainBytes(parseBuf, bytes)   ((parseBuf)->remainSize >= (bytes))
-#define parseBufHasRemain(parseBuf)               parseBufHasRemainBytes(parseBuf, 1)
-
-/**
- * @brief 尝试向前移动解析缓冲区指针
- *
- * @param parseBuf
- * @param bytesToAdvance
- * @return RyanJsonBool_e
- */
-static inline RyanJsonBool_e parseBufTyrAdvanceCurrentPrt(RyanJsonParseBuffer *parseBuf, uint32_t bytesToAdvance)
+RyanJsonBool_e RyanJsonInitHooks(RyanJsonMalloc_t userMalloc, RyanJsonFree_t userFree, RyanJsonRealloc_t userRealloc)
 {
-	RyanJsonCheckAssert(NULL != parseBuf);
+	RyanJsonCheckReturnFalse(NULL != userMalloc && NULL != userFree);
 
-#ifdef isEnableFuzzer
-	RyanJsonCheckReturnFalse(0 != RyanJsonRandRange(0, 1500));
-#endif
-
-	if (parseBufHasRemainBytes(parseBuf, bytesToAdvance))
-	{
-		parseBufAdvanceCurrentPrt(parseBuf, bytesToAdvance);
-		return RyanJsonTrue;
-	}
-
-	return RyanJsonFalse;
-}
-
-/**
- * @brief 跳过无意义的字符
- *
- * @param parseBuf
- * @return RyanJsonBool_e
- */
-static RyanJsonBool_e parseBufSkipWhitespace(RyanJsonParseBuffer *parseBuf)
-{
-	RyanJsonCheckAssert(NULL != parseBuf);
-
-#ifdef isEnableFuzzer
-	RyanJsonCheckReturnFalse(0 != RyanJsonRandRange(0, 1500));
-#endif
-
-	while (parseBufHasRemain(parseBuf))
-	{
-		uint8_t cursor = *parseBuf->currentPtr;
-		if (' ' == cursor || '\n' == cursor || '\r' == cursor)
-		{
-			RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-		}
-		else
-		{
-			break;
-		}
-	}
-
+	jsonMalloc = userMalloc;
+	jsonFree = userFree;
+	jsonRealloc = userRealloc;
 	return RyanJsonTrue;
 }
 
-static RyanJsonMalloc_t jsonMalloc = NULL;
-static RyanJsonFree_t jsonFree = NULL;
-static RyanJsonRealloc_t jsonRealloc = NULL;
-
-static RyanJsonBool_e RyanJsonParseValue(RyanJsonParseBuffer *parseBuf, char *key, RyanJson_t *out);
-static RyanJsonBool_e RyanJsonPrintValue(RyanJson_t pJson, RyanJsonPrintBuffer *printfBuf, uint32_t depth, RyanJsonBool_e format);
-
-static RyanJson_t RyanJsonCreateObjectAndKey(const char *key);
-static RyanJson_t RyanJsonCreateArrayAndKey(const char *key);
-
 /**
- * @brief 获取内联字符串的大小
- * 用函数可读性更强一点，编译器会优化的
- * @return uint32_t
- */
-#define RyanJsonGetInlineStringSize                                                                                                        \
-	(RyanJsonAlign((sizeof(void *) - RyanJsonFlagSize + sizeof(void *) + (RyanJsonMallocHeaderSize / 2) + RyanJsonFlagSize),           \
-		       RyanJsonMallocAlign) -                                                                                              \
-	 RyanJsonFlagSize)
-// static uint32_t RyanJsonGetInlineStringSize(void)
-// {
-// 	uint32_t baseSize = sizeof(void *) - RyanJsonFlagSize;     // flag的偏移字节量
-// 	baseSize += sizeof(void *) + RyanJsonMallocHeaderSize / 2; // 存储指针变量的字节量
-// 	return (uint32_t)(RyanJsonAlign(baseSize + RyanJsonFlagSize, RyanJsonMallocAlign) - RyanJsonFlagSize);
-// }
-
-static inline uint8_t *RyanJsonGetHiddePrt(RyanJson_t pJson)
-{
-	RyanJsonCheckAssert(NULL != pJson);
-
-	// 用memcpy规避非对其警告
-	void *tmpPtr = NULL;
-	RyanJsonMemcpy((void *)&tmpPtr, (RyanJsonGetPayloadPtr(pJson) + RyanJsonFlagSize + RyanJsonKeyFeidLenMaxSize), sizeof(void *));
-	return (uint8_t *)tmpPtr;
-}
-
-static inline void RyanJsonSetHiddePrt(RyanJson_t pJson, uint8_t *hiddePrt)
-{
-	RyanJsonCheckAssert(NULL != pJson);
-	RyanJsonCheckAssert(NULL != hiddePrt);
-
-	// 用memcpy规避非对其警告
-	void *tmpPtr = hiddePrt;
-	// uint8_t是flag，uint32_t是记录key的长度空间
-	RyanJsonMemcpy((RyanJsonGetPayloadPtr(pJson) + RyanJsonFlagSize + RyanJsonKeyFeidLenMaxSize), (const void *)&tmpPtr,
-		       sizeof(void *));
-}
-
-/**
- * @brief 获取隐藏指针在某个索引处的值
+ * @brief 释放 RyanJson 动态分配的内存块
  *
- * @param pJson
- * @param index
- * @return uint8_t*
+ * @param block 待释放内存
  */
-static inline uint8_t *RyanJsonGetHiddenPtrAt(RyanJson_t pJson, uint32_t index)
+void RyanJsonFree(void *block)
 {
-	RyanJsonCheckAssert(NULL != pJson);
-	return (uint8_t *)(RyanJsonGetHiddePrt(pJson) + (index));
-}
-
-static inline void RyanJsonSetKeyLen(RyanJson_t pJson, uint32_t value)
-{
-	RyanJsonCheckAssert(NULL != pJson);
-	uint8_t *buf = RyanJsonGetPayloadPtr(pJson) + RyanJsonFlagSize;
-	uint8_t keyFieldLen = RyanJsonGetPayloadEncodeKeyLenByFlag(pJson);
-	RyanJsonCheckAssert(keyFieldLen <= RyanJsonKeyFeidLenMaxSize);
-
-	// 使用大小端无关的方式写入
-	for (uint8_t i = 0; i < keyFieldLen; i++)
-	{
-		buf[i] = (uint8_t)(value & 0xFF);
-		value >>= 8;
-	}
-}
-
-static inline uint32_t RyanJsonGetKeyLen(RyanJson_t pJson)
-{
-	RyanJsonCheckAssert(NULL != pJson);
-	uint8_t *buf = RyanJsonGetPayloadPtr(pJson) + RyanJsonFlagSize;
-	uint8_t keyFieldLen = RyanJsonGetPayloadEncodeKeyLenByFlag(pJson);
-	RyanJsonCheckAssert(keyFieldLen <= RyanJsonKeyFeidLenMaxSize);
-
-	// 使用大小端无关的方式读取
-	uint32_t value = 0;
-	for (uint8_t i = 0; i < keyFieldLen; i++) { value |= ((uint32_t)buf[i]) << (i * 8); }
-	return value;
-}
-
-static inline void *RyanJsonGetValue(RyanJson_t pJson)
-{
-	RyanJsonCheckAssert(NULL != pJson);
-
-	uint32_t len = RyanJsonFlagSize;
-	//? 目前的场景不会发生 RyanJsonIsKey(pJson) 为false的情况
-	// if (RyanJsonIsKey(pJson) || RyanJsonIsString(pJson))
-	if (RyanJsonIsKey(pJson))
-	{
-		len += RyanJsonGetInlineStringSize;
-		// jsonLog(" keyLen: %d, keyLenField: %d, \r\n", RyanJsonGetKeyLen(pJson),
-		// RyanJsonGetPayloadEncodeKeyLenByFlag(pJson));
-	}
-
-	return RyanJsonGetPayloadPtr(pJson) + len;
+	jsonFree(block);
 }
 
 /**
- * @brief 用户不要使用，仅考虑realloc增大情况，没有考虑减少
+ * @brief 扩容内存块（优先使用 hooks 中的 realloc）
  *
- * @param block
- * @param oldSize
- * @param newSize
- * @return void*
+ * @param block 原始内存块
+ * @param oldSize 原始大小
+ * @param newSize 新大小
+ * @return void* 扩容后的内存地址，失败返回 NULL
  */
-static void *RyanJsonExpandRealloc(void *block, uint32_t oldSize, uint32_t newSize)
+RyanJsonInternalApi void *RyanJsonInternalExpandRealloc(void *block, uint32_t oldSize, uint32_t newSize)
 {
 	// 不考虑 block 为空的情况
 	RyanJsonCheckAssert(NULL != block);
@@ -283,2015 +59,83 @@ static void *RyanJsonExpandRealloc(void *block, uint32_t oldSize, uint32_t newSi
 }
 
 /**
- * @brief 计算长度字段所需的字节数
+ * @brief 删除 Json 树并释放所有资源
  *
- * @param len
- * @return uint8_t
- */
-static inline uint8_t RyanJsonCalcLenBytes(uint32_t len)
-{
-	if (len < 0xff) { return 0; }
-	if (len < 0xffff) { return 1; }
-	if (len < 0xffffff) { return 2; }
-	return 3;
-}
-
-/**
- * @brief 安全的浮点数比较
- *
- * @param a
- * @param b
- * @return RyanJsonBool_e
- */
-RyanJsonBool_e RyanJsonCompareDouble(double a, double b)
-{
-	double diff = fabs(a - b);
-	double absA = fabs(a);
-	double absB = fabs(b);
-	double maxVal = (absA > absB ? absA : absB);
-
-	// 允许的容差：相对误差 + 绝对误差
-	double epsilon = DBL_EPSILON * maxVal;
-	double absTolerance = RyanJsonAbsTolerance; // 绝对容差
-
-	return diff <= (epsilon > absTolerance ? epsilon : absTolerance);
-}
-
-/**
- * @brief 申请buf容量, 决定是否进行扩容
- *
- * @param printfBuf
- * @param needed
- * @return RyanJsonBool_e
- */
-static RyanJsonBool_e printBufAppend(RyanJsonPrintBuffer *printfBuf, uint32_t needed)
-{
-	RyanJsonCheckAssert(NULL != printfBuf && NULL != printfBuf->bufAddress);
-
-	needed += printfBuf->cursor;
-
-	// 当前 buf 中有足够的空间
-	if (needed < printfBuf->size) { return RyanJsonTrue; }
-
-	// 不使用动态内存分配
-	RyanJsonCheckReturnFalse(RyanJsonFalse == printfBuf->isNoAlloc);
-
-	uint32_t size = needed + RyanJsonPrintfPreAlloSize;
-	char *address = (char *)RyanJsonExpandRealloc(printfBuf->bufAddress, printfBuf->size, size);
-	RyanJsonCheckReturnFalse(NULL != address);
-
-	printfBuf->size = size;
-	printfBuf->bufAddress = (uint8_t *)address;
-	return RyanJsonTrue;
-}
-
-/**
- * @brief 替换json对象节点
- *
- * @param prev
- * @param oldItem
- * @param newItem
- * @return RyanJsonBool_e
- */
-static RyanJsonBool_e RyanJsonReplaceNode(RyanJson_t prev, RyanJson_t oldItem, RyanJson_t newItem)
-{
-	RyanJsonCheckAssert(NULL != oldItem && NULL != newItem);
-
-	// 链接前驱和新节点
-	if (NULL != prev) { prev->next = newItem; }
-
-	// 链接后继和新节点
-	if (NULL != oldItem->next) { newItem->next = oldItem->next; }
-
-	oldItem->next = NULL;
-	return RyanJsonTrue;
-}
-
-static inline RyanJsonBool_e RyanJsonChangeObjectValue(RyanJson_t pJson, RyanJson_t objValue)
-{
-	RyanJsonMemcpy(RyanJsonGetValue(pJson), (void *)&objValue, sizeof(void *));
-	return RyanJsonTrue;
-}
-
-static RyanJsonBool_e RyanJsonChangeString(RyanJson_t pJson, RyanJsonBool_e isNew, const char *key, const char *strValue)
-{
-	RyanJsonCheckAssert(NULL != pJson);
-
-	uint32_t keyLen = 0;      // key的长度
-	uint8_t keyLenField = 0;  // 记录key长度需要几个字节
-	uint32_t strValueLen = 0; // stringValue的长度
-
-	uint32_t mallocSize = 0;
-
-	// 获取需要 malloc 的设备
-	if (NULL != key)
-	{
-		keyLen = RyanJsonStrlen(key);
-		keyLenField = RyanJsonCalcLenBytes(keyLen);
-		mallocSize += keyLen + 1;
-
-#ifdef isEnableFuzzer
-		{
-			RyanJsonAssert(0 == RyanJsonCalcLenBytes(0xff - 1));
-			RyanJsonAssert(1 == RyanJsonCalcLenBytes(0xffff - 1));
-			RyanJsonAssert(2 == RyanJsonCalcLenBytes(0xffffff - 1));
-			RyanJsonAssert(3 == RyanJsonCalcLenBytes(UINT32_MAX - 1));
-		}
-#endif
-	}
-
-	if (NULL != strValue)
-	{
-		strValueLen = RyanJsonStrlen(strValue);
-		mallocSize += strValueLen + 1;
-	}
-	if (0 == mallocSize) { return RyanJsonTrue; }
-
-	// 释放旧的内存
-	uint8_t *oldPrt = NULL;
-	if (RyanJsonFalse == isNew)
-	{
-		if (RyanJsonTrue == RyanJsonGetPayloadStrIsPtrByFlag(pJson))
-		{
-			RyanJsonCheckAssert(RyanJsonIsKey(pJson) || RyanJsonIsString(pJson));
-			oldPrt = RyanJsonGetHiddePrt(pJson);
-		}
-	}
-
-	char arr[RyanJsonGetInlineStringSize] = {0};
-	// keyLenField(0-3) + 1 为key的长度
-	if ((mallocSize + keyLenField + 1) <= RyanJsonGetInlineStringSize)
-	{
-		RyanJsonSetPayloadStrIsPtrByFlag(pJson, RyanJsonFalse);
-		RyanJsonMemcpy(arr, key, keyLen);
-		RyanJsonMemcpy(arr + keyLen, strValue, strValueLen);
-	}
-	else
-	{
-		// 申请新的空间
-		uint8_t *newPtr = (uint8_t *)jsonMalloc(mallocSize);
-		RyanJsonCheckReturnFalse(NULL != newPtr);
-
-		// 先赋值，因为 RyanJsonSetHiddePrt 可能会覆盖key和string的空间
-		if (NULL != key)
-		{
-			if (0 != keyLen) { RyanJsonMemcpy(newPtr, key, keyLen); }
-			newPtr[keyLen] = '\0';
-		}
-
-		if (NULL != strValue)
-		{
-			uint8_t *strValueBuf = newPtr;
-			if (NULL != key) { strValueBuf = newPtr + keyLen + 1; }
-
-			if (0 != strValueLen) { RyanJsonMemcpy(strValueBuf, strValue, strValueLen); }
-			strValueBuf[strValueLen] = '\0';
-		}
-
-		RyanJsonSetHiddePrt(pJson, newPtr);
-		RyanJsonSetPayloadStrIsPtrByFlag(pJson, RyanJsonTrue);
-	}
-
-	// 设置key
-	if (NULL != key)
-	{
-		RyanJsonSetPayloadWhiteKeyByFlag(pJson, RyanJsonTrue);
-		RyanJsonSetPayloadEncodeKeyLenByFlag(pJson, keyLenField);
-		RyanJsonSetKeyLen(pJson, keyLen);
-
-		jsonLog(" keyLen: %d, keyLenField: %d, \r\n", RyanJsonGetKeyLen(pJson), RyanJsonGetPayloadEncodeKeyLenByFlag(pJson));
-
-		if (RyanJsonFalse == RyanJsonGetPayloadStrIsPtrByFlag(pJson))
-		{
-			char *keyBuf = RyanJsonGetKey(pJson);
-			if (0 != keyLen) { RyanJsonMemcpy(keyBuf, arr, keyLen); }
-			keyBuf[keyLen] = '\0';
-		}
-	}
-	else
-	{
-		RyanJsonSetPayloadWhiteKeyByFlag(pJson, RyanJsonFalse);
-		RyanJsonSetPayloadEncodeKeyLenByFlag(pJson, 0);
-	}
-
-	// 设置字符串值
-	if (NULL != strValue)
-	{
-		jsonLog("stLen: %d, strValue: %s \r\n", strValueLen, strValue);
-		if (RyanJsonFalse == RyanJsonGetPayloadStrIsPtrByFlag(pJson))
-		{
-			char *strValueBuf = RyanJsonGetStringValue(pJson);
-			if (0 != strValueLen) { RyanJsonMemcpy(strValueBuf, arr + keyLen, strValueLen); }
-			strValueBuf[strValueLen] = '\0';
-		}
-	}
-
-	if (oldPrt) { jsonFree(oldPrt); }
-	return RyanJsonTrue;
-}
-
-static RyanJson_t RyanJsonNewNode(RyanJsonNodeInfo_t *info)
-{
-	RyanJsonCheckAssert(NULL != info);
-
-	// 加1是flag的空间
-	uint32_t size = sizeof(struct RyanJsonNode) + RyanJsonFlagSize;
-
-	if (_checkType(info->type, RyanJsonTypeNumber))
-	{
-		if (RyanJsonFalse == info->numberIsDoubleFlag) { size += sizeof(int32_t); }
-		else
-		{
-			size += sizeof(double);
-		}
-	}
-	else if (_checkType(info->type, RyanJsonTypeArray) || _checkType(info->type, RyanJsonTypeObject)) { size += sizeof(RyanJson_t); }
-
-	if (NULL != info->key || _checkType(info->type, RyanJsonTypeString)) { size += RyanJsonGetInlineStringSize; }
-
-	RyanJson_t pJson = (RyanJson_t)jsonMalloc((size_t)size);
-	RyanJsonCheckReturnNull(NULL != pJson);
-
-	// 只清空结构体就行了
-	RyanJsonMemset(pJson, 0, size); // 这个size很小，没有优化的必要，直接memset吧
-
-	RyanJsonSetType(pJson, info->type);
-
-	RyanJsonCheckCode(RyanJsonTrue == RyanJsonChangeString(pJson, RyanJsonTrue, info->key, info->strValue), {
-		jsonFree(pJson);
-		return NULL;
-	});
-
-	if (_checkType(info->type, RyanJsonTypeBool)) { RyanJsonSetPayloadBoolValueByFlag(pJson, info->boolIsTrueFlag); }
-	else if (_checkType(info->type, RyanJsonTypeNumber)) { RyanJsonSetPayloadNumberIsDoubleByFlag(pJson, info->numberIsDoubleFlag); }
-
-	return pJson;
-}
-
-/**
- * @brief 创建一个item对象
- * 带有key的对象才可以方便的通过replace替换，
- * !此接口不推荐用户调用
- *
- * @param key
- * @param item
- * @return RyanJson_t
- */
-static RyanJson_t RyanJsonCreateItem(const char *key, RyanJson_t item)
-{
-	RyanJsonCheckReturnNull(NULL != item);
-
-	RyanJsonNodeInfo_t nodeInfo = {
-		.type = _checkType(RyanJsonGetType(item), RyanJsonTypeArray) ? RyanJsonTypeArray : RyanJsonTypeObject,
-		.key = key,
-	};
-
-	RyanJson_t newItem = RyanJsonNewNode(&nodeInfo);
-
-	RyanJsonCheckReturnNull(NULL != newItem);
-
-	if (_checkType(RyanJsonGetType(item), RyanJsonTypeArray) || _checkType(RyanJsonGetType(item), RyanJsonTypeObject))
-	{
-		RyanJsonChangeObjectValue(newItem, RyanJsonGetObjectValue(item));
-
-		if (RyanJsonTrue == RyanJsonGetPayloadStrIsPtrByFlag(item)) { jsonFree(RyanJsonGetHiddePrt(item)); }
-		jsonFree(item);
-	}
-	else
-	{
-		RyanJsonChangeObjectValue(newItem, item);
-	}
-
-	return newItem;
-}
-
-/**
- * @brief 提供内存钩子函数
- *
- * @param userMalloc
- * @param userFree
- * @param userRealloc 可以为NULL
- * @return RyanJsonBool_e
- */
-RyanJsonBool_e RyanJsonInitHooks(RyanJsonMalloc_t userMalloc, RyanJsonFree_t userFree, RyanJsonRealloc_t userRealloc)
-{
-	RyanJsonCheckReturnFalse(NULL != userMalloc && NULL != userFree);
-
-	jsonMalloc = userMalloc;
-	jsonFree = userFree;
-	jsonRealloc = userRealloc;
-	return RyanJsonTrue;
-}
-
-char *RyanJsonGetKey(RyanJson_t pJson)
-{
-	RyanJsonCheckReturnNull(NULL != pJson);
-	if (RyanJsonFalse == RyanJsonGetPayloadStrIsPtrByFlag(pJson))
-	{
-		uint8_t keyFieldLen = RyanJsonGetPayloadEncodeKeyLenByFlag(pJson);
-		RyanJsonCheckAssert(keyFieldLen <= RyanJsonKeyFeidLenMaxSize);
-		return (char *)(RyanJsonGetPayloadPtr(pJson) + RyanJsonFlagSize + keyFieldLen);
-	}
-
-	return (char *)RyanJsonGetHiddenPtrAt(pJson, 0);
-}
-
-char *RyanJsonGetStringValue(RyanJson_t pJson)
-{
-	RyanJsonCheckReturnNull(NULL != pJson);
-
-	uint32_t len = 0;
-
-	if (RyanJsonFalse == RyanJsonGetPayloadStrIsPtrByFlag(pJson))
-	{
-		uint8_t keyFieldLen = RyanJsonGetPayloadEncodeKeyLenByFlag(pJson);
-		RyanJsonCheckAssert(keyFieldLen <= RyanJsonKeyFeidLenMaxSize);
-
-		len += keyFieldLen;
-		if (RyanJsonIsKey(pJson)) { len += RyanJsonGetKeyLen(pJson) + 1U; }
-		return (char *)(RyanJsonGetPayloadPtr(pJson) + RyanJsonFlagSize + len);
-	}
-
-	if (RyanJsonIsKey(pJson)) { len = RyanJsonGetKeyLen(pJson) + 1U; }
-
-	return (char *)RyanJsonGetHiddenPtrAt(pJson, len);
-}
-
-int32_t RyanJsonGetIntValue(RyanJson_t pJson)
-{
-	RyanJsonCheckCodeNoReturn(NULL != pJson, { return 0; });
-
-	int32_t intValue;
-	RyanJsonMemcpy(&intValue, RyanJsonGetValue(pJson), sizeof(intValue));
-	return intValue;
-}
-
-double RyanJsonGetDoubleValue(RyanJson_t pJson)
-{
-	RyanJsonCheckCodeNoReturn(NULL != pJson, { return 0; });
-
-	double doubleValue;
-	RyanJsonMemcpy(&doubleValue, RyanJsonGetValue(pJson), sizeof(doubleValue));
-	return doubleValue;
-}
-
-RyanJson_t RyanJsonGetObjectValue(RyanJson_t pJson)
-{
-	RyanJsonCheckCodeNoReturn(NULL != pJson, { return 0; });
-
-	RyanJson_t objValue;
-	RyanJsonMemcpy((void *)&objValue, RyanJsonGetValue(pJson), sizeof(void *));
-	return objValue;
-}
-
-RyanJson_t RyanJsonGetArrayValue(RyanJson_t pJson) { return RyanJsonGetObjectValue(pJson); }
-
-/**
- * @brief 删除json及其子项
- *
- * @param pJson
+ * @param pJson 待删除的根节点
  */
 void RyanJsonDelete(RyanJson_t pJson)
 {
-	RyanJson_t next;
+	RyanJsonCheckCode(NULL != pJson, { return; });
 
-	while (pJson)
+	RyanJson_t current = pJson;
+	RyanJson_t nextNode;
+	while (NULL != current)
 	{
-		next = pJson->next;
-
-		// 递归删除
-		if (_checkType(RyanJsonGetType(pJson), RyanJsonTypeArray) || _checkType(RyanJsonGetType(pJson), RyanJsonTypeObject))
+		// 容器优先下沉：如果有子节点，先剥离并优先处理子节点
+		if (_checkType(current, RyanJsonTypeArray) || _checkType(current, RyanJsonTypeObject))
 		{
-			RyanJsonDelete(RyanJsonGetObjectValue(pJson)); // 递归删除子对象
-		}
-
-		if (RyanJsonTrue == RyanJsonGetPayloadStrIsPtrByFlag(pJson)) { jsonFree(RyanJsonGetHiddePrt(pJson)); }
-
-		jsonFree(pJson);
-
-		pJson = next;
-	}
-}
-
-/**
- * @brief 释放RyanJson申请的资源
- *
- * @param block
- */
-void RyanJsonFree(void *block) { jsonFree(block); }
-
-/**
- * @brief 从字符串中获取十六进制值
- *
- * @param text
- * @return uint32_t 16进制值
- */
-static RyanJsonBool_e RyanJsonParseHex(const uint8_t *text, uint32_t *value)
-{
-	RyanJsonCheckAssert(NULL != text && NULL != value);
-	uint32_t valueTemp = 0;
-
-	for (uint8_t i = 0; i < 4; ++i)
-	{
-		switch (text[i])
-		{
-		case '0':
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9': valueTemp = (valueTemp << 4) + (text[i] - '0'); break;
-		case 'a':
-		case 'b':
-		case 'c':
-		case 'd':
-		case 'e':
-		case 'f': valueTemp = (valueTemp << 4) + 10 + (text[i] - 'a'); break;
-		case 'A':
-		case 'B':
-		case 'C':
-		case 'D':
-		case 'E':
-		case 'F': valueTemp = (valueTemp << 4) + 10 + (text[i] - 'A'); break;
-		default: return RyanJsonFalse;
-		}
-	}
-
-	*value = valueTemp;
-
-	return RyanJsonTrue;
-}
-
-/**
- * @brief 解析数字字符串
- * 替代 strtod 以提高嵌入式平台兼容性
- *
- * @param parseBuf
- * @param numberValuePtr 解析后的值
- * @param isIntPtr 解析后的值
- * @return RyanJsonBool_e
- */
-static RyanJsonBool_e RyanJsonInternalParseDouble(RyanJsonParseBuffer *parseBuf, double *numberValuePtr, RyanJsonBool_e *isIntPtr)
-{
-	RyanJsonCheckAssert(NULL != parseBuf && NULL != numberValuePtr && NULL != isIntPtr);
-
-	double number = 0;
-	int32_t scale = 0;
-	int32_t e_sign = 1;
-	int32_t e_scale = 0;
-	RyanJsonBool_e isNegative = RyanJsonFalse;
-	RyanJsonBool_e isInt = RyanJsonTrue;
-
-	// 处理符号
-	if ('-' == *parseBuf->currentPtr)
-	{
-		isNegative = RyanJsonTrue;
-		// 这个不会失败因为进来前已经判断过 parseBufHasRemain(parseBuf)
-		RyanJsonCheckNeverNoAssert(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9');
-	}
-
-	// 前导0是非法的
-	while ('0' == *parseBuf->currentPtr)
-	{
-		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-		// 前导0后面不允许跟数据，比如"0123"
-		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf) && (*parseBuf->currentPtr < '0' || *parseBuf->currentPtr > '9'));
-	}
-
-	// 允许多个前导零
-	// while ('0' == *parseBuf->currentPtr)
-	// {
-	// 	RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-	// 	RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf));
-	// }
-
-	// 整数部分
-	while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
-	{
-		number = number * 10.0 + (*parseBuf->currentPtr - '0');
-		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-	}
-
-	// 小数部分
-	if (parseBufHasRemain(parseBuf) && '.' == *parseBuf->currentPtr)
-	{
-		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9');
-
-		while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
-		{
-			number = number * 10.0 + (*parseBuf->currentPtr - '0');
-			scale--; // 每读一位小数，scale减一
-			RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-		}
-		isInt = RyanJsonFalse;
-	}
-
-	// 指数部分
-	if (parseBufHasRemain(parseBuf) && ('e' == *parseBuf->currentPtr || 'E' == *parseBuf->currentPtr))
-	{
-		RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf));
-
-		// 只有遇到 +/- 符号时才跳过
-		if ('+' == *parseBuf->currentPtr || '-' == *parseBuf->currentPtr)
-		{
-			e_sign = ('-' == *parseBuf->currentPtr) ? -1 : 1;
-			RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-		}
-
-		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9');
-
-		while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
-		{
-			e_scale = e_scale * 10 + (*parseBuf->currentPtr - '0');
-			RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-		}
-		isInt = RyanJsonFalse;
-	}
-
-	// 判断符号
-	if (RyanJsonTrue == isNegative) { number = -number; }
-
-	// 浮点数还需要处理
-	if (RyanJsonFalse == isInt)
-	{
-		// 避免 pow 调用过多，直接计算指数
-		double expFactor = pow(10.0, scale + e_sign * e_scale);
-		number *= expFactor;
-	}
-
-	*numberValuePtr = number;
-	*isIntPtr = isInt;
-	return RyanJsonTrue;
-}
-
-/**
- * @brief 解析文本中的数字，添加到json节点中
- *
- * @param parseBuf 解析缓冲区
- * @param key 对应的key
- * @param out 用于接收解析后的pJson对象的地址
- * @return RyanJsonBool_e 成功或失败
- */
-static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *key, RyanJson_t *out)
-{
-	RyanJsonCheckAssert(NULL != parseBuf && NULL != out);
-
-	double number = 0;
-	RyanJsonBool_e isInt = RyanJsonTrue;
-	RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonInternalParseDouble(parseBuf, &number, &isInt));
-
-	// 创建 JSON 节点
-	RyanJson_t newItem = NULL;
-	if (RyanJsonTrue == isInt && number >= INT32_MIN && number <= INT32_MAX) { newItem = RyanJsonCreateInt(key, (int32_t)number); }
-	else
-	{
-		newItem = RyanJsonCreateDouble(key, number);
-	}
-
-	RyanJsonCheckReturnFalse(NULL != newItem);
-
-	*out = newItem;
-	return RyanJsonTrue;
-}
-
-/**
- * @brief 解析文本中的字符串，添加到json节点中
- *
- * @param parseBuf 带有jsonString的文本
- * @param buffer 接收解析后的字符串指针的地址
- * @return RyanJsonBool_e
- */
-static RyanJsonBool_e RyanJsonParseStringBuffer(RyanJsonParseBuffer *parseBuf, char **buffer)
-{
-	RyanJsonCheckAssert(NULL != parseBuf && NULL != buffer);
-
-	uint32_t len = 0;
-	*buffer = NULL;
-
-	// 不是字符串
-	RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf) && '\"' == *parseBuf->currentPtr);
-
-	RyanJsonCheckReturnFalse(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-
-	// 获取字符串长度
-	for (uint32_t i = 0;; i++)
-	{
-		RyanJsonCheckReturnFalse(parseBufHasRemainAtIndex(parseBuf, i));
-
-		uint8_t ch = parseBuf->currentPtr[i];
-
-		if (ch == '\"') { break; }
-
-		// 检查非法控制字符 (ASCII 0–31)
-		RyanJsonCheckReturnFalse(ch > 0x1F);
-
-		if (ch == '\\') // 跳过转义符号
-		{
-			RyanJsonCheckReturnFalse(parseBufHasRemainAtIndex(parseBuf, i + 1));
-			i++;
-		}
-
-		len++;
-	}
-
-	uint8_t *outBuffer = (uint8_t *)jsonMalloc((size_t)(len + 1U));
-	RyanJsonCheckReturnFalse(NULL != outBuffer);
-
-	uint8_t *outCurrentPtr = outBuffer;
-	// ?获取字符串长度的时候已经确保 '\"' != *parseBuf->currentPtr 一定有结尾了
-	while ('\"' != *parseBuf->currentPtr)
-	{
-		// 普通字符
-		if ('\\' != *parseBuf->currentPtr)
-		{
-			*outCurrentPtr++ = *parseBuf->currentPtr;
-			RyanJsonCheckCode(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1), { goto error__; });
-			continue;
-		}
-
-		// 转义字符
-		RyanJsonCheckCode(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1), { goto error__; });
-		switch (*parseBuf->currentPtr)
-		{
-
-		case 'b': *outCurrentPtr++ = '\b'; break;
-		case 'f': *outCurrentPtr++ = '\f'; break;
-		case 'n': *outCurrentPtr++ = '\n'; break;
-		case 'r': *outCurrentPtr++ = '\r'; break;
-		case 't': *outCurrentPtr++ = '\t'; break;
-		case '\"':
-		case '\\':
-		case '/': *outCurrentPtr++ = *parseBuf->currentPtr; break;
-
-		case 'u': {
-			// 获取 Unicode 字符
-			uint64_t codepoint = 0;
-			RyanJsonCheckCode(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 4), { goto error__; });
-			uint32_t firstCode = 0;
-			RyanJsonCheckCode(RyanJsonTrue == RyanJsonParseHex(parseBuf->currentPtr - 3, &firstCode), { goto error__; });
-			// 检查是否有效
-			RyanJsonCheckCode(firstCode < 0xDC00 || firstCode > 0xDFFF, { goto error__; });
-
-			if (firstCode >= 0xD800 && firstCode <= 0xDBFF) // UTF16 代理对
+			nextNode = RyanJsonGetObjectValue(current);
+			if (nextNode)
 			{
-				RyanJsonCheckCode(parseBufHasRemainAtIndex(parseBuf, 2), { goto error__; });
-
-				RyanJsonCheckCode('\\' == parseBuf->currentPtr[1] && 'u' == parseBuf->currentPtr[2], {
-					goto error__; // 缺少代理的后半部分
-				});
-
-				RyanJsonCheckCode(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 6), { goto error__; });
-				uint32_t secondCode = 0;
-				// 上面已经判断过，这个不应该失败
-				RyanJsonCheckNeverNoAssert(RyanJsonTrue == RyanJsonParseHex(parseBuf->currentPtr - 3, &secondCode));
-				RyanJsonCheckCode(secondCode >= 0xDC00 && secondCode <= 0xDFFF, {
-					goto error__; // 无效的代理后半部分
-				});
-
-				codepoint = 0x10000 + (((firstCode & 0x3FF) << 10) | (secondCode & 0x3FF));
-			}
-			else
-			{
-				codepoint = firstCode;
-			}
-
-			/* encode as UTF-8
-			 * takes at maximum 4 bytes to encode:
-			 * 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx */
-			uint8_t utf8Length;
-			uint8_t firstByteMark;
-			if (codepoint < 0x80)
-			{
-				utf8Length = 1; // normal ascii, encoding 0xxxxxxx
-				firstByteMark = 0;
-			}
-			else if (codepoint < 0x800)
-			{
-				utf8Length = 2;       // two bytes, encoding 110xxxxx 10xxxxxx
-				firstByteMark = 0xC0; // 11000000
-			}
-			else if (codepoint < 0x10000)
-			{
-				utf8Length = 3;       // three bytes, encoding 1110xxxx 10xxxxxx 10xxxxxx
-				firstByteMark = 0xE0; // 11100000
-			}
-			else
-			{
-				utf8Length = 4;       // four bytes, encoding 1110xxxx 10xxxxxx 10xxxxxx 10xxxxxx
-				firstByteMark = 0xF0; // 11110000
-			}
-			// 不太可能发生
-			// else
-			// {
-			// 	goto error__; // 无效的 unicode 代码点
-			// }
-
-			// encode as utf8
-			for (uint8_t utf8Position = (uint8_t)(utf8Length - 1); utf8Position > 0; utf8Position--)
-			{
-				outCurrentPtr[utf8Position] = (uint8_t)((codepoint | 0x80) & 0xBF); // 10xxxxxx
-				codepoint >>= 6;
-			}
-
-			// encode first byte
-			if (utf8Length > 1) { outCurrentPtr[0] = (uint8_t)((codepoint | firstByteMark) & 0xFF); }
-			else
-			{
-				outCurrentPtr[0] = (uint8_t)(codepoint & 0x7F);
-			}
-			outCurrentPtr += utf8Length;
-			break;
-		}
-
-		default:
-			// *outCurrentPtr++ = *buf->currentPtr;
-			goto error__;
-		}
-
-		RyanJsonCheckCode(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1), { goto error__; });
-	}
-	*outCurrentPtr = '\0';
-
-	RyanJsonCheckNeverNoAssert('\"' == *parseBuf->currentPtr);
-
-	RyanJsonCheckCode(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1), { goto error__; });
-	*buffer = (char *)outBuffer;
-	return RyanJsonTrue;
-
-error__:
-	jsonFree(outBuffer);
-	*buffer = NULL;
-	return RyanJsonFalse;
-}
-
-/**
- * @brief 解析文本中的string节点，添加到json节点中
- *
- * @param text
- * @param key 对应的key
- * @param out 接收解析后的pJson对象的地址
- * @return const char*
- */
-static RyanJsonBool_e RyanJsonParseString(RyanJsonParseBuffer *parseBuf, char *key, RyanJson_t *out)
-{
-	RyanJsonCheckAssert(NULL != parseBuf && NULL != out);
-
-	char *buffer;
-	RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonParseStringBuffer(parseBuf, &buffer));
-
-	RyanJson_t newItem = RyanJsonCreateString(key, buffer);
-	RyanJsonCheckCode(NULL != newItem, {
-		jsonFree(buffer);
-		return RyanJsonFalse;
-	});
-
-	jsonFree(buffer);
-	*out = newItem;
-	return RyanJsonTrue;
-}
-
-/**
- * @brief 解析文本中的数组
- *
- * @param text
- * @param key 对应的key
- * @param out 接收解析后的pJson对象的地址
- * @return const char*
- */
-static RyanJsonBool_e RyanJsonParseArray(RyanJsonParseBuffer *parseBuf, char *key, RyanJson_t *out)
-{
-	RyanJsonCheckAssert(NULL != parseBuf && NULL != out);
-
-	RyanJson_t newItem = RyanJsonCreateArrayAndKey(key);
-	RyanJsonCheckReturnFalse(NULL != newItem);
-
-	RyanJson_t prev = NULL, item;
-	RyanJsonCheckNeverNoAssert(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-	RyanJsonCheckCode(RyanJsonTrue == parseBufSkipWhitespace(parseBuf), { goto error__; });
-
-	// 空数组
-	RyanJsonCheckCode(parseBufHasRemain(parseBuf), { goto error__; });
-	if (*parseBuf->currentPtr == ']') { goto next__; }
-
-	do
-	{
-		// 跳过 ','
-		if (NULL != prev)
-		{
-			RyanJsonCheckCode(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1), { goto error__; });
-		}
-
-		RyanJsonCheckCode(RyanJsonTrue == parseBufSkipWhitespace(parseBuf), { goto error__; });
-
-		RyanJsonCheckCode(RyanJsonTrue == RyanJsonParseValue(parseBuf, NULL, &item), { goto error__; });
-
-		RyanJsonCheckNeverNoAssert(RyanJsonTrue == RyanJsonInsert(newItem, UINT32_MAX, item));
-
-		prev = item;
-
-	} while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr == ',');
-
-	RyanJsonCheckCode(RyanJsonTrue == parseBufSkipWhitespace(parseBuf), { goto error__; });
-	RyanJsonCheckCode(parseBufHasRemain(parseBuf) && *parseBuf->currentPtr == ']', { goto error__; });
-
-next__:
-	RyanJsonCheckCode(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1), { goto error__; });
-	*out = newItem;
-
-	return RyanJsonTrue;
-
-error__:
-	RyanJsonDelete(newItem);
-	*out = NULL;
-	return RyanJsonFalse;
-}
-
-/**
- * @brief 解析文本中的对象
- *
- * @param text
- * @param key
- * @param out
- * @return const char*
- */
-static RyanJsonBool_e RyanJsonParseObject(RyanJsonParseBuffer *parseBuf, char *key, RyanJson_t *out)
-{
-	RyanJsonCheckAssert(NULL != parseBuf && NULL != out);
-	char *objKey = NULL;
-
-	RyanJson_t newItem = RyanJsonCreateObjectAndKey(key);
-	RyanJsonCheckReturnFalse(NULL != newItem);
-
-	RyanJson_t prev = NULL, item;
-	RyanJsonCheckNeverNoAssert(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1));
-	RyanJsonCheckCode(RyanJsonTrue == parseBufSkipWhitespace(parseBuf), { goto error__; });
-
-	RyanJsonCheckCode(parseBufHasRemain(parseBuf), { goto error__; });
-	if (*parseBuf->currentPtr == '}') { goto next__; }
-
-	do
-	{
-		if (NULL != prev)
-		{
-			RyanJsonCheckCode(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1), { goto error__; }); // 跳过 ','
-		}
-
-		RyanJsonCheckCode(RyanJsonTrue == parseBufSkipWhitespace(parseBuf), { goto error__; });
-
-		RyanJsonCheckCode(RyanJsonTrue == RyanJsonParseStringBuffer(parseBuf, &objKey), { goto error__; });
-		RyanJsonCheckNeverNoAssert(NULL != objKey);
-
-		RyanJsonCheckCode(RyanJsonTrue == parseBufSkipWhitespace(parseBuf), { goto error__; });
-
-		// 解析指示符 ':'
-		RyanJsonCheckCode(parseBufHasRemain(parseBuf) && ':' == *parseBuf->currentPtr, { goto error__; });
-
-		RyanJsonCheckCode(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1), { goto error__; });
-		RyanJsonCheckCode(RyanJsonTrue == parseBufSkipWhitespace(parseBuf), { goto error__; });
-
-		RyanJsonCheckCode(RyanJsonTrue == RyanJsonParseValue(parseBuf, objKey, &item), { goto error__; });
-		jsonFree(objKey);
-		objKey = NULL;
-
-		RyanJsonCheckNeverNoAssert(RyanJsonTrue == RyanJsonInsert(newItem, UINT32_MAX, item));
-
-		prev = item;
-
-	} while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr == ',');
-
-	RyanJsonCheckCode(RyanJsonTrue == parseBufSkipWhitespace(parseBuf), { goto error__; });
-	RyanJsonCheckCode(parseBufHasRemain(parseBuf) && *parseBuf->currentPtr == '}', {
-		objKey = NULL; // 由上层进行删除
-		goto error__;
-	});
-
-next__:
-	RyanJsonCheckCode(RyanJsonTrue == parseBufTyrAdvanceCurrentPrt(parseBuf, 1), { goto error__; });
-	*out = newItem;
-	return RyanJsonTrue;
-
-error__:
-	if (objKey) { jsonFree(objKey); }
-	RyanJsonDelete(newItem);
-	*out = NULL;
-	return RyanJsonFalse;
-}
-
-/**
- * @brief 解析文本
- *
- * @param text
- * @param key
- * @param out
- * @return const char*
- */
-static RyanJsonBool_e RyanJsonParseValue(RyanJsonParseBuffer *parseBuf, char *key, RyanJson_t *out)
-{
-	RyanJsonCheckAssert(NULL != parseBuf && NULL != out);
-
-	parseBuf->depth++;
-	RyanJsonCheckReturnFalse(parseBuf->depth < RyanJsonNestingLimit);
-
-	RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf));
-
-	*out = NULL;
-
-	if (*parseBuf->currentPtr == '\"') { return RyanJsonParseString(parseBuf, key, out); }
-	if (*parseBuf->currentPtr == '{') { return RyanJsonParseObject(parseBuf, key, out); }
-	if (*parseBuf->currentPtr == '-' || (*parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9'))
-	{
-		return RyanJsonParseNumber(parseBuf, key, out);
-	}
-	if (*parseBuf->currentPtr == '[') { return RyanJsonParseArray(parseBuf, key, out); }
-
-	if (parseBufHasRemainBytes(parseBuf, 4) && 0 == strncmp((const char *)parseBuf->currentPtr, "null", 4))
-	{
-		*out = RyanJsonCreateNull(key);
-		RyanJsonCheckReturnFalse(NULL != *out);
-
-		parseBufAdvanceCurrentPrt(parseBuf, 4);
-		return RyanJsonTrue;
-	}
-	if (parseBufHasRemainBytes(parseBuf, 5) && 0 == strncmp((const char *)parseBuf->currentPtr, "false", 5))
-	{
-		*out = RyanJsonCreateBool(key, RyanJsonFalse);
-		RyanJsonCheckReturnFalse(NULL != *out);
-
-		parseBufAdvanceCurrentPrt(parseBuf, 5);
-		return RyanJsonTrue;
-	}
-	if (parseBufHasRemainBytes(parseBuf, 4) && 0 == strncmp((const char *)parseBuf->currentPtr, "true", 4))
-	{
-		*out = RyanJsonCreateBool(key, RyanJsonTrue);
-		RyanJsonCheckReturnFalse(NULL != *out);
-
-		parseBufAdvanceCurrentPrt(parseBuf, 4);
-		return RyanJsonTrue;
-	}
-
-	return RyanJsonFalse;
-}
-
-/**
- * @brief pJson 文本解析器
- *
- * @param text 文本地址
- * @param requireNullTerminator 输入的字符串必须以空字符 \0 结尾，并且不附带无效数据
- * @param parseEndPtr 输出解析终止的字符位置
- * @return RyanJson_t
- */
-static RyanJsonBool_e RyanJsonParseCheckNullTerminator(RyanJsonParseBuffer *parseBuf, RyanJsonBool_e requireNullTerminator)
-{
-	RyanJsonCheckAssert(NULL != parseBuf);
-
-	if (requireNullTerminator)
-	{
-		// 故意不检查，允许空白
-		(void)parseBufSkipWhitespace(parseBuf);
-
-		// 上面已经去掉空白，如果后面还有数据，则失败
-		RyanJsonCheckReturnFalse(!parseBufHasRemain(parseBuf));
-	}
-
-	return RyanJsonTrue;
-}
-
-RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool_e requireNullTerminator, const char **parseEndPtr)
-{
-	RyanJson_t pJson;
-	RyanJsonCheckReturnNull(NULL != text);
-
-	RyanJsonParseBuffer parseBuf = {.currentPtr = (const uint8_t *)text, .remainSize = size};
-	RyanJsonCheckReturnNull(RyanJsonTrue == parseBufSkipWhitespace(&parseBuf));
-
-	RyanJsonCheckReturnNull(RyanJsonTrue == RyanJsonParseValue(&parseBuf, NULL, &pJson));
-
-	// 检查解析后的文本后面是否有无意义的字符
-	RyanJsonCheckCode(RyanJsonTrue == RyanJsonParseCheckNullTerminator(&parseBuf, requireNullTerminator), {
-		RyanJsonDelete(pJson);
-		return NULL;
-	});
-
-	if (parseEndPtr) { *parseEndPtr = (const char *)parseBuf.currentPtr; }
-
-	return pJson;
-}
-
-/**
- * @brief 规范化浮点数输出：删除尾部无效的0（非科学计数法时）
- *
- * @param printfBuf 打印缓冲区
- * @param len 当前输出长度
- * @return int32_t 处理后的长度
- */
-static int32_t RyanJsonTrimDoubleTrailingZeros(RyanJsonPrintBuffer *printfBuf, int32_t len)
-{
-	// ?测试平台输出偶尔输出大写 "E",测试用
-#ifdef RyanJsonLinuxTestEnv
-	int32_t eIndex = INT32_MIN;
-	if (0 == RyanJsonRandRange(0, 20))
-	{
-		for (int32_t i = 0; i < len; i++)
-		{
-			if ('e' == printBufCurrentPtr(printfBuf)[i])
-			{
-				printBufCurrentPtr(printfBuf)[i] = 'E';
-				eIndex = i;
-				break;
-			}
-		}
-	}
-#endif
-
-	// 检查是不是科学计数法
-	RyanJsonBool_e isScientificNotation = RyanJsonFalse;
-	for (int32_t i = 0; i < len; i++)
-	{
-		// 有些平台会输出'E'
-		if ('e' == printBufCurrentPtr(printfBuf)[i] || 'E' == printBufCurrentPtr(printfBuf)[i])
-		{
-			isScientificNotation = RyanJsonTrue;
-			break;
-		}
-	}
-
-	// ?恢复测试平台输出的大写"E"
-#ifdef RyanJsonLinuxTestEnv
-	if (INT32_MIN != eIndex) { printBufCurrentPtr(printfBuf)[eIndex] = 'e'; }
-#endif
-
-	if (RyanJsonFalse == isScientificNotation)
-	{
-		// 删除小数部分中无效的 0
-		// 最小也要为"0.0"
-		while (len > 3)
-		{
-			if ('0' != printBufCurrentPtr(printfBuf)[len - 1]) { break; }
-			if ('.' == printBufCurrentPtr(printfBuf)[len - 2]) { break; }
-			len--;
-			printBufCurrentPtr(printfBuf)[len] = '\0';
-		}
-	}
-
-	return len;
-}
-/**
- * @brief 反序列化数字
- *
- * @param pJson
- * @param printfBuf
- * @return RyanJsonBool_e
- */
-static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer *printfBuf)
-{
-	RyanJsonCheckAssert(NULL != pJson && NULL != printfBuf);
-
-	int32_t len;
-
-	// RyanJsonNumber 类型是一个整数
-	if (RyanJsonFalse == RyanJsonGetPayloadNumberIsDoubleByFlag(pJson))
-	{
-		// INT32_MIN = -2147483648 (11 chars)
-		RyanJsonCheckReturnFalse(printBufAppend(printfBuf, 11));
-
-		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf), "%" PRId32,
-				       RyanJsonGetIntValue(pJson));
-		RyanJsonCheckReturnFalse(len > 0);
-		printfBuf->cursor += (uint32_t)len;
-
-		return RyanJsonTrue;
-	}
-
-	// RyanJsonNumber 的类型是浮点型
-	RyanJsonCheckReturnFalse(printBufAppend(printfBuf, RyanJsonDoubleBufferSize));
-	double doubleValue = RyanJsonGetDoubleValue(pJson);
-
-	// 处理特殊值：无穷大和 NaN 输出为 null（RFC 8259 不支持 Infinity/NaN）
-	if (isinf(doubleValue) || isnan(doubleValue))
-	{
-		printBufPutString(printfBuf, (uint8_t *)"null", 4);
-		return RyanJsonTrue;
-	}
-
-	double absDoubleValue = fabs(doubleValue);
-
-	// 判断是否为整数（在合理范围内），保留一位小数 (例如 5.0, 0.0)
-	// 注意：0 也需要特殊处理，否则会进入科学记数法分支
-	// 在有界空间内使用完全变换
-	if ((absDoubleValue < DBL_EPSILON || (absDoubleValue < 1.0e15 && absDoubleValue >= 1.0e-6)) &&
-	    fabs(floor(doubleValue) - doubleValue) <= DBL_EPSILON)
-	{
-		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf), "%.1lf", doubleValue);
-		// 有外层限制 1e-6 ~ 1e15, 所以肯定不会越界
-		RyanJsonCheckReturnFalse(len > 0);
-
-		// 嵌入式平台为了保险还是加上吧，用户可能设置的bufSize会比较小
-#ifndef RyanJsonLinuxTestEnv
-		RyanJsonCheckReturnFalse(len < (int32_t)printBufRemainBytes(printfBuf));
-#endif
-	}
-	else
-	{
-
-// ?测试平台轮流使用 "%.15g" 和 "%lf" 让下面去0的逻辑也可以执行
-#ifdef RyanJsonLinuxTestEnv
-#undef RyanJsonSnprintfSupportScientific
-		// 基于 double 值本身选择格式（确定性），保证同一个值总是用相同格式
-		// %lf 在 [1e-6, 1e6] 范围内输出安全
-		// 极端值（>1e6 或 <1e-6）必须使用科学记数法，否则可能超出缓冲区
-		RyanJsonBool_e RyanJsonSnprintfSupportScientific = doubleValue > 1.0 ? RyanJsonTrue : RyanJsonFalse;
-
-#endif
-
-		// 极大/极小数或普通浮点数
-		// 不使用 %.15g 是因为很多嵌入式平台 %.15g 效果和 %.17g效果一样
-		// 可能的效果是 0.2 被序列化成 0.200000003000000 ,就算去掉尾部0也不美观
-		// ?用%lf当前是有缺点的,给double留的64字节空间可能被撑爆,但是大部分嵌入式平台可以放心
-		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf),
-				       RyanJsonSnprintfSupportScientific ? "%.15g" : "%lf", doubleValue);
-#ifdef RyanJsonLinuxTestEnv
-		// 测试环境：偶尔模拟溢出以触发防御性检查分支
-		if (0 == RyanJsonRandRange(0, 1000) && len > 0) { len = (int32_t)printBufRemainBytes(printfBuf) + 1; }
-#endif
-		RyanJsonCheckReturnFalse(len > 0 && len < (int32_t)printBufRemainBytes(printfBuf));
-
-		// 往返检查：在去0之前进行，确保原始精度足够
-		// 如果精度不够，改用 %.17g
-		double number = 0;
-		RyanJsonBool_e isInt = RyanJsonTrue;
-		RyanJsonParseBuffer parseBuf = {.currentPtr = printBufCurrentPtr(printfBuf), .remainSize = (uint32_t)len};
-		RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonInternalParseDouble(&parseBuf, &number, &isInt));
-		if (RyanJsonFalse == RyanJsonCompareDouble(number, doubleValue))
-		{
-			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf), "%.17g", doubleValue);
-			RyanJsonCheckReturnFalse(len > 0);
-
-#ifndef RyanJsonLinuxTestEnv
-			// "%.17g"也判断是因为不可以相信嵌入式平台真的会输出科学计数法格式
-			RyanJsonCheckReturnFalse(len < (int32_t)printBufRemainBytes(printfBuf));
-#endif
-		}
-
-		// 进行去0处理,理论上只有lf需要，但是保险可以都去
-		len = RyanJsonTrimDoubleTrailingZeros(printfBuf, len);
-	}
-
-	printfBuf->cursor += (uint32_t)len;
-	return RyanJsonTrue;
-}
-
-/**
- * @brief 反序列化字符串
- *
- * @param strValue
- * @param printfBuf
- * @return RyanJsonBool_e
- */
-static RyanJsonBool_e RyanJsonPrintStringBuffer(const uint8_t *strValue, RyanJsonPrintBuffer *printfBuf)
-{
-	RyanJsonCheckAssert(NULL != strValue && NULL != printfBuf);
-	// 获取长度
-	const uint8_t *strCurrentPtr = strValue;
-	uint32_t escapeCharCount = 0;
-	for (strCurrentPtr = strValue; *strCurrentPtr; strCurrentPtr++)
-	{
-		switch (*strCurrentPtr)
-		{
-		case '\"':
-		case '\\':
-		case '\b':
-		case '\f':
-		case '\n':
-		case '\r':
-		case '\t':
-		case '/': escapeCharCount++; break;
-
-		default:
-			// 每个字节都+5肯定满足printf的需求了
-			if (*strCurrentPtr < 32) { escapeCharCount += 5; }
-			break;
-		}
-	}
-
-	RyanJsonCheckReturnFalse(printBufAppend(printfBuf, (uint32_t)(strCurrentPtr - strValue) + escapeCharCount + 2U)); // 最小是\" \"
-	printBufPutChar(printfBuf, '\"');
-
-	// 没有转义字符
-	if (0 == escapeCharCount)
-	{
-		printBufPutString(printfBuf, strValue, (strCurrentPtr - strValue));
-		printBufPutChar(printfBuf, '\"');
-		return RyanJsonTrue;
-	}
-
-	strCurrentPtr = strValue;
-	while (*strCurrentPtr)
-	{
-		if ((*strCurrentPtr) >= ' ' && *strCurrentPtr != '\"' && *strCurrentPtr != '\\')
-		{
-			printBufPutChar(printfBuf, *strCurrentPtr++);
-			continue;
-		}
-
-		// 转义和打印
-		printBufPutChar(printfBuf, '\\');
-
-		switch (*strCurrentPtr)
-		{
-		case '\\': printBufPutChar(printfBuf, '\\'); break;
-		case '\"': printBufPutChar(printfBuf, '\"'); break;
-		case '\b': printBufPutChar(printfBuf, 'b'); break;
-		case '\f': printBufPutChar(printfBuf, 'f'); break;
-		case '\n': printBufPutChar(printfBuf, 'n'); break;
-		case '\r': printBufPutChar(printfBuf, 'r'); break;
-		case '\t': printBufPutChar(printfBuf, 't'); break;
-
-		default: {
-			// 可以不加p有效性的判断是因为，这个RyanJson生成的字符串，RyanJson可以确保p一定是有效的
-			// jsonLog("hexasdf:\\u%04X\n", codepoint);
-			RyanJsonCheckReturnFalse(5 == RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf),
-								       printBufRemainBytes(printfBuf), "u%04X", *strCurrentPtr));
-			printfBuf->cursor += 5; // utf
-			break;
-		}
-		}
-		strCurrentPtr++;
-	}
-
-	printBufPutChar(printfBuf, '\"');
-	// printBufPutChar(printfBuf, '\0');
-
-	return RyanJsonTrue;
-}
-
-static RyanJsonBool_e RyanJsonPrintString(RyanJson_t pJson, RyanJsonPrintBuffer *printfBuf)
-{
-	RyanJsonCheckAssert(NULL != pJson && NULL != printfBuf);
-	return RyanJsonPrintStringBuffer((const uint8_t *)RyanJsonGetStringValue(pJson), printfBuf);
-}
-
-/**
- * @brief 反序列化数组
- *
- * @param pJson
- * @param printfBuf
- * @param depth
- * @param format
- * @return RyanJsonBool_e
- */
-static RyanJsonBool_e RyanJsonPrintArray(RyanJson_t pJson, RyanJsonPrintBuffer *printfBuf, uint32_t depth, RyanJsonBool_e format)
-{
-	RyanJsonCheckAssert(NULL != pJson && NULL != printfBuf);
-
-	uint32_t count = 0;
-	RyanJson_t child = RyanJsonGetObjectValue(pJson);
-
-	if (NULL == child)
-	{
-		RyanJsonCheckReturnFalse(printBufAppend(printfBuf, 2));
-
-		printBufPutChar(printfBuf, '[');
-		printBufPutChar(printfBuf, ']');
-		return RyanJsonTrue;
-	}
-
-	if (format)
-	{
-		while (child) // 检查子级中是否有数组或对象
-		{
-			if ((RyanJsonIsArray(child) || RyanJsonIsObject(child)) && RyanJsonGetObjectValue(child))
-			{
-				count++;
-				break;
-			}
-			child = child->next;
-		}
-	}
-
-	RyanJsonCheckReturnFalse(printBufAppend(printfBuf, (format && count) ? 2 : 1));
-
-	printBufPutChar(printfBuf, '[');
-	if (format && count) { printBufPutChar(printfBuf, '\n'); }
-
-	child = RyanJsonGetObjectValue(pJson);
-	while (child)
-	{
-		// 打印起始缩进
-		if (format && count)
-		{
-			RyanJsonCheckReturnFalse(printBufAppend(printfBuf, depth + 1U));
-			for (uint32_t i = 0; i <= depth; i++) { printBufPutChar(printfBuf, '\t'); }
-		}
-
-		RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonPrintValue(child, printfBuf, depth + 1U, format));
-
-		// 打印分隔符 ','
-		if (child->next)
-		{
-			RyanJsonCheckReturnFalse(printBufAppend(printfBuf, format ? 2 : 1));
-
-			printBufPutChar(printfBuf, ',');
-			if (format)
-			{
-				if (count) { printBufPutChar(printfBuf, '\n'); }
-				else
-				{
-					printBufPutChar(printfBuf, ' ');
-				}
+				RyanJsonInternalChangeObjectValue(current, NULL); // 断开子节点连接，防止循环回溯
+				current = nextNode;
+				continue;
 			}
 		}
 
-		child = child->next;
+		// 确定后续节点：根节点结束；非根节点通过 next 串联待处理路径
+		// 注意：这里不能用 RyanJsonGetNext，因为 Last 节点会返回 NULL，
+		// 但删除流程需要利用线索 next 回溯到父节点
+		nextNode = (current == pJson) ? NULL : current->next;
+
+		// 释放当前节点资源
+		// 如果 strValue 区采用指针模式存储，需先释放外部堆空间
+		if (RyanJsonTrue == RyanJsonGetPayloadStrIsPtrByFlag(current)) { jsonFree(RyanJsonInternalGetStrPtrModeBuf(current)); }
+		jsonFree(current);
+		current = nextNode;
 	}
-
-	// 打印结束缩进
-	RyanJsonCheckReturnFalse(printBufAppend(printfBuf, (format && count) ? depth + 2 : 1));
-
-	if (format && count)
-	{
-		printBufPutChar(printfBuf, '\n');
-		for (uint32_t i = 0; i < depth; i++) { printBufPutChar(printfBuf, '\t'); }
-	}
-	printBufPutChar(printfBuf, ']');
-
-	return RyanJsonTrue;
 }
 
 /**
- * @brief 反序列化对象
+ * @brief 获取节点规模（标量为1，容器为子节点个数）
  *
- * @param pJson
- * @param printfBuf
- * @param depth
- * @param format
- * @return RyanJsonBool_e
- */
-static RyanJsonBool_e RyanJsonPrintObject(RyanJson_t pJson, RyanJsonPrintBuffer *printfBuf, uint32_t depth, RyanJsonBool_e format)
-{
-	RyanJsonCheckAssert(NULL != pJson && NULL != printfBuf);
-
-	RyanJson_t child = RyanJsonGetObjectValue(pJson);
-
-	if (NULL == child)
-	{
-		RyanJsonCheckReturnFalse(printBufAppend(printfBuf, 2));
-
-		printBufPutChar(printfBuf, '{');
-		printBufPutChar(printfBuf, '}');
-		return RyanJsonTrue;
-	}
-
-	RyanJsonCheckReturnFalse(printBufAppend(printfBuf, format ? 2 : 1));
-	printBufPutChar(printfBuf, '{');
-	if (format) { printBufPutChar(printfBuf, '\n'); }
-
-	while (child)
-	{
-		// 打印起始缩进
-		if (format)
-		{
-			RyanJsonCheckReturnFalse(printBufAppend(printfBuf, depth + 1));
-
-			for (uint32_t i = 0; i <= depth; i++) { printBufPutChar(printfBuf, '\t'); }
-		}
-
-		RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonPrintStringBuffer((const uint8_t *)RyanJsonGetKey(child), printfBuf));
-
-		// 打印指示符 ':'
-		RyanJsonCheckReturnFalse(printBufAppend(printfBuf, format ? 2 : 1));
-
-		printBufPutChar(printfBuf, ':');
-		if (format) { printBufPutChar(printfBuf, '\t'); }
-
-		RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonPrintValue(child, printfBuf, depth + 1, format));
-
-		// 打印分隔符 ','
-		RyanJsonCheckReturnFalse(printBufAppend(printfBuf, (child->next ? 1 : 0) + (format ? 1 : 0)));
-
-		if (child->next) { printBufPutChar(printfBuf, ','); }
-
-		RyanJsonCheckReturnFalse(printBufAppend(printfBuf, 1));
-		if (format) { printBufPutChar(printfBuf, '\n'); }
-
-		child = child->next;
-	}
-
-	// 打印结束缩进
-	RyanJsonCheckReturnFalse(printBufAppend(printfBuf, format ? depth + 1 : 1));
-
-	if (format)
-	{
-		for (uint32_t i = 0; i < depth; i++) { printBufPutChar(printfBuf, '\t'); }
-	}
-	printBufPutChar(printfBuf, '}');
-
-	return RyanJsonTrue;
-}
-
-static RyanJsonBool_e RyanJsonPrintValue(RyanJson_t pJson, RyanJsonPrintBuffer *printfBuf, uint32_t depth, RyanJsonBool_e format)
-{
-	RyanJsonCheckAssert(NULL != pJson && NULL != printfBuf);
-
-	switch (RyanJsonGetType(pJson))
-	{
-	case RyanJsonTypeNull: {
-		RyanJsonCheckReturnFalse(printBufAppend(printfBuf, 4));
-		printBufPutString(printfBuf, (uint8_t *)"null", 4);
-		return RyanJsonTrue;
-	}
-	case RyanJsonTypeBool: {
-		if (RyanJsonGetBoolValue(pJson))
-		{
-			RyanJsonCheckReturnFalse(printBufAppend(printfBuf, 4));
-			printBufPutString(printfBuf, (uint8_t *)"true", 4);
-		}
-		else
-		{
-			RyanJsonCheckReturnFalse(printBufAppend(printfBuf, 5));
-			printBufPutString(printfBuf, (uint8_t *)"false", 5);
-		}
-		return RyanJsonTrue;
-	}
-	case RyanJsonTypeNumber: return RyanJsonPrintNumber(pJson, printfBuf);
-	case RyanJsonTypeString: return RyanJsonPrintString(pJson, printfBuf);
-	case RyanJsonTypeArray: return RyanJsonPrintArray(pJson, printfBuf, depth, format);
-	case RyanJsonTypeObject: return RyanJsonPrintObject(pJson, printfBuf, depth, format);
-	}
-	return RyanJsonFalse;
-}
-
-/**
- * @brief 将json对象转换为字符串
- *
- * @param pJson
- * @param preset 对json对象转为字符串后长度的猜测，如果猜测的接近可以减少内存分配次数，提高转换效率
- * @param format 是否格式化
- * @param len 可以通过指针来获取转换后的长度
- * @return char* NULL失败
- */
-char *RyanJsonPrint(RyanJson_t pJson, uint32_t preset, RyanJsonBool_e format, uint32_t *len)
-{
-	RyanJsonCheckReturnNull(NULL != pJson);
-
-	RyanJsonPrintBuffer printfBuf = {
-		.isNoAlloc = RyanJsonFalse,
-		.size = preset,
-		.cursor = 0,
-	};
-
-	if (printfBuf.size < RyanJsonPrintfPreAlloSize) { printfBuf.size = RyanJsonPrintfPreAlloSize; }
-	printfBuf.bufAddress = (uint8_t *)jsonMalloc(printfBuf.size);
-	RyanJsonCheckReturnNull(NULL != printfBuf.bufAddress);
-
-	RyanJsonCheckCode(RyanJsonTrue == RyanJsonPrintValue(pJson, &printfBuf, 0, format), {
-		jsonFree(printfBuf.bufAddress);
-		return NULL;
-	});
-
-	RyanJsonCheckCode(printBufAppend(&printfBuf, 1), {
-		jsonFree(printfBuf.bufAddress);
-		return NULL;
-	});
-
-	printfBuf.bufAddress[printfBuf.cursor] = '\0';
-	if (len) { *len = printfBuf.cursor; }
-
-	return (char *)printfBuf.bufAddress;
-}
-
-/**
- * @brief 使用给定缓冲区将json对象转换为字符串
- *
- * @param pJson
- * @param buffer 用户给定缓冲区地址
- * @param length 缓冲区长度
- * @param format
- * @param len
- * @return char*
- */
-char *RyanJsonPrintPreallocated(RyanJson_t pJson, char *buffer, uint32_t length, RyanJsonBool_e format, uint32_t *len)
-{
-	RyanJsonCheckReturnNull(NULL != pJson && NULL != buffer);
-
-	RyanJsonPrintBuffer printfBuf = {
-		.bufAddress = (uint8_t *)buffer,
-		.isNoAlloc = RyanJsonTrue,
-		.size = length,
-		.cursor = 0,
-	};
-
-	RyanJsonCheckReturnNull(RyanJsonTrue == RyanJsonPrintValue(pJson, &printfBuf, 0, format));
-
-	RyanJsonCheckReturnNull(printBufAppend(&printfBuf, 1));
-	printfBuf.bufAddress[printfBuf.cursor] = '\0';
-	if (len) { *len = printfBuf.cursor; }
-
-	return (char *)printfBuf.bufAddress;
-}
-
-/**
- * @brief 获取 json 的子项个数
- *
- * @param pJson
- * @return uint32_t
+ * @param pJson 待查询节点
+ * @return uint32_t 元素数量；参数非法返回 0
  */
 uint32_t RyanJsonGetSize(RyanJson_t pJson)
 {
 	RyanJsonCheckCode(NULL != pJson, { return 0; });
 
-	if (!_checkType(RyanJsonGetType(pJson), RyanJsonTypeArray) && !_checkType(RyanJsonGetType(pJson), RyanJsonTypeObject)) { return 1; }
+	if (!_checkType(pJson, RyanJsonTypeArray) && !_checkType(pJson, RyanJsonTypeObject)) { return 1; }
 
 	RyanJson_t nextItem = RyanJsonGetObjectValue(pJson);
 	uint32_t size = 0;
 	while (NULL != nextItem)
 	{
 		size++;
-		nextItem = nextItem->next;
+		nextItem = RyanJsonGetNext(nextItem);
 	}
 
 	return size;
 }
 
 /**
- * @brief 通过 索引 获取json对象的子项
+ * @brief 复制单个节点（不递归复制子节点）
  *
- * @param pJson
- * @param index
- * @return RyanJson_t
+ * @param pJson 源节点
+ * @return RyanJson_t 新节点，失败返回 NULL
  */
-RyanJson_t RyanJsonGetObjectByIndex(RyanJson_t pJson, uint32_t index)
+static RyanJson_t RyanJsonDuplicateNode(RyanJson_t pJson)
 {
-	RyanJsonCheckReturnNull(NULL != pJson);
+	RyanJsonCheckAssert(NULL != pJson);
 
-	RyanJsonCheckReturnNull(_checkType(RyanJsonGetType(pJson), RyanJsonTypeArray) ||
-				_checkType(RyanJsonGetType(pJson), RyanJsonTypeObject));
-
-	RyanJson_t nextItem = RyanJsonGetObjectValue(pJson);
-	RyanJsonCheckReturnNull(NULL != nextItem);
-	while (index > 0)
-	{
-		index--;
-		nextItem = nextItem->next;
-		RyanJsonCheckReturnNull(NULL != nextItem);
-	}
-
-	return nextItem;
-}
-
-/**
- * @brief 通过 key 获取json对象的子项
- *
- * @param pJson
- * @param key
- * @return RyanJson_t
- */
-RyanJson_t RyanJsonGetObjectByKey(RyanJson_t pJson, const char *key)
-{
-	RyanJsonCheckReturnNull(NULL != pJson && NULL != key);
-
-	RyanJsonCheckReturnNull(_checkType(RyanJsonGetType(pJson), RyanJsonTypeObject));
-
-	RyanJson_t nextItem = RyanJsonGetObjectValue(pJson);
-	RyanJsonCheckReturnNull(NULL != nextItem);
-	RyanJsonCheckNeverNoAssert(RyanJsonIsKey(nextItem));
-
-	while (0 != RyanJsonStrcmp(RyanJsonGetKey(nextItem), key))
-	{
-		nextItem = nextItem->next;
-		RyanJsonCheckReturnNull(NULL != nextItem);
-		RyanJsonCheckNeverNoAssert(RyanJsonIsKey(nextItem));
-	}
-
-	return nextItem;
-}
-
-/**
- * @brief 通过 索引 分离json对象的子项
- *
- * @param pJson
- * @param index
- * @return RyanJson_t 被分离对象的指针
- */
-RyanJson_t RyanJsonDetachByIndex(RyanJson_t pJson, uint32_t index)
-{
-	RyanJsonCheckReturnNull(NULL != pJson);
-
-	RyanJsonCheckReturnNull(_checkType(RyanJsonGetType(pJson), RyanJsonTypeArray) ||
-				_checkType(RyanJsonGetType(pJson), RyanJsonTypeObject));
-
-	RyanJson_t prev = NULL;
-	RyanJson_t nextItem = RyanJsonGetObjectValue(pJson);
-	RyanJsonCheckReturnNull(NULL != nextItem);
-
-	while (index > 0)
-	{
-		prev = nextItem;
-		nextItem = nextItem->next;
-		index--;
-		RyanJsonCheckReturnNull(NULL != nextItem);
-	}
-
-	if (NULL != prev) { prev->next = nextItem->next; }
-	else
-	{
-		RyanJsonChangeObjectValue(pJson, nextItem->next);
-	}
-
-	nextItem->next = NULL;
-
-	return nextItem;
-}
-
-/**
- * @brief 通过 key 分离json对象的子项
- *
- * @param pJson
- * @param key
- * @return RyanJson_t
- */
-RyanJson_t RyanJsonDetachByKey(RyanJson_t pJson, const char *key)
-{
-	RyanJsonCheckReturnNull(NULL != pJson && NULL != key);
-	RyanJsonCheckReturnNull(_checkType(RyanJsonGetType(pJson), RyanJsonTypeObject));
-
-	RyanJson_t nextItem = RyanJsonGetObjectValue(pJson);
-	RyanJsonCheckReturnNull(NULL != nextItem);
-	RyanJsonCheckNeverNoAssert(RyanJsonIsKey(nextItem));
-
-	RyanJson_t prev = NULL;
-	while (0 != RyanJsonStrcmp(RyanJsonGetKey(nextItem), key))
-	{
-		prev = nextItem;
-		nextItem = nextItem->next;
-		RyanJsonCheckReturnNull(NULL != nextItem);
-		RyanJsonCheckNeverNoAssert(RyanJsonIsKey(nextItem));
-	}
-
-	if (NULL != prev) { prev->next = nextItem->next; }
-	else // 更改的可能是第一个节点
-	{
-		RyanJsonChangeObjectValue(pJson, nextItem->next);
-	}
-
-	nextItem->next = NULL;
-
-	return nextItem;
-}
-
-/**
- * @brief 通过 索引 删除json对象的子项
- *
- * @param pJson
- * @param index
- * @return RyanJsonBool_e
- */
-RyanJsonBool_e RyanJsonDeleteByIndex(RyanJson_t pJson, uint32_t index)
-{
-	RyanJsonCheckReturnFalse(NULL != pJson);
-
-	RyanJson_t nextItem = RyanJsonDetachByIndex(pJson, index);
-	RyanJsonCheckReturnFalse(NULL != nextItem);
-
-	RyanJsonDelete(nextItem);
-	return RyanJsonTrue;
-}
-
-/**
- * @brief 通过 key 删除json对象的子项
- *
- * @param pJson
- * @param key
- * @return RyanJsonBool_e
- */
-RyanJsonBool_e RyanJsonDeleteByKey(RyanJson_t pJson, const char *key)
-{
-	RyanJsonCheckReturnFalse(NULL != pJson && NULL != key);
-
-	RyanJson_t nextItem = RyanJsonDetachByKey(pJson, key);
-	RyanJsonCheckReturnFalse(NULL != nextItem);
-
-	RyanJsonDelete(nextItem);
-	return RyanJsonTrue;
-}
-
-/**
- * @brief 按 索引 插入json对象
- *
- * @param pJson
- * @param index
- * @param item
- * @return RyanJsonBool_e
- */
-RyanJsonBool_e RyanJsonInsert(RyanJson_t pJson, uint32_t index, RyanJson_t item)
-{
-	RyanJson_t nextItem = NULL;
-	RyanJson_t prev = NULL;
-
-	RyanJsonCheckReturnFalse(NULL != item);
-	RyanJsonCheckCode(NULL != pJson, { goto error__; });
-
-	RyanJsonCheckCode(_checkType(RyanJsonGetType(pJson), RyanJsonTypeArray) ||
-				  (_checkType(RyanJsonGetType(pJson), RyanJsonTypeObject) && RyanJsonIsKey(item)),
-			  {
-				  jsonLog("error__ 不是正确类型 %d\r\n", index);
-				  goto error__;
-			  });
-
-	nextItem = RyanJsonGetObjectValue(pJson);
-	while (nextItem && index > 0)
-	{
-		prev = nextItem;
-		nextItem = nextItem->next;
-		index--;
-	}
-
-	if (NULL != prev) { prev->next = item; }
-	else
-	{
-		RyanJsonChangeObjectValue(pJson, item);
-	}
-
-	// nextItem为NULL时这样赋值也是可以的
-	item->next = nextItem;
-
-	return RyanJsonTrue;
-
-error__:
-	RyanJsonDelete(item);
-	return RyanJsonFalse;
-}
-
-RyanJsonBool_e RyanJsonAddItemToObject(RyanJson_t pJson, const char *key, RyanJson_t item)
-{
-	RyanJsonCheckReturnFalse(NULL != pJson);
-
-	RyanJson_t pItem = RyanJsonCreateItem(key, item);
-	RyanJsonCheckCode(NULL != pItem, {
-		RyanJsonDelete(item);
-		return RyanJsonFalse;
-	});
-
-	return RyanJsonInsert(pJson, UINT32_MAX, pItem);
-}
-
-/**
- * @brief 通过 索引 替换json对象的子项
- *
- * @param pJson
- * @param index
- * @param item
- * @return RyanJsonBool_e
- */
-RyanJsonBool_e RyanJsonReplaceByIndex(RyanJson_t pJson, uint32_t index, RyanJson_t item)
-{
-	RyanJsonCheckReturnFalse(NULL != pJson && NULL != item);
-
-	RyanJsonCheckReturnFalse(_checkType(RyanJsonGetType(pJson), RyanJsonTypeArray) ||
-				 _checkType(RyanJsonGetType(pJson), RyanJsonTypeObject));
-
-	RyanJson_t prev = NULL;
-	RyanJson_t nextItem = RyanJsonGetObjectValue(pJson);
-	RyanJsonCheckReturnFalse(NULL != nextItem);
-
-	// 查找子项
-	while (index > 0)
-	{
-		prev = nextItem;
-		nextItem = nextItem->next;
-		index--;
-		RyanJsonCheckReturnFalse(NULL != nextItem);
-	}
-
-	RyanJsonReplaceNode(prev, nextItem, item);
-	if (NULL == prev) { RyanJsonChangeObjectValue(pJson, item); }
-
-	RyanJsonDelete(nextItem);
-	return RyanJsonTrue;
-}
-
-/**
- * @brief 通过 key 替换json对象的子项
- *
- * @param pJson
- * @param key
- * @param item
- * @return RyanJsonBool_e
- */
-RyanJsonBool_e RyanJsonReplaceByKey(RyanJson_t pJson, const char *key, RyanJson_t item)
-{
-	RyanJsonCheckReturnFalse(NULL != pJson && NULL != key && NULL != item);
-
-	RyanJsonCheckReturnFalse(_checkType(RyanJsonGetType(pJson), RyanJsonTypeObject));
-
-	RyanJson_t prev = NULL;
-	RyanJson_t nextItem = RyanJsonGetObjectValue(pJson);
-	RyanJsonCheckReturnFalse(NULL != nextItem);
-	RyanJsonCheckNeverNoAssert(RyanJsonIsKey(nextItem));
-
-	// 找到要修改的节点
-	while (0 != RyanJsonStrcmp(RyanJsonGetKey(nextItem), key))
-	{
-		prev = nextItem;
-		nextItem = nextItem->next;
-		RyanJsonCheckReturnFalse(NULL != nextItem);
-		RyanJsonCheckNeverNoAssert(RyanJsonIsKey(nextItem));
-	}
-
-	// 没有key的对象 申请一个带key的对象
-	if (RyanJsonFalse == RyanJsonIsKey(item))
-	{
-		item = RyanJsonCreateItem(key, item);
-		RyanJsonCheckReturnFalse(NULL != item);
-	}
-	else
-	{
-		if (0 != RyanJsonStrcmp(RyanJsonGetKey(item), key)) { RyanJsonChangeKey(item, key); }
-	}
-
-	RyanJsonReplaceNode(prev, nextItem, item);
-	if (NULL == prev) { RyanJsonChangeObjectValue(pJson, item); }
-
-	RyanJsonDelete(nextItem);
-
-	return RyanJsonTrue;
-}
-
-RyanJsonBool_e RyanJsonChangeKey(RyanJson_t pJson, const char *key)
-{
-	RyanJsonCheckReturnFalse(NULL != pJson && NULL != key);
-	RyanJsonCheckReturnFalse(RyanJsonIsKey(pJson) || RyanJsonIsString(pJson));
-	return RyanJsonChangeString(pJson, RyanJsonFalse, key, RyanJsonIsString(pJson) ? RyanJsonGetStringValue(pJson) : NULL);
-}
-
-RyanJsonBool_e RyanJsonChangeStringValue(RyanJson_t pJson, const char *strValue)
-{
-	RyanJsonCheckReturnFalse(NULL != pJson && NULL != strValue);
-	RyanJsonCheckReturnFalse(RyanJsonIsKey(pJson) || RyanJsonIsString(pJson));
-	return RyanJsonChangeString(pJson, RyanJsonFalse, RyanJsonIsKey(pJson) ? RyanJsonGetKey(pJson) : NULL, strValue);
-}
-
-RyanJsonBool_e RyanJsonChangeIntValue(RyanJson_t pJson, int32_t number)
-{
-	RyanJsonCheckReturnFalse(NULL != pJson);
-	RyanJsonMemcpy(RyanJsonGetValue(pJson), &number, sizeof(number));
-	return RyanJsonTrue;
-}
-
-RyanJsonBool_e RyanJsonChangeDoubleValue(RyanJson_t pJson, double number)
-{
-	RyanJsonCheckReturnFalse(NULL != pJson);
-	RyanJsonMemcpy(RyanJsonGetValue(pJson), &number, sizeof(number));
-	return RyanJsonTrue;
-}
-
-/**
- * @brief 创建一个 NULL 类型的json对象
- *
- * @param key
- * @return RyanJson_t
- */
-RyanJson_t RyanJsonCreateNull(const char *key)
-{
-	RyanJsonNodeInfo_t nodeInfo = {.type = RyanJsonTypeNull, .key = key};
-	return RyanJsonNewNode(&nodeInfo);
-}
-
-/**
- * @brief 创建一个 boolean 类型的json对象
- *
- * @param key
- * @return RyanJson_t
- */
-RyanJson_t RyanJsonCreateBool(const char *key, RyanJsonBool_e boolean)
-{
-	RyanJsonNodeInfo_t nodeInfo = {.type = RyanJsonTypeBool, .key = key, .boolIsTrueFlag = boolean};
-	return RyanJsonNewNode(&nodeInfo);
-}
-
-/**
- * @brief 创建一个 number 类型中的 int32_t 类型json对象
- *
- * @param key
- * @return RyanJson_t
- */
-RyanJson_t RyanJsonCreateInt(const char *key, int32_t number)
-{
-	RyanJsonNodeInfo_t nodeInfo = {.type = RyanJsonTypeNumber, .key = key, .numberIsDoubleFlag = RyanJsonFalse};
-
-	RyanJson_t item = RyanJsonNewNode(&nodeInfo);
-	RyanJsonCheckReturnNull(NULL != item);
-
-	RyanJsonChangeIntValue(item, number);
-	return item;
-}
-
-/**
- * @brief 创建一个 number 类型中的 double 类型json对象
- * 可以使用double来保存int64类型数据,但是更推荐通过字符串保存
- * @param key
- * @param number
- * @return RyanJson_t
- */
-RyanJson_t RyanJsonCreateDouble(const char *key, double number)
-{
-	RyanJsonNodeInfo_t nodeInfo = {.type = RyanJsonTypeNumber, .key = key, .numberIsDoubleFlag = RyanJsonTrue};
-	RyanJson_t item = RyanJsonNewNode(&nodeInfo);
-	RyanJsonCheckReturnNull(NULL != item);
-
-	RyanJsonChangeDoubleValue(item, number);
-	return item;
-}
-
-/**
- * @brief 创建一个 string 类型的json对象
- *
- * @param key
- * @param string
- * @return RyanJson_t
- */
-RyanJson_t RyanJsonCreateString(const char *key, const char *string)
-{
-	RyanJsonCheckReturnNull(NULL != string);
-
-	RyanJsonNodeInfo_t nodeInfo = {.type = RyanJsonTypeString, .key = key, .strValue = string};
-	return RyanJsonNewNode(&nodeInfo);
-}
-
-/**
- * @brief 创建一个 obj 类型的json对象
- *
- * @return RyanJson_t
- */
-static RyanJson_t RyanJsonCreateObjectAndKey(const char *key)
-{
-	RyanJsonNodeInfo_t nodeInfo = {.type = RyanJsonTypeObject, .key = key};
-	return RyanJsonNewNode(&nodeInfo);
-}
-
-RyanJson_t RyanJsonCreateObject(void) { return RyanJsonCreateObjectAndKey(NULL); }
-
-/**
- * @brief 创建一个 arr 类型的json对象
- *
- * @return RyanJson_t
- */
-static RyanJson_t RyanJsonCreateArrayAndKey(const char *key)
-{
-	RyanJsonNodeInfo_t nodeInfo = {.type = RyanJsonTypeArray, .key = key};
-	return RyanJsonNewNode(&nodeInfo);
-}
-RyanJson_t RyanJsonCreateArray(void) { return RyanJsonCreateArrayAndKey(NULL); }
-
-RyanJsonBool_e RyanJsonIsKey(RyanJson_t pJson) { return RyanJsonMakeBool(NULL != pJson && RyanJsonGetPayloadWhiteKeyByFlag(pJson)); }
-RyanJsonBool_e RyanJsonIsNull(RyanJson_t pJson) { return RyanJsonMakeBool(NULL != pJson && RyanJsonTypeNull == RyanJsonGetType(pJson)); }
-RyanJsonBool_e RyanJsonIsBool(RyanJson_t pJson) { return RyanJsonMakeBool(NULL != pJson && RyanJsonTypeBool == RyanJsonGetType(pJson)); }
-RyanJsonBool_e RyanJsonIsNumber(RyanJson_t pJson)
-{
-	return RyanJsonMakeBool(NULL != pJson && RyanJsonTypeNumber == RyanJsonGetType(pJson));
-}
-RyanJsonBool_e RyanJsonIsString(RyanJson_t pJson)
-{
-	return RyanJsonMakeBool(NULL != pJson && RyanJsonTypeString == RyanJsonGetType(pJson));
-}
-RyanJsonBool_e RyanJsonIsArray(RyanJson_t pJson) { return RyanJsonMakeBool(NULL != pJson && RyanJsonTypeArray == RyanJsonGetType(pJson)); }
-RyanJsonBool_e RyanJsonIsObject(RyanJson_t pJson)
-{
-	return RyanJsonMakeBool(NULL != pJson && RyanJsonTypeObject == RyanJsonGetType(pJson));
-}
-RyanJsonBool_e RyanJsonIsInt(RyanJson_t pJson)
-{
-	return RyanJsonMakeBool(RyanJsonIsNumber(pJson) && (RyanJsonFalse == RyanJsonGetPayloadNumberIsDoubleByFlag(pJson)));
-}
-RyanJsonBool_e RyanJsonIsDouble(RyanJson_t pJson)
-{
-	return RyanJsonMakeBool(RyanJsonIsNumber(pJson) && (RyanJsonTrue == RyanJsonGetPayloadNumberIsDoubleByFlag(pJson)));
-}
-
-/**
- * @brief 深拷贝一份json对象
- *
- * @param pJson
- * @return RyanJson_t 拷贝的新对象指针
- */
-RyanJson_t RyanJsonDuplicate(RyanJson_t pJson)
-{
-	RyanJsonCheckReturnNull(NULL != pJson);
-
-	char *key = NULL;
-	if (RyanJsonIsKey(pJson)) { key = RyanJsonGetKey(pJson); }
-
+	char *key = RyanJsonIsKey(pJson) ? RyanJsonGetKey(pJson) : NULL;
 	RyanJson_t newItem = NULL;
+
 	switch (RyanJsonGetType(pJson))
 	{
 	case RyanJsonTypeNull: newItem = RyanJsonCreateNull(key); break;
-	case RyanJsonTypeBool: // 创建NewNode的时候已经赋值了
+	case RyanJsonTypeBool: // 创建节点时已写入 bool 值
 		newItem = RyanJsonCreateBool(key, RyanJsonGetBoolValue(pJson));
 		break;
 
@@ -2299,94 +143,153 @@ RyanJson_t RyanJsonDuplicate(RyanJson_t pJson)
 		if (RyanJsonIsInt(pJson)) { newItem = RyanJsonCreateInt(key, RyanJsonGetIntValue(pJson)); }
 		else
 		{
-			// 不可能出现另外一个条件了
-			RyanJsonCheckNeverNoAssert(RyanJsonIsDouble(pJson));
+			// Number 节点除了 int32_t 只可能是 double
+			RyanJsonCheckAssert(RyanJsonIsDouble(pJson));
 			newItem = RyanJsonCreateDouble(key, RyanJsonGetDoubleValue(pJson));
 		}
 		break;
-
 	case RyanJsonTypeString: newItem = RyanJsonCreateString(key, RyanJsonGetStringValue(pJson)); break;
-
-	case RyanJsonTypeArray:
-	case RyanJsonTypeObject: {
-		if (_checkType(RyanJsonGetType(pJson), RyanJsonTypeArray)) { newItem = RyanJsonCreateArrayAndKey(key); }
-		else
-		{
-			newItem = RyanJsonCreateObjectAndKey(key);
-		}
-
-		RyanJsonCheckCode(NULL != newItem, { goto error__; });
-
-		RyanJson_t item, prev = NULL;
-		RyanJson_t temp = RyanJsonGetObjectValue(pJson);
-		while (temp)
-		{
-			item = RyanJsonDuplicate(temp);
-			RyanJsonCheckCode(NULL != item, { goto error__; });
-
-			// RyanJsonCheckNeverNoAssert(RyanJsonTrue == RyanJsonInsert(newItem, UINT32_MAX, item));
-
-			if (NULL != prev)
-			{
-				prev->next = item;
-				prev = item;
-			}
-			else
-			{
-				RyanJsonChangeObjectValue(newItem, item);
-				prev = item;
-			}
-
-			temp = temp->next;
-		}
-		break;
+	case RyanJsonTypeArray: newItem = RyanJsonInternalCreateArrayAndKey(key); break;
+	case RyanJsonTypeObject: newItem = RyanJsonInternalCreateObjectAndKey(key); break;
 	}
-
-	default: goto error__;
-	}
-
 	return newItem;
+}
+
+/**
+ * @brief 深拷贝整棵 Json 树（迭代版）
+ *
+ * @param pJson 源 Json 根节点
+ * @return RyanJson_t 拷贝后的根节点，失败返回 NULL
+ */
+RyanJson_t RyanJsonDuplicate(RyanJson_t pJson)
+{
+	RyanJsonCheckReturnNull(NULL != pJson);
+
+	// 先复制根节点
+	RyanJson_t root = RyanJsonDuplicateNode(pJson);
+	RyanJsonCheckReturnNull(NULL != root);
+
+	// 初始化迭代状态
+	// sourceNode：当前遍历到的源节点，初始指向根节点的首个子节点
+	RyanJson_t sourceNode = NULL;
+
+	if (_checkType(pJson, RyanJsonTypeArray) || _checkType(pJson, RyanJsonTypeObject)) { sourceNode = RyanJsonGetObjectValue(pJson); }
+
+	// 如果根节点不是容器类型（Array 或 Object），或者容器为空（没有子节点），
+	// 则不需要进行后续的子节点复制，直接返回根节点副本即可。
+	// RyanJsonGetObjectValue 返回容器的子节点起始指针。
+	if (NULL == sourceNode) { return root; }
+
+	// targetParent：目标树中当前插入位置的父节点
+	RyanJson_t targetParent = root;
+	// lastSibling：目标树当前层级里最近插入的兄弟节点
+	RyanJson_t lastSibling = NULL;
+
+	while (1)
+	{
+		// 复制当前节点并插入目标树
+		{
+			RyanJson_t newItem = RyanJsonDuplicateNode(sourceNode);
+			RyanJsonCheckCode(NULL != newItem, { goto error__; });
+
+			// 新节点插入到目标父节点下，位置在 lastSibling 之后
+			// RyanJsonInternalListInsertAfter 会维护链表连接与 IsLast 标记
+			RyanJsonInternalListInsertAfter(targetParent, lastSibling, newItem);
+			lastSibling = newItem; // 更新 lastSibling 为刚插入的节点
+		}
+
+		// 当前节点是非空容器时下沉到子层
+		// 如果当前源节点是容器且非空，则进入下一层级
+		if (_checkType(sourceNode, RyanJsonTypeArray) || _checkType(sourceNode, RyanJsonTypeObject))
+		{
+			RyanJson_t child = RyanJsonGetObjectValue(sourceNode);
+			if (child)
+			{
+				sourceNode = child;         // 移动到子节点
+				targetParent = lastSibling; // 上一步插入的新节点成为下一层的父节点
+				lastSibling = NULL;         // 新层级尚未插入子节点
+				continue;                   // 继续循环处理子节点
+			}
+		}
+
+		// 同层前进，必要时回溯到父层
+		while (1)
+		{
+			// 优先尝试移动到下一个兄弟节点
+			RyanJson_t next = RyanJsonGetNext(sourceNode);
+			if (next)
+			{
+				sourceNode = next; // 移动到兄弟节点
+				break;             // 跳出内层循环，回到外层循环进行复制
+			}
+
+			// 无兄弟节点（当前为 Last）时沿线索回溯到父节点
+			// 线索化链表中，IsLast=1 的节点其 next 指向父节点
+			sourceNode = sourceNode->next;
+
+			// 回溯到起始根节点，说明整棵树遍历完成
+			if (sourceNode == pJson) { return root; }
+
+			// 目标树同步回溯到上一层
+			// 此时 targetParent 是当前层的父节点，它的所有子节点都已复制完毕。
+			// 我们需要回到 targetParent 的父节点层级。
+			// 在进入这一层时，targetParent 是作为 lastSibling 被记录的。
+			// 也就是：上一层的 lastSibling 就是现在的 targetParent。
+			lastSibling = targetParent;
+
+			// 同步遍历下 targetParent 也一定是 Last 节点，
+			// 因而它的 next 同样指向父节点。
+			targetParent = targetParent->next;
+		}
+	}
 
 error__:
-	RyanJsonDelete(newItem);
+	RyanJsonDelete(root);
 	return NULL;
 }
 
 /**
- * @brief 通过删除无效字符、注释等， 减少json文本大小
+ * @brief 原地压缩 Json 字符串（移除空白与注释）
  *
- * @param text 文本指针
- * @param textLen 文本长度,不使用uint32_t是方式用户传递的参数隐式转换不容易发现bug
- * @return uint32_t
+ * @param text 可写缓冲区
+ * @param textLen 缓冲区可写长度
+ * @return uint32_t 压缩后字符数（不含终止符）
+ * @note 仅当返回值小于 textLen 时写入 '\0'
  */
 uint32_t RyanJsonMinify(char *text, int32_t textLen)
 {
 	RyanJsonCheckCode(NULL != text && textLen > 0, { return 0; });
 
-	char *t = (char *)text;           // 假设 text 指向可写缓冲区
+	char *t = (char *)text;           // 写指针
 	const char *end = text + textLen; // 边界
 	uint32_t count = 0;               // 压缩后字符数
 
 	while (text < end && *text)
 	{
-		if (*text == ' ' || *text == '\t' || *text == '\r' || *text == '\n') { text++; }
-		else if (*text == '/' && (text + 1 < end) && text[1] == '/')
+		if (' ' == *text || '\t' == *text || '\r' == *text || '\n' == *text) { text++; }
+		else if ('/' == *text && (text + 1 < end) && '/' == text[1])
 		{
-			while (text < end && *text && *text != '\n') { text++; }
+			while (text < end && *text && '\n' != *text)
+			{
+				text++;
+			}
 		}
-		else if (*text == '/' && (text + 1 < end) && text[1] == '*')
+		else if ('/' == *text && (text + 1 < end) && '*' == text[1])
 		{
 			text += 2;
-			while (text < end && *text && !(*text == '*' && (text + 1 < end) && text[1] == '/')) { text++; }
+			while (text < end && *text && !('*' == *text && (text + 1 < end) && '/' == text[1]))
+			{
+				text++;
+			}
 			if (text + 1 < end) { text += 2; }
 		}
-		else if (*text == '\"')
+		else if ('\"' == *text)
 		{
 			*t++ = *text++;
 			count++;
-			while (text < end && *text && *text != '\"')
+			while (text < end && *text && '\"' != *text)
 			{
-				if (*text == '\\' && text + 1 < end)
+				if ('\\' == *text && text + 1 < end)
 				{
 					*t++ = *text++;
 					count++;
@@ -2407,78 +310,173 @@ uint32_t RyanJsonMinify(char *text, int32_t textLen)
 		}
 	}
 
-	*t = '\0';    // 调用者需保证缓冲区有空间
+	// 仅当缓冲区仍有空间时写入终止符，避免越界写
+	if (t < end) { *t = '\0'; }
 	return count; // 返回压缩后大小
 }
 
 /**
- * @brief 递归比较两个 pJson 对象key和value是否相等。
- * 此接口效率较低, 谨慎使用
- * @param leftJson
- * @param rightJson
- * @return RyanJsonBool_e
+ * @brief Json 内部比较函数（支持全量比较/仅 Key 比较）
+ *
+ * @param leftJson 左侧节点
+ * @param rightJson 右侧节点
+ * @param fullCompare RyanJsonTrue 比较值，RyanJsonFalse 仅比较结构与 key
+ * @return RyanJsonBool_e 两棵树是否相等
  */
-RyanJsonBool_e RyanJsonCompare(RyanJson_t leftJson, RyanJson_t rightJson)
+static RyanJsonBool_e RyanJsonInternalCompare(RyanJson_t leftJson, RyanJson_t rightJson, RyanJsonBool_e fullCompare)
 {
 	RyanJsonCheckReturnFalse(NULL != leftJson && NULL != rightJson);
 
-	// 相同的对象相等
 	if (leftJson == rightJson) { return RyanJsonTrue; }
 
-	RyanJsonCheckReturnFalse(RyanJsonGetType(leftJson) == RyanJsonGetType(rightJson));
+	RyanJson_t leftCurrent = leftJson;
+	RyanJson_t rightCurrent = rightJson;
 
-	switch (RyanJsonGetType(leftJson))
+	while (1)
 	{
-	case RyanJsonTypeNull: return RyanJsonTrue;
+		// 比较当前节点的类型、值与规模
+		RyanJsonCheckReturnFalse(RyanJsonGetType(leftCurrent) == RyanJsonGetType(rightCurrent));
 
-	case RyanJsonTypeBool: return (RyanJsonGetBoolValue(leftJson) == RyanJsonGetBoolValue(rightJson)) ? RyanJsonTrue : RyanJsonFalse;
-
-	case RyanJsonTypeNumber: {
-
-		if (RyanJsonTrue == RyanJsonIsInt(leftJson) && RyanJsonTrue == RyanJsonIsInt(rightJson))
+		switch (RyanJsonGetType(leftCurrent))
 		{
-			return (RyanJsonGetIntValue(leftJson) == RyanJsonGetIntValue(rightJson)) ? RyanJsonTrue : RyanJsonFalse;
+		case RyanJsonTypeNull: break;
+		case RyanJsonTypeBool:
+			if (fullCompare)
+			{
+				RyanJsonCheckReturnFalse(RyanJsonGetBoolValue(leftCurrent) == RyanJsonGetBoolValue(rightCurrent));
+			}
+			break;
+		case RyanJsonTypeNumber:
+			if (fullCompare)
+			{
+				if (RyanJsonIsInt(leftCurrent))
+				{
+					RyanJsonCheckReturnFalse(RyanJsonGetIntValue(leftCurrent) == RyanJsonGetIntValue(rightCurrent));
+				}
+				else
+				{
+					RyanJsonCheckReturnFalse(RyanJsonCompareDouble(RyanJsonGetDoubleValue(leftCurrent),
+										       RyanJsonGetDoubleValue(rightCurrent)));
+				}
+			}
+			break;
+		case RyanJsonTypeString:
+			if (fullCompare)
+			{
+				RyanJsonCheckReturnFalse(
+					RyanJsonInternalStrEq(RyanJsonGetStringValue(leftCurrent), RyanJsonGetStringValue(rightCurrent)));
+			}
+			break;
+		case RyanJsonTypeArray:
+		case RyanJsonTypeObject: RyanJsonCheckReturnFalse(RyanJsonGetSize(leftCurrent) == RyanJsonGetSize(rightCurrent)); break;
+		default: return RyanJsonFalse;
 		}
 
-		if (RyanJsonTrue == RyanJsonIsDouble(leftJson) && RyanJsonTrue == RyanJsonIsDouble(rightJson))
+		// 容器节点尝试下沉到子节点继续比较
+		if (_checkType(leftCurrent, RyanJsonTypeArray) || _checkType(leftCurrent, RyanJsonTypeObject))
 		{
-			return RyanJsonCompareDouble(RyanJsonGetDoubleValue(leftJson), RyanJsonGetDoubleValue(rightJson));
+			RyanJson_t leftChild = RyanJsonGetObjectValue(leftCurrent);
+			if (leftChild)
+			{
+				RyanJson_t rightChild = NULL;
+
+				if (RyanJsonIsArray(leftCurrent)) { rightChild = RyanJsonGetObjectValue(rightCurrent); }
+				else
+				{
+					RyanJsonCheckAssert(RyanJsonTrue == RyanJsonIsKey(leftChild));
+					const char *leftChildKey = RyanJsonGetKey(leftChild);
+
+					// 同序快路径：首子节点 key 一致时直接下沉，避免一次 O(n) 查找
+					RyanJson_t rightFirstChild = RyanJsonGetObjectValue(rightCurrent);
+					RyanJsonCheckAssert(NULL != rightFirstChild && RyanJsonTrue == RyanJsonIsKey(rightFirstChild));
+					if (RyanJsonTrue == RyanJsonInternalStrEq(leftChildKey, RyanJsonGetKey(rightFirstChild)))
+					{
+						rightChild = rightFirstChild;
+					}
+					else
+					{
+						rightChild = RyanJsonGetObjectByKey(rightCurrent, leftChildKey);
+					}
+				}
+
+				RyanJsonCheckReturnFalse(NULL != rightChild);
+
+				leftCurrent = leftChild;
+				rightCurrent = rightChild;
+				continue;
+			}
 		}
 
-		return RyanJsonFalse;
-	}
-
-	case RyanJsonTypeString:
-		return (0 == RyanJsonStrcmp(RyanJsonGetStringValue(leftJson), RyanJsonGetStringValue(rightJson))) ? RyanJsonTrue
-														  : RyanJsonFalse;
-
-	case RyanJsonTypeArray: {
-		RyanJsonCheckReturnFalse(RyanJsonGetSize(leftJson) == RyanJsonGetSize(rightJson));
-
-		RyanJson_t item;
-		uint32_t itemIndex = 0;
-		RyanJsonArrayForEach(leftJson, item)
+		// 同层前进，必要时回溯
+		while (1)
 		{
-			RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonCompare(item, RyanJsonGetObjectByIndex(rightJson, itemIndex)));
-			itemIndex++;
+			if (leftCurrent == leftJson) { return RyanJsonTrue; }
+
+			// 优先定位右侧对应的兄弟节点
+			RyanJson_t leftNext = RyanJsonGetNext(leftCurrent);
+			if (leftNext)
+			{
+				RyanJson_t rightNext = NULL;
+				if (RyanJsonFalse == RyanJsonIsKey(leftNext)) { rightNext = RyanJsonGetNext(rightCurrent); }
+				else
+				{
+					RyanJsonCheckAssert(RyanJsonTrue == RyanJsonIsKey(leftNext));
+					const char *leftNextKey = RyanJsonGetKey(leftNext);
+					RyanJson_t rightParent = RyanJsonInternalGetParent(rightCurrent);
+
+					// 同序快路径：优先尝试右侧当前节点的直接兄弟，未命中再回退到按 key 查找
+					RyanJson_t rightCandidate = RyanJsonGetNext(rightCurrent);
+					if (rightCandidate) { RyanJsonCheckAssert(RyanJsonTrue == RyanJsonIsKey(rightCandidate)); }
+					if (rightCandidate &&
+					    RyanJsonTrue == RyanJsonInternalStrEq(leftNextKey, RyanJsonGetKey(rightCandidate)))
+					{
+						rightNext = rightCandidate;
+					}
+					else
+					{
+						rightNext = RyanJsonGetObjectByKey(rightParent, leftNextKey);
+					}
+				}
+
+				RyanJsonCheckReturnFalse(NULL != rightNext);
+
+				leftCurrent = leftNext;
+				rightCurrent = rightNext;
+				break;
+			}
+
+			// 无兄弟可比时回溯到父层
+			leftCurrent = leftCurrent->next;
+
+			if (RyanJsonIsArray(leftCurrent)) { rightCurrent = rightCurrent->next; }
+			else
+			{
+				rightCurrent = RyanJsonInternalGetParent(rightCurrent);
+			}
 		}
-
-		return RyanJsonTrue;
 	}
+}
 
-	case RyanJsonTypeObject: {
-		RyanJsonCheckReturnFalse(RyanJsonGetSize(leftJson) == RyanJsonGetSize(rightJson));
+/**
+ * @brief 比较两个 Json 是否完全相等（结构 + key + value）
+ *
+ * @param leftJson 左侧节点
+ * @param rightJson 右侧节点
+ * @return RyanJsonBool_e 是否相等
+ */
+RyanJsonBool_e RyanJsonCompare(RyanJson_t leftJson, RyanJson_t rightJson)
+{
+	return RyanJsonInternalCompare(leftJson, rightJson, RyanJsonTrue);
+}
 
-		RyanJson_t item;
-		RyanJsonObjectForEach(leftJson, item)
-		{
-			RyanJsonCheckReturnFalse(RyanJsonTrue ==
-						 RyanJsonCompare(item, RyanJsonGetObjectByKey(rightJson, RyanJsonGetKey(item))));
-		}
-
-		return RyanJsonTrue;
-	}
-	}
-
-	return RyanJsonFalse;
+/**
+ * @brief 比较两个 Json 的结构与 key 是否相等（忽略 value）
+ *
+ * @param leftJson 左侧节点
+ * @param rightJson 右侧节点
+ * @return RyanJsonBool_e 是否相等
+ */
+RyanJsonBool_e RyanJsonCompareOnlyKey(RyanJson_t leftJson, RyanJson_t rightJson)
+{
+	return RyanJsonInternalCompare(leftJson, rightJson, RyanJsonFalse);
 }
