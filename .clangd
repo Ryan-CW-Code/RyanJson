@@ -1,0 +1,10 @@
+Index:
+  Background: Build      # 开启后台索引
+  
+# 如果你的 compile_commands.json 不在根目录，需要在这里显式指定
+CompileFlags:
+  CompilationDatabase: ".vscode"
+
+Diagnostics:
+  UnusedIncludes: None  # 关键：这会关闭“未使用头文件”的提示
+  MissingIncludes: None # 可选：关闭“缺失头文件”的提示

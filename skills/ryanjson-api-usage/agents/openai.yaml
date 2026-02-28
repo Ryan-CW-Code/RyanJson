@@ -1,0 +1,4 @@
+interface:
+  display_name: "RyanJson API 使用"
+  short_description: "面向 RT-Thread 的公开 API 落地与所有权语义说明"
+  default_prompt: "使用 $ryanjson-api-usage 输出 RyanJson 公开 API 的可运行方案：强制 RyanJsonInitHooks 前置，严格区分成功/失败路径与所有权释放责任；语义不清时按 example -> unityTest -> fuzzer 取证，并标注已验证与推断。"
