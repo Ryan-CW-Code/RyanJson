@@ -21,6 +21,7 @@
 - 覆盖脚本分工：
   - `scripts/ci/runBaseCoverage.sh`：单元测试矩阵（`quick=2` / `nightly=4` / `full=8`）
   - `scripts/ci/runCoverage.sh`：fuzzer 执行与覆盖率生成
+- Unity runner 列表自动生成：`scripts/ci/checkUnityRunnerList.sh` 生成 `test/unityTest/runner/test_list.inc`，由 `scripts/ci/runBaseCoverage.sh` 调用；不要手改 `test_list.inc`，新增/删除 runner 后运行脚本或 `run_local_base.sh`。
 - 本地便捷入口在仓库根目录：
   - `run_local_base.sh`：本地一键 unit 矩阵
   - `run_local_qemu.sh`：本地一键 QEMU 矩阵（默认 full，覆盖 localbase 用例并校验对齐异常）
@@ -45,6 +46,7 @@
 - `test/unityTest/runner/main.c`：`#ifndef isEnableFuzzer` 包裹 Unity `main`
 - `scripts/ci/runBaseCoverage.sh`：unit 矩阵执行与合并覆盖率
 - `scripts/ci/runCoverage.sh`：构建/执行 `RyanJsonFuzz` + `llvm-cov`
+- `scripts/ci/checkUnityRunnerList.sh`：自动生成 `test/unityTest/runner/test_list.inc`
 - `run_local_base.sh`、`run_local_qemu.sh`、`run_local_ci.sh`、`run_local_fuzz.sh`：本地入口封装
 - `test/qemu/platform/qemuStartup.c`：`SCB->CCR.UNALIGN_TRP=1` 的运行时设置与启动日志
 - `xmake.lua`：QEMU target 保留 `YYJSON_DISABLE_UNALIGNED_MEMORY_ACCESS=1`，不启用 `-mno-unaligned-access`

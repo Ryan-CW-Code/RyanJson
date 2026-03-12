@@ -47,17 +47,18 @@ static void testLoadStandardObject(void)
 {
 	char *str = NULL;
 	RyanJson_t json;
-	char *jsonstr = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":"
-			"{\"inter\":16,\"double\":16."
-			"89,\"string\":\"hello\","
-			"\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,"
-			"16.89,16.89,16.89],"
-			"\"arrayString\":[\"hello\",\"hello\","
-			"\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,"
-			"\"double\":16.89,\"string\":"
-			"\"hello\",\"boolTrue\":true,"
-			"\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,"
-			"\"boolFalse\":false,\"null\":null}],\"unicode\":\"😀\"}";
+	const char *jsonstr =
+		"{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":"
+		"{\"inter\":16,\"double\":16."
+		"89,\"string\":\"hello\","
+		"\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,"
+		"16.89,16.89,16.89],"
+		"\"arrayString\":[\"hello\",\"hello\","
+		"\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,"
+		"\"double\":16.89,\"string\":"
+		"\"hello\",\"boolTrue\":true,"
+		"\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,"
+		"\"boolFalse\":false,\"null\":null}],\"unicode\":\"😀\"}";
 
 	// 标准对象加载测试
 	json = RyanJsonParse(jsonstr);
@@ -224,6 +225,23 @@ static void testLoadParseOptionsBinaryTail(void)
 	TEST_ASSERT_NULL_MESSAGE(json, "ParseOptions(含二进制尾部, 强制结尾) 应失败");
 }
 
+static void testLoadParseOptionsStrictSliceStopsBeforeTailGarbage(void)
+{
+	// 复杂链路：
+	// ParseOptions(requireNullTerminator=true, size 截断尾部垃圾) -> end 指针校验。
+	// 目标：验证 strict 解析仅关注切片范围内的内容。
+	const char text[] = "{\"a\":1} \t\r\nX";
+	const uint32_t sliceLen = (uint32_t)(sizeof(text) - 2U); // 排除尾部 'X' 与 '\0'
+	const char *end = NULL;
+
+	RyanJson_t json = RyanJsonParseOptions(text, sliceLen, RyanJsonTrue, &end);
+	TEST_ASSERT_NOT_NULL_MESSAGE(json, "ParseOptions(strict, slice) 应成功");
+	TEST_ASSERT_EQUAL_PTR(text + sliceLen, end);
+	TEST_ASSERT_EQUAL_INT(1, RyanJsonGetIntValue(RyanJsonGetObjectByKey(json, "a")));
+
+	RyanJsonDelete(json);
+}
+
 static void testLoadNumberBoundaries(void)
 {
 	RyanJson_t json = RyanJsonParse("{\"i\":2147483647,\"i2\":-2147483648,\"i3\":2147483648,\"n\":-0}");
@@ -307,6 +325,61 @@ static void testLoadDuplicateKeyScopeIsolation(void)
 	}
 }
 
+static void testLoadParseOptionsSequentialNonNullTerminatedMultiDocs(void)
+{
+	// 复杂链路：
+	// ParseOptions(非 NUL 终止切片) 连续解析 object -> array -> object，
+	// 并验证剩余非法尾片段会失败。
+	// 目标：
+	// 1) 覆盖“无 '\0' 结尾 + size 驱动”的多文档顺序解析成功路径；
+	// 2) 覆盖 parseEndPtr 在多次推进中的准确性；
+	// 3) 覆盖剩余非法尾部的失败隔离与严格切片解析能力。
+	const uint8_t stream[] = {' ', '{', '"', 'a', '"', ':', '1', '}', '\n', '[', '2', ',',
+				  '3', ']', ' ', '{', '"', 'x', '"', ':', '4',  '}', '#'};
+	const uint32_t streamLen = (uint32_t)sizeof(stream);
+
+	const char *end1 = NULL;
+	RyanJson_t doc1 = RyanJsonParseOptions((const char *)stream, streamLen, RyanJsonFalse, &end1);
+	TEST_ASSERT_NOT_NULL_MESSAGE(doc1, "文档1(object) 解析应成功");
+	TEST_ASSERT_NOT_NULL(end1);
+	TEST_ASSERT_EQUAL_INT(1, RyanJsonGetIntValue(RyanJsonGetObjectToKey(doc1, "a")));
+
+	uint32_t remain1 = (uint32_t)(streamLen - (uint32_t)(end1 - (const char *)stream));
+	const char *end2 = NULL;
+	RyanJson_t doc2 = RyanJsonParseOptions(end1, remain1, RyanJsonFalse, &end2);
+	TEST_ASSERT_NOT_NULL_MESSAGE(doc2, "文档2(array) 解析应成功");
+	TEST_ASSERT_NOT_NULL(end2);
+	TEST_ASSERT_TRUE(RyanJsonIsArray(doc2));
+	TEST_ASSERT_EQUAL_UINT32(2U, RyanJsonGetArraySize(doc2));
+	TEST_ASSERT_EQUAL_INT(2, RyanJsonGetIntValue(RyanJsonGetObjectByIndex(doc2, 0)));
+	TEST_ASSERT_EQUAL_INT(3, RyanJsonGetIntValue(RyanJsonGetObjectByIndex(doc2, 1)));
+
+	uint32_t remain2 = (uint32_t)(streamLen - (uint32_t)(end2 - (const char *)stream));
+	const char *end3 = NULL;
+	RyanJson_t doc3 = RyanJsonParseOptions(end2, remain2, RyanJsonFalse, &end3);
+	TEST_ASSERT_NOT_NULL_MESSAGE(doc3, "文档3(object) 解析应成功");
+	TEST_ASSERT_NOT_NULL(end3);
+	TEST_ASSERT_EQUAL_INT(4, RyanJsonGetIntValue(RyanJsonGetObjectToKey(doc3, "x")));
+
+	// 对文档3 进行严格切片验证：只给文档3 的片段长度，strict 模式应成功并停在片段末尾。
+	const char *strictEnd = NULL;
+	RyanJson_t strictDoc3 = RyanJsonParseOptions(end2, (uint32_t)(end3 - end2), RyanJsonTrue, &strictEnd);
+	TEST_ASSERT_NOT_NULL_MESSAGE(strictDoc3, "文档3 严格切片解析应成功");
+	TEST_ASSERT_NOT_NULL(strictEnd);
+	TEST_ASSERT_EQUAL_PTR(end3, strictEnd);
+	TEST_ASSERT_EQUAL_INT(4, RyanJsonGetIntValue(RyanJsonGetObjectToKey(strictDoc3, "x")));
+
+	// 剩余非法尾片段 '#' 应解析失败。
+	uint32_t remain3 = (uint32_t)(streamLen - (uint32_t)(end3 - (const char *)stream));
+	RyanJson_t tail = RyanJsonParseOptions(end3, remain3, RyanJsonFalse, NULL);
+	TEST_ASSERT_NULL_MESSAGE(tail, "剩余非法尾片段应解析失败");
+
+	RyanJsonDelete(strictDoc3);
+	RyanJsonDelete(doc3);
+	RyanJsonDelete(doc2);
+	RyanJsonDelete(doc1);
+}
+
 void testLoadSuccessRunner(void)
 {
 	UnitySetTestFile(__FILE__);
@@ -317,7 +390,9 @@ void testLoadSuccessRunner(void)
 	RUN_TEST(testLoadBoundaryConditionsSuccess);
 	RUN_TEST(testLoadParseOptionsSuccess);
 	RUN_TEST(testLoadParseOptionsBinaryTail);
+	RUN_TEST(testLoadParseOptionsStrictSliceStopsBeforeTailGarbage);
 	RUN_TEST(testLoadNumberBoundaries);
 	RUN_TEST(testLoadScientificNumberRoundtrip);
 	RUN_TEST(testLoadDuplicateKeyScopeIsolation);
+	RUN_TEST(testLoadParseOptionsSequentialNonNullTerminatedMultiDocs);
 }

@@ -409,6 +409,69 @@ static void testDetachMassiveItemsStress(void)
 	RyanJsonDelete(obj);
 }
 
+static void testDetachFailureRecoveryAndCrossContainerRebuild(void)
+{
+	// 复杂链路：
+	// Parse -> Detach(失败) -> Detach(成功) -> Insert(Object) -> Detach(Array) -> AddItemToObject
+	// -> Compare(期望文档) -> Roundtrip。
+	// 目标：
+	// 1) 验证分离失败路径不会污染原树；
+	// 2) 验证对象分离节点可重命名后跨容器插入；
+	// 3) 验证数组分离节点可经 AddItemToObject 包装后重建结构。
+	const char *source = "{\"live\":{\"a\":{\"v\":1},\"b\":{\"v\":2}},\"archive\":[{\"id\":\"x\"}],\"archiveMap\":{}}";
+	const char *expectText = "{\"live\":{\"a\":{\"v\":1},\"x\":{\"id\":\"x\"}},\"archive\":[],\"archiveMap\":{\"bMoved\":{\"v\":2}}}";
+
+	RyanJson_t root = RyanJsonParse(source);
+	TEST_ASSERT_NOT_NULL_MESSAGE(root, "Detach 链路样本解析失败");
+	RyanJson_t snapshot = RyanJsonDuplicate(root);
+	TEST_ASSERT_NOT_NULL_MESSAGE(snapshot, "Detach 链路快照构造失败");
+
+	RyanJson_t live = RyanJsonGetObjectToKey(root, "live");
+	RyanJson_t archive = RyanJsonGetObjectToKey(root, "archive");
+	RyanJson_t archiveMap = RyanJsonGetObjectToKey(root, "archiveMap");
+	TEST_ASSERT_NOT_NULL(live);
+	TEST_ASSERT_NOT_NULL(archive);
+	TEST_ASSERT_NOT_NULL(archiveMap);
+
+	// 失败路径：不存在 key 的分离应失败，且文档不变。
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonDetachByKey(live, "missing"), "DetachByKey(不存在 key) 应返回 NULL");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(root, snapshot), "仅发生失败分离时，文档应保持不变");
+
+	// 成功分离对象节点并迁移到 archiveMap。
+	RyanJson_t movedB = RyanJsonDetachByKey(live, "b");
+	TEST_ASSERT_NOT_NULL_MESSAGE(movedB, "分离 live.b 失败");
+	TEST_ASSERT_TRUE(RyanJsonIsDetachedItem(movedB));
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonChangeKey(movedB, "bMoved"), "重命名分离节点 key 失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(archiveMap, 0, movedB), "插入 archiveMap.bMoved 失败");
+
+	// 成功分离数组节点并通过 AddItemToObject 包装回 live.x。
+	RyanJson_t movedX = RyanJsonDetachByIndex(archive, 0);
+	TEST_ASSERT_NOT_NULL_MESSAGE(movedX, "分离 archive[0] 失败");
+	TEST_ASSERT_TRUE(RyanJsonIsDetachedItem(movedX));
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddItemToObject(live, "x", movedX), "将分离数组节点挂载到 live.x 失败");
+
+	TEST_ASSERT_NULL(RyanJsonGetObjectToKey(live, "b"));
+	TEST_ASSERT_EQUAL_UINT32(0U, RyanJsonGetArraySize(archive));
+	TEST_ASSERT_TRUE(RyanJsonHasObjectToKey(root, "archiveMap", "bMoved", "v"));
+	TEST_ASSERT_TRUE(RyanJsonHasObjectToKey(root, "live", "x", "id"));
+
+	RyanJson_t expect = RyanJsonParse(expectText);
+	TEST_ASSERT_NOT_NULL(expect);
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(root, expect), "Detach 链路结果与期望文档不一致");
+
+	char *printed = RyanJsonPrint(root, 192, RyanJsonFalse, NULL);
+	TEST_ASSERT_NOT_NULL(printed);
+	RyanJson_t roundtrip = RyanJsonParse(printed);
+	TEST_ASSERT_NOT_NULL(roundtrip);
+	TEST_ASSERT_TRUE(RyanJsonCompare(root, roundtrip));
+
+	RyanJsonDelete(roundtrip);
+	RyanJsonFree(printed);
+	RyanJsonDelete(expect);
+	RyanJsonDelete(snapshot);
+	RyanJsonDelete(root);
+}
+
 void testDetachRunner(void)
 {
 	UnitySetTestFile(__FILE__);
@@ -420,4 +483,5 @@ void testDetachRunner(void)
 	RUN_TEST(testDetachTailAndMiddleThenAppend);
 	RUN_TEST(testDetachStandardOperations);
 	RUN_TEST(testDetachMassiveItemsStress);
+	RUN_TEST(testDetachFailureRecoveryAndCrossContainerRebuild);
 }

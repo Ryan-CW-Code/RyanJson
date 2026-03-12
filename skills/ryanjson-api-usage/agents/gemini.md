@@ -3,7 +3,7 @@
 名称：`ryanjson-api-usage`
 
 ## 定位
-- 面向嵌入式 RT-Thread 场景的 RyanJson 公开 API 落地技能。
+- 面向嵌入式/RT-Thread 场景的 RyanJson 公开 API 落地技能。
 
 ## 适用场景
 - 询问 RyanJson 公开 API 的正确调用方式。
@@ -26,7 +26,7 @@
 - 输出必须显式区分：已验证/推断、可恢复错误/不可恢复错误、失败语义。
 
 ## 默认提示词
-使用 `$ryanjson-api-usage`，输出 RT-Thread 可落地的 RyanJson 公开 API 方案：强制 hooks 前置、明确所有权/释放路径、仅使用公开 API，并在语义不明确时按 `example -> unityTest -> fuzzer` 取证。
+使用 `$ryanjson-api-usage`，输出可落地的 RyanJson 公开 API 方案：强制 hooks 前置、明确所有权/释放路径、仅使用公开 API，并在语义不明确时按 `example -> unityTest -> fuzzer` 取证。
 
 ## 输出骨架
 1. 结论与接口选型（标注已验证/推断）。

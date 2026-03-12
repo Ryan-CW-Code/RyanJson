@@ -8,19 +8,23 @@ typedef struct
 	RyanJsonBool_e isNoAlloc; // 是否禁止动态扩容（True 表示不扩容）
 } RyanJsonPrintBuffer;
 
-#define printBufPutChar(printfBuf, char)                                                                                                   \
-	do                                                                                                                                 \
-	{                                                                                                                                  \
-		((printfBuf)->bufAddress[(printfBuf)->cursor++] = (char));                                                                 \
-	} while (0)
-#define printBufPutString(printfBuf, putStr, putStrLen)                                                                                    \
-	do                                                                                                                                 \
-	{                                                                                                                                  \
-		for (uint32_t putStrCount = 0; putStrCount < (uint32_t)(putStrLen); putStrCount++)                                         \
-		{                                                                                                                          \
-			printBufPutChar(printfBuf, (putStr)[putStrCount]);                                                                 \
-		}                                                                                                                          \
-	} while (0)
+static inline void RyanJsonPrintBufPutChar(RyanJsonPrintBuffer *printfBuf, uint8_t ch)
+{
+	RyanJsonCheckAssert(NULL != printfBuf && NULL != printfBuf->bufAddress);
+	printfBuf->bufAddress[printfBuf->cursor++] = ch;
+}
+
+static inline void RyanJsonPrintBufPutString(RyanJsonPrintBuffer *printfBuf, const uint8_t *putStr, uint32_t putStrLen)
+{
+	RyanJsonCheckAssert(NULL != printfBuf && NULL != printfBuf->bufAddress);
+	RyanJsonCheckAssert(NULL != putStr);
+
+	for (uint32_t putStrCount = 0; putStrCount < putStrLen; putStrCount++)
+	{
+		printfBuf->bufAddress[printfBuf->cursor++] = putStr[putStrCount];
+	}
+}
+
 #define printBufCurrentPtr(printfBuf)  (&((printfBuf)->bufAddress[(printfBuf)->cursor]))
 #define printBufRemainBytes(printfBuf) ((printfBuf)->size - (printfBuf)->cursor)
 
@@ -134,16 +138,15 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
 	// 处理特殊值：无穷大和 NaN 输出为 null（RFC 8259 不支持 Infinity/NaN）
 	if (isinf(doubleValue) || isnan(doubleValue))
 	{
-		printBufPutString(printfBuf, (uint8_t *)"null", 4);
+		RyanJsonPrintBufPutString(printfBuf, (uint8_t *)"null", 4);
 		return RyanJsonTrue;
 	}
 
 	double absDoubleValue = fabs(doubleValue);
 
 	// 判断是否可按整数样式输出，并保留一位小数（例如 5.0、0.0）
-	// 注意：0 也需要特殊处理，否则会进入科学记数法分支
-	// 在有界空间内使用完全变换
-	if ((absDoubleValue < DBL_EPSILON || (absDoubleValue < 1.0e15 && absDoubleValue >= 1.0e-6)) &&
+	// 仅对“真实 0”或 [1e-6, 1e15) 区间内的整数样式启用，避免极小非零值被打印成 0.0
+	if (((doubleValue == 0.0) || (absDoubleValue < 1.0e15 && absDoubleValue >= 1.0e-6)) &&
 	    fabs(floor(doubleValue) - doubleValue) <= DBL_EPSILON)
 	{
 		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf), "%.1lf", doubleValue);
@@ -184,7 +187,9 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
 		double number = 0;
 		RyanJsonCheckReturnFalse(RyanJsonTrue ==
 					 RyanJsonInternalParseDoubleRaw(printBufCurrentPtr(printfBuf), (uint32_t)len, &number));
-		if (RyanJsonFalse == RyanJsonCompareDouble(number, doubleValue))
+		// 容差比较可能把极小非零值与 0 视为相等，这里额外拦截“非零被抹成 0”的情况
+		RyanJsonBool_e loseTinyNonZero = RyanJsonMakeBool(number == 0.0);
+		if (RyanJsonTrue == loseTinyNonZero || RyanJsonFalse == RyanJsonCompareDouble(number, doubleValue))
 		{
 			len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf), "%.17g", doubleValue);
 			RyanJsonCheckReturnFalse(len > 0);
@@ -234,13 +239,13 @@ static RyanJsonBool_e RyanJsonPrintStringBuffer(const uint8_t *strValue, RyanJso
 
 	RyanJsonCheckReturnFalse(
 		RyanJsonPrintBufAppend(printfBuf, (uint32_t)(strCurrentPtr - strValue) + escapeCharCount + 2U)); // 最小是\" \"
-	printBufPutChar(printfBuf, '\"');
+	RyanJsonPrintBufPutChar(printfBuf, '\"');
 
 	// 没有转义字符
 	if (0 == escapeCharCount)
 	{
-		printBufPutString(printfBuf, strValue, (strCurrentPtr - strValue));
-		printBufPutChar(printfBuf, '\"');
+		RyanJsonPrintBufPutString(printfBuf, strValue, (uint32_t)(strCurrentPtr - strValue));
+		RyanJsonPrintBufPutChar(printfBuf, '\"');
 		return RyanJsonTrue;
 	}
 
@@ -249,22 +254,22 @@ static RyanJsonBool_e RyanJsonPrintStringBuffer(const uint8_t *strValue, RyanJso
 	{
 		if ((*strCurrentPtr) >= ' ' && '\"' != *strCurrentPtr && '\\' != *strCurrentPtr)
 		{
-			printBufPutChar(printfBuf, *strCurrentPtr++);
+			RyanJsonPrintBufPutChar(printfBuf, *strCurrentPtr++);
 			continue;
 		}
 
 		// 转义和打印
-		printBufPutChar(printfBuf, '\\');
+		RyanJsonPrintBufPutChar(printfBuf, '\\');
 
 		switch (*strCurrentPtr)
 		{
-		case '\\': printBufPutChar(printfBuf, '\\'); break;
-		case '\"': printBufPutChar(printfBuf, '\"'); break;
-		case '\b': printBufPutChar(printfBuf, 'b'); break;
-		case '\f': printBufPutChar(printfBuf, 'f'); break;
-		case '\n': printBufPutChar(printfBuf, 'n'); break;
-		case '\r': printBufPutChar(printfBuf, 'r'); break;
-		case '\t': printBufPutChar(printfBuf, 't'); break;
+		case '\\': RyanJsonPrintBufPutChar(printfBuf, '\\'); break;
+		case '\"': RyanJsonPrintBufPutChar(printfBuf, '\"'); break;
+		case '\b': RyanJsonPrintBufPutChar(printfBuf, 'b'); break;
+		case '\f': RyanJsonPrintBufPutChar(printfBuf, 'f'); break;
+		case '\n': RyanJsonPrintBufPutChar(printfBuf, 'n'); break;
+		case '\r': RyanJsonPrintBufPutChar(printfBuf, 'r'); break;
+		case '\t': RyanJsonPrintBufPutChar(printfBuf, 't'); break;
 
 		default: {
 			// 这里无需额外校验输入字节有效性，RyanJson 已保证转义序列合法
@@ -277,7 +282,7 @@ static RyanJsonBool_e RyanJsonPrintStringBuffer(const uint8_t *strValue, RyanJso
 		strCurrentPtr++;
 	}
 
-	printBufPutChar(printfBuf, '\"');
+	RyanJsonPrintBufPutChar(printfBuf, '\"');
 
 	return RyanJsonTrue;
 }
@@ -318,7 +323,7 @@ static RyanJsonBool_e RyanJsonPrintValue(RyanJson_t pJson, RyanJsonPrintBuffer *
 				RyanJsonCheckReturnFalse(RyanJsonPrintBufAppend(printfBuf, needed));
 				for (uint32_t i = 0; i < depth; i++)
 				{
-					printBufPutString(printfBuf, (uint8_t *)style->indent, style->indentLen);
+					RyanJsonPrintBufPutString(printfBuf, (uint8_t *)style->indent, style->indentLen);
 				}
 			}
 
@@ -327,12 +332,12 @@ static RyanJsonBool_e RyanJsonPrintValue(RyanJson_t pJson, RyanJsonPrintBuffer *
 			// 打印冒号和空格
 			uint32_t spaceLen = style->format ? style->spaceAfterColon : 0;
 			RyanJsonCheckReturnFalse(RyanJsonPrintBufAppend(printfBuf, 1 + spaceLen));
-			printBufPutChar(printfBuf, ':');
+			RyanJsonPrintBufPutChar(printfBuf, ':');
 			if (style->format)
 			{
 				for (uint32_t i = 0; i < spaceLen; i++)
 				{
-					printBufPutChar(printfBuf, ' ');
+					RyanJsonPrintBufPutChar(printfBuf, ' ');
 				}
 			}
 		}
@@ -343,23 +348,27 @@ static RyanJsonBool_e RyanJsonPrintValue(RyanJson_t pJson, RyanJsonPrintBuffer *
 			RyanJsonCheckReturnFalse(RyanJsonPrintBufAppend(printfBuf, needed));
 			for (uint32_t i = 0; i < depth; i++)
 			{
-				printBufPutString(printfBuf, (uint8_t *)style->indent, style->indentLen);
+				RyanJsonPrintBufPutString(printfBuf, (uint8_t *)style->indent, style->indentLen);
 			}
 		}
 
 		// 打印 Value（标量值或容器起始符）
 		RyanJsonType_e type = RyanJsonGetType(curr);
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcovered-switch-default"
+#endif
 		switch (type)
 		{
 		case RyanJsonTypeNull:
 			RyanJsonCheckReturnFalse(RyanJsonPrintBufAppend(printfBuf, 4));
-			printBufPutString(printfBuf, (uint8_t *)"null", 4);
+			RyanJsonPrintBufPutString(printfBuf, (uint8_t *)"null", 4);
 			break;
 
 		case RyanJsonTypeBool: {
 			RyanJsonBool_e val = RyanJsonGetBoolValue(curr);
 			RyanJsonCheckReturnFalse(RyanJsonPrintBufAppend(printfBuf, val ? 4 : 5));
-			printBufPutString(printfBuf, val ? (uint8_t *)"true" : (uint8_t *)"false", val ? 4 : 5);
+			RyanJsonPrintBufPutString(printfBuf, val ? (uint8_t *)"true" : (uint8_t *)"false", val ? 4 : 5);
 			break;
 		}
 
@@ -376,18 +385,18 @@ static RyanJsonBool_e RyanJsonPrintValue(RyanJson_t pJson, RyanJsonPrintBuffer *
 			if (NULL == currChild)
 			{
 				RyanJsonCheckReturnFalse(RyanJsonPrintBufAppend(printfBuf, 2));
-				printBufPutChar(printfBuf, currIsObject ? '{' : '[');
-				printBufPutChar(printfBuf, currIsObject ? '}' : ']');
+				RyanJsonPrintBufPutChar(printfBuf, currIsObject ? '{' : '[');
+				RyanJsonPrintBufPutChar(printfBuf, currIsObject ? '}' : ']');
 			}
 			// 非空容器进入子节点处理
 			else
 			{
 				uint32_t newlineLen = style->format ? style->newlineLen : 0;
 				RyanJsonCheckReturnFalse(RyanJsonPrintBufAppend(printfBuf, 1 + newlineLen)); // '[' + newline
-				printBufPutChar(printfBuf, currIsObject ? '{' : '[');
+				RyanJsonPrintBufPutChar(printfBuf, currIsObject ? '{' : '[');
 
 				// 开启 format 后，非空容器统一走多行输出
-				if (style->format) { printBufPutString(printfBuf, (uint8_t *)style->newline, newlineLen); }
+				if (style->format) { RyanJsonPrintBufPutString(printfBuf, (uint8_t *)style->newline, newlineLen); }
 
 				curr = currChild;
 				depth++;
@@ -398,6 +407,9 @@ static RyanJsonBool_e RyanJsonPrintValue(RyanJson_t pJson, RyanJsonPrintBuffer *
 
 		default: return RyanJsonFalse;
 		}
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 		// 处理逗号、兄弟节点切换与回溯闭合
 		if (curr == pJson) { return RyanJsonTrue; }
@@ -410,9 +422,9 @@ static RyanJsonBool_e RyanJsonPrintValue(RyanJson_t pJson, RyanJsonPrintBuffer *
 			{
 				uint32_t newlineLen = style->format ? style->newlineLen : 0;
 				RyanJsonCheckReturnFalse(RyanJsonPrintBufAppend(printfBuf, 1 + newlineLen)); // ',' + newline
-				printBufPutChar(printfBuf, ',');
+				RyanJsonPrintBufPutChar(printfBuf, ',');
 
-				if (style->format) { printBufPutString(printfBuf, (uint8_t *)style->newline, newlineLen); }
+				if (style->format) { RyanJsonPrintBufPutString(printfBuf, (uint8_t *)style->newline, newlineLen); }
 
 				curr = nextInfo;
 				break; // 处理新的 curr（兄弟节点）
@@ -429,15 +441,15 @@ static RyanJsonBool_e RyanJsonPrintValue(RyanJson_t pJson, RyanJsonPrintBuffer *
 				uint32_t needed = style->newlineLen + depth * style->indentLen;
 
 				RyanJsonCheckReturnFalse(RyanJsonPrintBufAppend(printfBuf, needed));
-				printBufPutString(printfBuf, (uint8_t *)style->newline, style->newlineLen);
+				RyanJsonPrintBufPutString(printfBuf, (uint8_t *)style->newline, style->newlineLen);
 				for (uint32_t i = 0; i < depth; i++)
 				{
-					printBufPutString(printfBuf, (uint8_t *)style->indent, style->indentLen);
+					RyanJsonPrintBufPutString(printfBuf, (uint8_t *)style->indent, style->indentLen);
 				}
 			}
 
 			RyanJsonCheckReturnFalse(RyanJsonPrintBufAppend(printfBuf, 1));
-			printBufPutChar(printfBuf, RyanJsonIsArray(curr) ? ']' : '}');
+			RyanJsonPrintBufPutChar(printfBuf, RyanJsonIsArray(curr) ? ']' : '}');
 
 			// 如果回溯到了起始根节点，结束打印
 			if (curr == pJson) { return RyanJsonTrue; }

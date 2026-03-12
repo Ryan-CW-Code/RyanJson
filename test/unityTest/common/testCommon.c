@@ -23,6 +23,21 @@ static uint8_t gQemuTlsfPoolLogged = 0U;
 #endif
 static uint8_t gAllocSimConfigLogged = 0U;
 static uint8_t gAllocSimEnabled = 0U;
+static int32_t gOomFailAfter = -1;
+static int32_t gOomAllocCount = 0;
+static uint8_t gOomDisableRealloc = 0U;
+
+static void *unityTestOomMalloc(size_t size)
+{
+	if (gOomFailAfter >= 0 && gOomAllocCount++ >= gOomFailAfter) { return NULL; }
+	return unityTestMalloc(size);
+}
+
+static void *unityTestOomRealloc(void *block, size_t size)
+{
+	if (gOomFailAfter >= 0 && gOomAllocCount++ >= gOomFailAfter) { return NULL; }
+	return unityTestRealloc(block, size);
+}
 
 uint64_t platformUptimeMs(void)
 {
@@ -201,6 +216,27 @@ void *unityTestRealloc(void *block, size_t size)
 	return tlsf_realloc(gUnityTestTlsfCtx.tlsfHandle, block, allocSize);
 }
 
+void unityTestOomBegin(int32_t failAfter, RyanJsonBool_e disableRealloc)
+{
+	gOomFailAfter = failAfter;
+	gOomAllocCount = 0;
+	gOomDisableRealloc = (disableRealloc != RyanJsonFalse) ? 1U : 0U;
+
+	if (0U != gOomDisableRealloc) { RyanJsonInitHooks(unityTestOomMalloc, unityTestFree, NULL); }
+	else
+	{
+		RyanJsonInitHooks(unityTestOomMalloc, unityTestFree, unityTestOomRealloc);
+	}
+}
+
+void unityTestOomEnd(void)
+{
+	RyanJsonInitHooks(unityTestMalloc, unityTestFree, unityTestRealloc);
+	gOomFailAfter = -1;
+	gOomAllocCount = 0;
+	gOomDisableRealloc = 0U;
+}
+
 void ryanJsonTestSetup(void)
 {
 	if (!unityTestInitTlsf())
@@ -228,5 +264,7 @@ void ryanJsonTestSetup(void)
 
 void ryanJsonTestTeardown(void)
 {
+	// 兜底恢复默认 hooks，避免某个用例遗留自定义 hooks 影响后续用例。
+	RyanJsonInitHooks(unityTestMalloc, unityTestFree, unityTestRealloc);
 	gUnityTestTlsfCtx.tlsfHandle = NULL;
 }

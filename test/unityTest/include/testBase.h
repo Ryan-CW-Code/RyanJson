@@ -33,30 +33,9 @@ extern void arrayNodeCheckTest(RyanJson_t json, RyanJsonBool_e isReversed);
 extern void arrayItemNodeCheckTest(RyanJson_t json);
 extern void testCheckRoot(RyanJson_t pJson);
 extern void testCheckRootEx(RyanJson_t pJson, RyanJsonBool_e isReversed);
-
-extern void testChangeRunner(void);
-extern void testCompareRunner(void);
-extern void testCreateRunner(void);
-extern void testDeleteRunner(void);
-extern void testDetachRunner(void);
-extern void testDuplicateRunner(void);
-extern void testForEachRunner(void);
-extern void testLoadSuccessRunner(void);
-extern void testLoadFailureRunner(void);
-extern void testReplaceRunner(void);
-extern void testPrintRunner(void);
-extern void testMemoryRunner(void);
-extern void testDeepRecursionRunner(void);
-
-extern void testEqualityBoolRunner(void);
-extern void testEqualityDoubleRunner(void);
-extern void testEqualityIntRunner(void);
-extern void testEqualityStringRunner(void);
-
-extern void testUtilsRunner(void);
-extern void testRobustRunner(void);
-extern void testStressRunner(void);
-extern void testRfc8259Runner(void);
+#define UNITY_TEST_LIST_ENTRY(name) extern void name(void);
+#include "../runner/test_list.inc"
+#undef UNITY_TEST_LIST_ENTRY
 
 #ifdef __cplusplus
 }

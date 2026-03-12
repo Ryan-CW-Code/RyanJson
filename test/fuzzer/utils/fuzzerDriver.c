@@ -1,39 +1,37 @@
 #include "RyanJsonFuzzer.h"
-#include <string.h>
 
-#include "RyanJsonFuzzer.h"
-#include <string.h>
+/**
+ * @brief 从当前输入稳定生成 PRNG 种子
+ *
+ * 这里不追求密码学强度，只要求同一份输入总能得到同一条随机路径，
+ * 方便 libFuzzer 复现问题并保持覆盖结果稳定。
+ */
+static uint32_t RyanJsonFuzzerSeedFromInput(const uint8_t *data, size_t size)
+{
+	uint32_t seed = 2166136261u;
+
+	for (size_t i = 0; i < size; ++i)
+	{
+		seed ^= (uint32_t)data[i];
+		seed *= 16777619u;
+	}
+
+	seed ^= (uint32_t)size;
+	return 0 == seed ? 0x811C9DC5u : seed;
+}
 
 /**
  * @brief 初始化 Fuzzer 状态
  *
- * 使用输入数据的前 4 个字节初始化 PRNG 种子，确保 Fuzzing 的确定性。
+ * 使用当前输入数据混合 PRNG 种子，保证同一输入具备稳定路径。
  *
- * @param state Fuzzer 状态指针
  * @param data 原始输入数据
  * @param size 输入数据大小
  */
 void RyanJsonFuzzerInit(const uint8_t *data, size_t size)
 {
-	g_fuzzerState.data = data;
-	g_fuzzerState.size = size;
-	g_fuzzerState.pos = 0;
 	g_fuzzerState.isEnableMemFail = true;
-
-	if (0 == g_fuzzerState.seed) { g_fuzzerState.seed = time(NULL); }
-	if (size >= 4)
-	{
-		uint32_t seed_input;
-		memcpy(&seed_input, data, 4);
-		g_fuzzerState.seed ^= seed_input;
-	}
-	else
-	{
-		for (size_t i = 0; i < size; i++)
-		{
-			g_fuzzerState.seed ^= ((uint32_t)data[i] << (i * 8));
-		}
-	}
+	g_fuzzerState.seed = RyanJsonFuzzerSeedFromInput(data, size);
 }
 
 /**

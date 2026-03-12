@@ -1,4 +1,5 @@
 #include "testBase.h"
+#include <float.h>
 static void testCompareEdgeCases(void)
 {
 	// 测试对象键值对顺序对比较的影响
@@ -108,6 +109,17 @@ static void testCompareScalarAndTypeMatrix(void)
 	RyanJsonDelete(typeString);
 }
 
+static void testCompareDoubleRelativeToleranceDominates(void)
+{
+	// 构造一个让“相对误差”主导的场景，避免 CompareDouble 只剩绝对误差分支被覆盖。
+	double base = (RyanJsonAbsTolerance / DBL_EPSILON) * 8.0;
+	double epsilon = DBL_EPSILON * fabs(base);
+	TEST_ASSERT_TRUE_MESSAGE(epsilon > RyanJsonAbsTolerance, "epsilon 应大于 absTolerance");
+
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareDouble(base, base + (epsilon * 0.5)), "相对误差内应判等");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareDouble(base, base + (epsilon * 2.0)), "相对误差外应不等");
+}
+
 static void testCompareNumberSubtypeInContainers(void)
 {
 	RyanJson_t left = RyanJsonParse("{\"n\":1,\"arr\":[1,2.0],\"obj\":{\"x\":3,\"y\":4.0}}");
@@ -130,6 +142,31 @@ static void testCompareNumberSubtypeInContainers(void)
 	RyanJsonDelete(left);
 	RyanJsonDelete(right);
 	RyanJsonDelete(rightTypeMismatch);
+}
+
+static void testCompareZeroSignSemantics(void)
+{
+	// -0 与 0 应视为数值相等（同为 int 类型）
+	RyanJson_t negZero = RyanJsonParse("-0");
+	RyanJson_t posZero = RyanJsonParse("0");
+	TEST_ASSERT_NOT_NULL(negZero);
+	TEST_ASSERT_NOT_NULL(posZero);
+	TEST_ASSERT_TRUE(RyanJsonIsInt(negZero));
+	TEST_ASSERT_TRUE(RyanJsonIsInt(posZero));
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(negZero, posZero), "-0 与 0 比较应相等");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(negZero, posZero), "-0 与 0 CompareOnlyKey 也应相等");
+
+	RyanJson_t objNeg = RyanJsonParse("{\"n\":-0}");
+	RyanJson_t objPos = RyanJsonParse("{\"n\":0}");
+	TEST_ASSERT_NOT_NULL(objNeg);
+	TEST_ASSERT_NOT_NULL(objPos);
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(objNeg, objPos), "对象内 -0 与 0 应相等");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(objNeg, objPos), "对象内 -0 与 0 CompareOnlyKey 应相等");
+
+	RyanJsonDelete(objPos);
+	RyanJsonDelete(objNeg);
+	RyanJsonDelete(posZero);
+	RyanJsonDelete(negZero);
 }
 
 static void testCompareEmptyContainerAndTypeMismatch(void)
@@ -583,11 +620,136 @@ void testCompareRunner(void)
 	RUN_TEST(testCompareEdgeCases);
 	RUN_TEST(testCompareObjectOrderPaths);
 	RUN_TEST(testCompareScalarAndTypeMatrix);
+	RUN_TEST(testCompareDoubleRelativeToleranceDominates);
 	RUN_TEST(testCompareNumberSubtypeInContainers);
+	RUN_TEST(testCompareZeroSignSemantics);
 	RUN_TEST(testCompareEmptyContainerAndTypeMismatch);
 	RUN_TEST(testCompareArraySemantics);
 	RUN_TEST(testCompareNestedObjectScenarios);
 	RUN_TEST(testCompareArrayWithObjects);
 	RUN_TEST(testCompareDeepNestAndLargeArray);
 	RUN_TEST(testCompareEqualityAndStructuralDiff);
+}
+
+static void testRootScalarStringChangeCompareRoundtrip(void)
+{
+	// 复杂链路：
+	// Parse(根字符串) -> Duplicate -> ChangeStringValue -> Compare/CompareOnlyKey -> Print/Parse。
+	// 目标：验证根节点为字符串时的修改、比较与往返稳定性。
+	RyanJson_t root = RyanJsonParse("\"alpha\"");
+	TEST_ASSERT_NOT_NULL(root);
+
+	RyanJson_t copy = RyanJsonDuplicate(root);
+	TEST_ASSERT_NOT_NULL(copy);
+
+	TEST_ASSERT_TRUE(RyanJsonChangeStringValue(copy, "beta"));
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(root, copy), "根字符串值变化后 Compare 应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(root, copy), "根字符串值变化后 CompareOnlyKey 应返回 True");
+
+	char *printed = RyanJsonPrint(copy, 32, RyanJsonFalse, NULL);
+	TEST_ASSERT_NOT_NULL(printed);
+	RyanJson_t roundtrip = RyanJsonParse(printed);
+	TEST_ASSERT_NOT_NULL(roundtrip);
+	TEST_ASSERT_TRUE(RyanJsonCompare(copy, roundtrip));
+
+	RyanJsonDelete(roundtrip);
+	RyanJsonFree(printed);
+	RyanJsonDelete(copy);
+	RyanJsonDelete(root);
+}
+
+static void testRootScalarIntChangeCompareOnlyKey(void)
+{
+	// 复杂链路：
+	// Parse(根整数) -> Duplicate -> ChangeIntValue -> Compare/CompareOnlyKey。
+	// 目标：验证根节点为 int 时 CompareOnlyKey 忽略 value 差异。
+	RyanJson_t root = RyanJsonParse("1");
+	TEST_ASSERT_NOT_NULL(root);
+
+	RyanJson_t copy = RyanJsonDuplicate(root);
+	TEST_ASSERT_NOT_NULL(copy);
+
+	TEST_ASSERT_TRUE(RyanJsonChangeIntValue(copy, 2));
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(root, copy), "根整数值变化后 Compare 应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(root, copy), "根整数值变化后 CompareOnlyKey 应返回 True");
+	TEST_ASSERT_EQUAL_INT(1, RyanJsonGetIntValue(root));
+
+	RyanJsonDelete(copy);
+	RyanJsonDelete(root);
+}
+
+static void testRootScalarDoubleChangeCompareOnlyKey(void)
+{
+	// 复杂链路：
+	// Parse(根浮点) -> Duplicate -> ChangeDoubleValue -> Compare/CompareOnlyKey。
+	// 目标：验证根节点为 double 时 CompareOnlyKey 忽略 value 差异。
+	RyanJson_t root = RyanJsonParse("1.5");
+	TEST_ASSERT_NOT_NULL(root);
+
+	RyanJson_t copy = RyanJsonDuplicate(root);
+	TEST_ASSERT_NOT_NULL(copy);
+
+	TEST_ASSERT_TRUE(RyanJsonChangeDoubleValue(copy, 2.5));
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(root, copy), "根浮点值变化后 Compare 应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(root, copy), "根浮点值变化后 CompareOnlyKey 应返回 True");
+
+	RyanJsonDelete(copy);
+	RyanJsonDelete(root);
+}
+
+static void testRootScalarBoolChangeCompareOnlyKey(void)
+{
+	// 复杂链路：
+	// Parse(根布尔) -> Duplicate -> ChangeBoolValue -> Compare/CompareOnlyKey。
+	// 目标：验证根节点为 bool 时 CompareOnlyKey 忽略 value 差异。
+	RyanJson_t root = RyanJsonParse("true");
+	TEST_ASSERT_NOT_NULL(root);
+
+	RyanJson_t copy = RyanJsonDuplicate(root);
+	TEST_ASSERT_NOT_NULL(copy);
+
+	TEST_ASSERT_TRUE(RyanJsonChangeBoolValue(copy, RyanJsonFalse));
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(root, copy), "根布尔值变化后 Compare 应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(root, copy), "根布尔值变化后 CompareOnlyKey 应返回 True");
+
+	RyanJsonDelete(copy);
+	RyanJsonDelete(root);
+}
+
+static void testRootScalarReplaceByIndexFails(void)
+{
+	// 复杂链路：
+	// Parse(根标量) -> ReplaceByIndex(失败) -> 释放 item。
+	// 目标：验证对非容器执行 ReplaceByIndex 会失败且不会消耗 item。
+	RyanJson_t root = RyanJsonParse("1");
+	TEST_ASSERT_NOT_NULL(root);
+
+	RyanJson_t item = RyanJsonCreateInt(NULL, 9);
+	TEST_ASSERT_NOT_NULL(item);
+
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonReplaceByIndex(root, 0, item), "根标量 ReplaceByIndex 应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDetachedItem(item), "ReplaceByIndex 失败后 item 应保持游离");
+
+	RyanJsonDelete(item);
+	RyanJsonDelete(root);
+}
+
+static void testRootScalarGetSizeIsOne(void)
+{
+	// 覆盖根标量的 GetSize 语义：标量节点大小应为 1。
+	RyanJson_t root = RyanJsonParse("\"x\"");
+	TEST_ASSERT_NOT_NULL(root);
+	TEST_ASSERT_EQUAL_UINT32(1U, RyanJsonGetSize(root));
+	RyanJsonDelete(root);
+}
+
+void testRootScalarOpsRunner(void)
+{
+	UnitySetTestFile(__FILE__);
+	RUN_TEST(testRootScalarStringChangeCompareRoundtrip);
+	RUN_TEST(testRootScalarIntChangeCompareOnlyKey);
+	RUN_TEST(testRootScalarDoubleChangeCompareOnlyKey);
+	RUN_TEST(testRootScalarBoolChangeCompareOnlyKey);
+	RUN_TEST(testRootScalarReplaceByIndexFails);
+	RUN_TEST(testRootScalarGetSizeIsOne);
 }

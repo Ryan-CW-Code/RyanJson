@@ -10,6 +10,7 @@
 - `Replace` 成功：新 `item` 转移给父节点，旧节点由库删除。
 - `DetachByKey/DetachByIndex`：返回节点归调用者。
 - `RyanJsonPrint` 返回缓冲：调用者用 `RyanJsonFree` 释放。
+- 对象挂载成功后，若后续仍需深度操作子容器，建议从 root 重新获取目标节点，避免复用旧缓存指针。
 
 ## 失败语义（重点）
 - `RyanJsonInsert` 失败：

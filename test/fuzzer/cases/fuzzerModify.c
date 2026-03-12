@@ -2,6 +2,80 @@
 #include "RyanJsonFuzzer.h"
 
 /**
+ * @brief change 系列 API 的一次性确定性自检
+ *
+ * 这里只保留运行期 fuzz 不会主动构造的错误类型调用。
+ */
+void RyanJsonFuzzerSelfTestModifyCases(void)
+{
+	RyanJsonBool_e lastIsEnableMemFail;
+	RyanJsonFuzzerMemFailPush(lastIsEnableMemFail, RyanJsonFalse);
+
+	RyanJson_t intNode = RyanJsonCreateInt(NULL, 123);
+	RyanJson_t doubleNode = RyanJsonCreateDouble(NULL, 1.25);
+	RyanJson_t boolNode = RyanJsonCreateBool("flag", RyanJsonTrue);
+	RyanJson_t strNode = RyanJsonCreateString("k", "v");
+
+	if (intNode)
+	{
+		assert(RyanJsonFalse == RyanJsonChangeDoubleValue(intNode, 9.9));
+		assert(123 == RyanJsonGetIntValue(intNode));
+	}
+
+	if (doubleNode)
+	{
+		assert(RyanJsonFalse == RyanJsonChangeIntValue(doubleNode, 7));
+		assert(RyanJsonTrue == RyanJsonCompareDouble(1.25, RyanJsonGetDoubleValue(doubleNode)));
+	}
+
+	if (boolNode)
+	{
+		assert(RyanJsonFalse == RyanJsonChangeIntValue(boolNode, 1));
+		assert(RyanJsonTrue == RyanJsonGetBoolValue(boolNode));
+	}
+
+	if (strNode)
+	{
+		assert(RyanJsonFalse == RyanJsonChangeBoolValue(strNode, RyanJsonFalse));
+		assert(0 == strcmp(RyanJsonGetStringValue(strNode), "v"));
+		assert(0 == strcmp(RyanJsonGetKey(strNode), "k"));
+	}
+
+	RyanJsonDelete(intNode);
+	RyanJsonDelete(doubleNode);
+	RyanJsonDelete(boolNode);
+	RyanJsonDelete(strNode);
+
+	RyanJsonFuzzerMemFailPop(lastIsEnableMemFail);
+}
+
+/**
+ * @brief get 系列 API 的一次性确定性自检
+ *
+ * 主要补齐 NULL、标量节点和越界访问的保护路径。
+ */
+void RyanJsonFuzzerSelfTestGetCases(void)
+{
+	RyanJson_t scalar = RyanJsonCreateInt(NULL, 1);
+	assert(NULL != scalar);
+
+	assert(RyanJsonFalse == RyanJsonIsNull(scalar));
+	assert(NULL == RyanJsonGetObjectByKey(NULL, NULL));
+	assert(NULL == RyanJsonGetObjectByKey(scalar, NULL));
+	assert(NULL == RyanJsonGetObjectByKey(NULL, "NULL"));
+
+	assert(NULL == RyanJsonGetObjectToKey(NULL, NULL));
+	assert(NULL == RyanJsonGetObjectToKey(scalar, NULL));
+	assert(NULL == RyanJsonGetObjectToKey(NULL, "NULL"));
+
+	assert(NULL == RyanJsonGetObjectByIndex(NULL, 10));
+	assert(NULL == RyanJsonGetObjectByKey(scalar, "NULL"));
+	assert(NULL == RyanJsonGetObjectByIndex(scalar, 0));
+
+	RyanJsonDelete(scalar);
+}
+
+/**
  * @brief 修改与访问测试
  *
  * 测试 RyanJson 的节点修改能力（Change 值/key）以及数据访问安全性。
@@ -17,59 +91,6 @@
  */
 RyanJsonBool_e RyanJsonFuzzerTestModify(RyanJson_t pJson, uint32_t size)
 {
-	// 一次性覆盖 Change 参数/类型防御分支，并验证失败不改值
-	static RyanJsonBool_e changeGuardCovered = RyanJsonFalse;
-	if (RyanJsonFalse == changeGuardCovered)
-	{
-		RyanJsonBool_e lastIsEnableMemFail = g_fuzzerState.isEnableMemFail;
-		g_fuzzerState.isEnableMemFail = false;
-
-		RyanJson_t intNode = RyanJsonCreateInt(NULL, 123);
-		RyanJson_t doubleNode = RyanJsonCreateDouble(NULL, 1.25);
-		RyanJson_t boolNode = RyanJsonCreateBool("flag", RyanJsonTrue);
-		RyanJson_t strNode = RyanJsonCreateString("k", "v");
-
-		if (intNode)
-		{
-			assert(RyanJsonFalse == RyanJsonChangeDoubleValue(intNode, 9.9));
-			assert(123 == RyanJsonGetIntValue(intNode));
-		}
-
-		if (doubleNode)
-		{
-			assert(RyanJsonFalse == RyanJsonChangeIntValue(doubleNode, 7));
-			assert(RyanJsonTrue == RyanJsonCompareDouble(1.25, RyanJsonGetDoubleValue(doubleNode)));
-		}
-
-		if (boolNode)
-		{
-			assert(RyanJsonFalse == RyanJsonChangeIntValue(boolNode, 1));
-			assert(RyanJsonTrue == RyanJsonGetBoolValue(boolNode));
-			assert(RyanJsonTrue == RyanJsonChangeKey(boolNode, "flag2"));
-			assert(0 == strcmp(RyanJsonGetKey(boolNode), "flag2"));
-		}
-
-		if (strNode)
-		{
-			// 命中 RyanJsonChangeStringValue 中 RyanJsonIsKey(pJson)==true 的分支
-			assert(RyanJsonTrue == RyanJsonChangeStringValue(strNode, "v2"));
-			assert(0 == strcmp(RyanJsonGetStringValue(strNode), "v2"));
-			assert(0 == strcmp(RyanJsonGetKey(strNode), "k"));
-
-			assert(RyanJsonFalse == RyanJsonChangeBoolValue(strNode, RyanJsonFalse));
-			assert(0 == strcmp(RyanJsonGetStringValue(strNode), "v2"));
-			assert(RyanJsonFalse == RyanJsonChangeKey(strNode, NULL));
-			assert(0 == strcmp(RyanJsonGetKey(strNode), "k"));
-		}
-
-		RyanJsonDelete(intNode);
-		RyanJsonDelete(doubleNode);
-		RyanJsonDelete(boolNode);
-		RyanJsonDelete(strNode);
-
-		g_fuzzerState.isEnableMemFail = lastIsEnableMemFail;
-		changeGuardCovered = RyanJsonTrue;
-	}
 
 	// 修改 key 测试
 	if (RyanJsonIsKey(pJson))
@@ -151,6 +172,7 @@ RyanJsonBool_e RyanJsonFuzzerTestModify(RyanJson_t pJson, uint32_t size)
 		if (oldStr)
 		{
 			size_t strLen = strlen(oldStr);
+
 			char *backupStr = (char *)malloc(strLen + 1);
 			if (backupStr)
 			{
@@ -180,9 +202,19 @@ RyanJsonBool_e RyanJsonFuzzerTestModify(RyanJson_t pJson, uint32_t size)
 	if (RyanJsonIsArray(pJson) || RyanJsonIsObject(pJson))
 	{
 		RyanJson_t item;
-		RyanJsonArrayForEach(pJson, item)
+		if (RyanJsonIsArray(pJson))
 		{
-			RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonFuzzerTestModify(item, size));
+			RyanJsonArrayForEach(pJson, item)
+			{
+				RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonFuzzerTestModify(item, size));
+			}
+		}
+		else
+		{
+			RyanJsonObjectForEach(pJson, item)
+			{
+				RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonFuzzerTestModify(item, size));
+			}
 		}
 	}
 
@@ -193,28 +225,8 @@ RyanJsonBool_e RyanJsonFuzzerVerifyGet(RyanJson_t parent, RyanJson_t current, ui
 {
 	(void)size; // 未使用
 
-	RyanJsonIsNull(current);
-
-	// Get 接口前置条件：调用方需保证 pJson 非 NULL 且类型匹配。
-	// 这里只保留可明确约定返回值的 GetObjectByKey 参数防御验证。
-
-	// 验证 GetObjectByKey 异常参数
-	assert(NULL == RyanJsonGetObjectByKey(NULL, NULL));
-	assert(NULL == RyanJsonGetObjectByKey(current, NULL));
-	assert(NULL == RyanJsonGetObjectByKey(NULL, "NULL"));
-
-	assert(NULL == RyanJsonGetObjectToKey(NULL, NULL));
-	assert(NULL == RyanJsonGetObjectToKey(current, NULL));
-	assert(NULL == RyanJsonGetObjectToKey(NULL, "NULL"));
-
-	// 验证 GetObjectByIndex 异常参数
-	assert(NULL == RyanJsonGetObjectByIndex(NULL, 10));
-
-	// 验证错误类型调用
-	if (!RyanJsonIsObject(current)) { assert(NULL == RyanJsonGetObjectByKey(current, "NULL")); }
-
-	// 验证 GetObjectByIndex 错误类型调用
-	if (!RyanJsonIsArray(current) && !RyanJsonIsObject(current)) { assert(NULL == RyanJsonGetObjectByIndex(current, 0)); }
+	// 参数防御与错误类型验证已移到一次性自检，
+	// 运行期仅保留父子关系与递归访问语义，避免全树重复做同一组断言。
 
 	// 验证父子关系查找
 	// 确认当前节点 current 可以通过 parent + key/index 找回
@@ -239,10 +251,21 @@ RyanJsonBool_e RyanJsonFuzzerVerifyGet(RyanJson_t parent, RyanJson_t current, ui
 		// 这里的 index 是相对于 current 的子索引
 
 		uint32_t childIndex = 0;
-		RyanJsonObjectForEach(current, item)
+		if (RyanJsonIsArray(current))
 		{
-			RyanJsonFuzzerVerifyGet(current, item, childIndex, size);
-			childIndex++;
+			RyanJsonArrayForEach(current, item)
+			{
+				RyanJsonFuzzerVerifyGet(current, item, childIndex, size);
+				childIndex++;
+			}
+		}
+		else
+		{
+			RyanJsonObjectForEach(current, item)
+			{
+				RyanJsonFuzzerVerifyGet(current, item, childIndex, size);
+				childIndex++;
+			}
 		}
 	}
 
@@ -251,26 +274,26 @@ RyanJsonBool_e RyanJsonFuzzerVerifyGet(RyanJson_t parent, RyanJson_t current, ui
 
 RyanJsonBool_e RyanJsonFuzzerTestGet(RyanJson_t pJson, uint32_t size)
 {
-	// 全局异常测试
-	assert(RyanJsonFalse == RyanJsonIsKey(NULL));
-	assert(RyanJsonFalse == RyanJsonIsNull(NULL));
-	assert(RyanJsonFalse == RyanJsonIsBool(NULL));
-	assert(RyanJsonFalse == RyanJsonIsNumber(NULL));
-	assert(RyanJsonFalse == RyanJsonIsString(NULL));
-	assert(RyanJsonFalse == RyanJsonIsArray(NULL));
-	assert(RyanJsonFalse == RyanJsonIsObject(NULL));
-	assert(RyanJsonFalse == RyanJsonIsInt(NULL));
-	assert(RyanJsonFalse == RyanJsonIsDouble(NULL));
-
 	// 遍历测试
 	if (RyanJsonIsArray(pJson) || RyanJsonIsObject(pJson))
 	{
 		RyanJson_t item;
 		uint32_t index = 0;
-		RyanJsonObjectForEach(pJson, item)
+		if (RyanJsonIsArray(pJson))
 		{
-			RyanJsonFuzzerVerifyGet(pJson, item, index, size);
-			index++;
+			RyanJsonArrayForEach(pJson, item)
+			{
+				RyanJsonFuzzerVerifyGet(pJson, item, index, size);
+				index++;
+			}
+		}
+		else
+		{
+			RyanJsonObjectForEach(pJson, item)
+			{
+				RyanJsonFuzzerVerifyGet(pJson, item, index, size);
+				index++;
+			}
 		}
 	}
 	return RyanJsonTrue;

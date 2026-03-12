@@ -62,11 +62,23 @@ RyanJsonBool_e RyanJsonFuzzerTestDelete(RyanJson_t pJson, uint32_t size)
 	RyanJson_t item = NULL;
 	RyanJson_t lastItem = NULL;
 
-	RyanJsonObjectForEach(pJson, item)
+	if (RyanJsonTrue == RyanJsonIsArray(pJson))
 	{
-		// 递归调用
-		RyanJsonFuzzerTestDelete(item, size);
-		lastItem = item;
+		RyanJsonArrayForEach(pJson, item)
+		{
+			// 递归调用
+			RyanJsonFuzzerTestDelete(item, size);
+			lastItem = item;
+		}
+	}
+	else
+	{
+		RyanJsonObjectForEach(pJson, item)
+		{
+			// 递归调用
+			RyanJsonFuzzerTestDelete(item, size);
+			lastItem = item;
+		}
 	}
 
 	// 删除节点

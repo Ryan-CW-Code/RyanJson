@@ -21,34 +21,34 @@ static void yyFree(void *ctx, void *ptr)
 
 static void RyanJsonMemoryFootprint(const char *jsonstr, int32_t *footprint)
 {
-	int32_t baselineUse = unityTestGetUse();
+	unityTestLeakScope_t leakScope = unityTestLeakScopeBegin();
 	RyanJsonInitHooks(unityTestMalloc, unityTestFree, unityTestRealloc);
 
 	RyanJson_t json = RyanJsonParse(jsonstr);
 	TEST_ASSERT_NOT_NULL_MESSAGE(json, "RyanJson 解析失败");
 
-	*footprint = unityTestGetUse() - baselineUse;
+	*footprint = unityTestGetUse() - leakScope.baseline;
 	RyanJsonDelete(json);
-	TEST_ASSERT_EQUAL_INT_MESSAGE(baselineUse, unityTestGetUse(), "RyanJson 释放后 TLSF used 未回到基线");
+	unityTestLeakScopeEnd(leakScope, "RyanJson 释放后 TLSF used 未回到基线");
 }
 
 static void cJSONMemoryFootprint(const char *jsonstr, int32_t *footprint)
 {
-	int32_t baselineUse = unityTestGetUse();
+	unityTestLeakScope_t leakScope = unityTestLeakScopeBegin();
 	cJSON_Hooks hooks = {.malloc_fn = unityTestMalloc, .free_fn = unityTestFree};
 	cJSON_InitHooks(&hooks);
 
 	cJSON *json = cJSON_Parse(jsonstr);
 	TEST_ASSERT_NOT_NULL_MESSAGE(json, "cJSON 解析失败");
 
-	*footprint = unityTestGetUse() - baselineUse;
+	*footprint = unityTestGetUse() - leakScope.baseline;
 	cJSON_Delete(json);
-	TEST_ASSERT_EQUAL_INT_MESSAGE(baselineUse, unityTestGetUse(), "cJSON 释放后 TLSF used 未回到基线");
+	unityTestLeakScopeEnd(leakScope, "cJSON 释放后 TLSF used 未回到基线");
 }
 
 static void yyjsonMemoryFootprint(const char *jsonstr, int32_t *footprint)
 {
-	int32_t baselineUse = unityTestGetUse();
+	unityTestLeakScope_t leakScope = unityTestLeakScopeBegin();
 	yyjson_alc yyalc = {yyMalloc, yyRealloc, yyFree, NULL};
 
 	// 先解析成只读文档
@@ -60,9 +60,9 @@ static void yyjsonMemoryFootprint(const char *jsonstr, int32_t *footprint)
 	yyjson_doc_free(doc);
 	TEST_ASSERT_NOT_NULL_MESSAGE(mdoc, "yyjson 拷贝可变文档失败");
 
-	*footprint = unityTestGetUse() - baselineUse;
+	*footprint = unityTestGetUse() - leakScope.baseline;
 	yyjson_mut_doc_free(mdoc);
-	TEST_ASSERT_EQUAL_INT_MESSAGE(baselineUse, unityTestGetUse(), "yyjson 释放后 TLSF used 未回到基线");
+	unityTestLeakScopeEnd(leakScope, "yyjson 释放后 TLSF used 未回到基线");
 }
 
 static void printfJsonCompare(const char *title, const char *jsonstr)

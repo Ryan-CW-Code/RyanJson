@@ -214,7 +214,7 @@ static void testFile(const char *path, jsonParseData jsonParseDataHandle, const 
 		data[len] = '\0';
 		(void)fclose(f);
 
-		int32_t startUse = unityTestGetUse();
+		unityTestLeakScope_t leakScope = unityTestLeakScopeBegin();
 		RyanJsonBool_e status = jsonParseDataHandle(name, data, len);
 		usedCount++;
 
@@ -238,11 +238,8 @@ static void testFile(const char *path, jsonParseData jsonParseDataHandle, const 
 		else if (0 == strncmp("i_", name, 2)) { passCount++; }
 
 		// 内存泄漏检查
-		if (startUse != unityTestGetUse())
-		{
-			(void)testLog("RFC8259 内存泄漏于文件: %s\n", name);
-			TEST_ASSERT_EQUAL_INT_MESSAGE(startUse, unityTestGetUse(), "RFC8259 内存泄漏");
-		}
+		if (leakScope.baseline != unityTestGetUse()) { (void)testLog("RFC8259 内存泄漏于文件: %s\n", name); }
+		unityTestLeakScopeEnd(leakScope, "RFC8259 内存泄漏");
 	}
 
 	free(data);

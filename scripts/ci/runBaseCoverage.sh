@@ -12,61 +12,33 @@ set -euo pipefail
 #   UNIT_STOP_ON_FAIL=0|1：失败是否立即终止
 #   XMAKE_FORCE_CLEAN=0|1：每组前是否先清理配置
 
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/common.sh
+source "${scriptDir}/../lib/common.sh"
+# shellcheck source=../lib/semantic_matrix.sh
+source "${scriptDir}/../lib/semantic_matrix.sh"
+repoRoot="$(ryanjson_repo_root_from_source "${BASH_SOURCE[0]}" 2)"
+cd "${repoRoot}"
+
 unitMode="${UNIT_MODE:-full}"
 unitSkipCov="${UNIT_SKIP_COV:-0}"
 unitStopOnFail="${UNIT_STOP_ON_FAIL:-1}"
 xmakeForceClean="${XMAKE_FORCE_CLEAN:-0}"
 
-# 统一切到仓库根目录，避免从任意 cwd 启动时相对路径失效
-scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repoRoot="$(cd "${scriptDir}/../.." && pwd)"
-cd "${repoRoot}"
+ryanjson_require_cmd xmake
 
-# 覆盖率目录固定为 coverage/unitMatrix，每次执行前清理，保证只保留最新结果
+if [[ -f "./scripts/ci/checkUnityRunnerList.sh" ]]; then
+  echo "[阶段] 正在校验 Unity runner 列表..."
+  bash ./scripts/ci/checkUnityRunnerList.sh
+fi
+
 coverageRoot="coverage/unitMatrix"
-rm -rf "${coverageRoot}"
 profileRoot="${coverageRoot}/profiles"
+ryanjson_prepare_clean_dir "${coverageRoot}"
 mkdir -p "${profileRoot}"
 
-declare -a caseList=()
-
-addCase() {
-  local strictKey="$1"
-  local addAtHead="$2"
-  local scientific="$3"
-  caseList+=("${strictKey} ${addAtHead} ${scientific}")
-}
-
-# 根据模式生成组合列表
-case "${unitMode}" in
-  quick)
-    # PR 快检：默认组合 + 对立组合
-    addCase false true true
-    addCase true false true
-    ;;
-  nightly)
-    # 夜间：覆盖 strict × addAtHead 四种核心语义
-    for strictKey in false true; do
-      for addAtHead in false true; do
-        addCase "${strictKey}" "${addAtHead}" true
-      done
-    done
-    ;;
-  full)
-    # 全量：三个布尔宏全组合
-    for strictKey in false true; do
-      for addAtHead in false true; do
-        for scientific in false true; do
-          addCase "${strictKey}" "${addAtHead}" "${scientific}"
-        done
-      done
-    done
-    ;;
-  *)
-    echo "[错误] UNIT_MODE 仅支持 quick/nightly/full，当前值：${unitMode}"
-    exit 1
-    ;;
-esac
+caseText="$(ryanjson_emit_semantic_cases "${unitMode}" "UNIT_MODE")"
+mapfile -t caseList <<< "${caseText}"
 
 totalCases="${#caseList[@]}"
 caseIndex=0
@@ -79,8 +51,10 @@ runCase() {
   local addAtHead="$4"
   local scientific="$5"
 
-  local caseName="strict_${strictKey}__head_${addAtHead}__sci_${scientific}"
-  local profraw="${profileRoot}/${caseName}.profraw"
+  local caseName=""
+  local profraw=""
+  caseName="$(ryanjson_semantic_case_name "${strictKey}" "${addAtHead}" "${scientific}")"
+  profraw="${profileRoot}/${caseName}.profraw"
 
   echo "===================================================="
   echo "【用例 ${index}/${total}】${caseName}"
@@ -93,43 +67,25 @@ runCase() {
   export RYANJSON_DEFAULT_ADD_AT_HEAD="${addAtHead}"
   export RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC="${scientific}"
 
-  # 重新配置，确保宏变化进入编译命令
-  # 默认走增量配置，配合第三方静态库可减少重复编译
-  if [[ "${xmakeForceClean}" == "1" ]]; then
-    echo "[阶段] 正在执行 xmake 配置（clean 模式）..."
-    if ! xmake f -c; then
-      echo "[错误] xmake 配置失败：${caseName}"
-      return 1
-    fi
-  else
-    echo "[阶段] 正在执行 xmake 配置（增量模式）..."
-    if ! xmake f; then
-      echo "[错误] xmake 配置失败：${caseName}"
-      return 1
-    fi
+  if ! ryanjson_run_xmake_config "${xmakeForceClean}" "${caseName}"; then
+    return 1
   fi
-
-  echo "[阶段] 正在执行 xmake 构建（target=RyanJson）..."
-  if ! xmake -b RyanJson; then
-    echo "[错误] xmake 构建失败：${caseName}"
+  if ! ryanjson_run_xmake_build "RyanJson" "${caseName}"; then
     return 1
   fi
 
-  # 单测执行，profile 分文件隔离，避免组合间互相覆盖
   echo "[阶段] 正在运行单元测试二进制..."
   if ! LLVM_PROFILE_FILE="${profraw}" ./build/linux/x86/release/RyanJson; then
     echo "[错误] 单元测试执行失败：${caseName}"
     return 1
   fi
 
-  # 快检模式可跳过覆盖率阶段以缩短总时长
   if [[ "${unitSkipCov}" == "1" ]]; then
     echo "[信息] UNIT_SKIP_COV=1，已跳过覆盖率生成。"
     return 0
   fi
 }
 
-# 按组合清单执行
 for entry in "${caseList[@]}"; do
   caseIndex=$((caseIndex + 1))
   read -r strictKey addAtHead scientific <<< "${entry}"
@@ -146,7 +102,6 @@ for entry in "${caseList[@]}"; do
   fi
 done
 
-# 若启用覆盖率，则把矩阵中所有组合的 profraw 合并后只生成一份报告
 if [[ "${unitSkipCov}" != "1" ]]; then
   if ! command -v llvm-profdata >/dev/null 2>&1; then
     echo "[错误] 未找到 llvm-profdata，无法生成覆盖率。"

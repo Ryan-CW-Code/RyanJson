@@ -12,7 +12,10 @@ set -euo pipefail
 #   --validate-only  仅执行校验
 
 scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "${scriptDir}"
+# shellcheck source=scripts/lib/common.sh
+source "${scriptDir}/scripts/lib/common.sh"
+repoRoot="$(ryanjson_repo_root_from_source "${BASH_SOURCE[0]}" 0)"
+cd "${repoRoot}"
 
 doSync=1
 doValidate=1
@@ -50,12 +53,11 @@ if [[ ${#skillDirs[@]} -eq 0 ]]; then
 	exit 0
 fi
 
-echo "===================================================="
-echo "本地 Skills 任务启动"
-echo "  - sync=${doSync}"
-echo "  - validate=${doValidate}"
-echo "  - skills=${#skillDirs[@]}"
-echo "===================================================="
+ryanjson_print_banner_begin "本地 Skills 任务启动"
+ryanjson_print_banner_kv "sync" "${doSync}"
+ryanjson_print_banner_kv "validate" "${doValidate}"
+ryanjson_print_banner_kv "skills" "${#skillDirs[@]}"
+ryanjson_print_banner_end
 
 if [[ ${doSync} -eq 1 ]]; then
 	echo "[阶段] 同步术语占位文档..."
@@ -63,24 +65,24 @@ if [[ ${doSync} -eq 1 ]]; then
 		termFile="${skillDir}/references/terminology.md"
 		mkdir -p "$(dirname "${termFile}")"
 		if [[ ! -f "${termFile}" ]]; then
-			cat > "${termFile}" <<'EOF'
+			cat > "${termFile}" <<'INNER_EOF'
 # 术语字典
 
 - 统一术语定义复用共享文档：`../../shared/terminology.md`。
 - 如出现本技能专属术语，可在本文件追加扩展，不覆盖共享定义。
-EOF
+INNER_EOF
 			echo "  - synced ${termFile} (created)"
 		elif grep -Fq '../../shared/terminology.md' "${termFile}"; then
 			echo "  - synced ${termFile} (already linked)"
 		else
 			tmpFile="$(mktemp)"
-			cat > "${tmpFile}" <<'EOF'
+			cat > "${tmpFile}" <<'INNER_EOF'
 # 术语字典
 
 - 统一术语定义复用共享文档：`../../shared/terminology.md`。
 - 如出现本技能专属术语，可在本文件追加扩展，不覆盖共享定义。
 
-EOF
+INNER_EOF
 			cat "${termFile}" >> "${tmpFile}"
 			mv "${tmpFile}" "${termFile}"
 			echo "  - synced ${termFile} (prefixed)"
@@ -138,6 +140,5 @@ if [[ ${doValidate} -eq 1 ]]; then
 	done
 fi
 
-echo "===================================================="
-echo "本地 Skills 任务完成"
-echo "===================================================="
+ryanjson_print_banner_begin "本地 Skills 任务完成"
+ryanjson_print_banner_end

@@ -257,6 +257,67 @@ static void testDeleteStandardOperations(void)
 	RyanJsonDelete(json);
 }
 
+static void testDeleteFailureAtomicityAndRebuildChain(void)
+{
+	// 复杂链路：
+	// Parse -> Delete(失败) -> Compare(snapshot) -> Delete(成功)
+	// -> Insert/Change 重建 -> Compare(期望文档) -> Roundtrip。
+	// 目标：
+	// 1) 验证删除失败路径不会污染文档；
+	// 2) 验证对象/数组删除后可通过插入与修改完成稳定重建；
+	// 3) 验证重建后的语义可与期望文档一致。
+	const char *source = "{\"obj\":{\"a\":1,\"b\":2},\"arr\":[1,2,3],\"meta\":{\"ok\":true}}";
+	const char *expectText = "{\"obj\":{\"a\":1,\"c\":5},\"arr\":[1,9,3],\"meta\":{\"status\":\"done\"}}";
+
+	RyanJson_t root = RyanJsonParse(source);
+	TEST_ASSERT_NOT_NULL_MESSAGE(root, "Delete 链路样本解析失败");
+	RyanJson_t snapshot = RyanJsonDuplicate(root);
+	TEST_ASSERT_NOT_NULL_MESSAGE(snapshot, "Delete 链路快照构造失败");
+
+	RyanJson_t obj = RyanJsonGetObjectToKey(root, "obj");
+	RyanJson_t arr = RyanJsonGetObjectToKey(root, "arr");
+	RyanJson_t meta = RyanJsonGetObjectToKey(root, "meta");
+	TEST_ASSERT_NOT_NULL(obj);
+	TEST_ASSERT_NOT_NULL(arr);
+	TEST_ASSERT_NOT_NULL(meta);
+
+	// 失败路径：删除不存在节点应失败，文档语义保持不变。
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonDeleteByKey(obj, "missing"), "DeleteByKey(不存在 key) 应失败");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonDeleteByIndex(arr, 99), "DeleteByIndex(越界) 应失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(root, snapshot), "仅发生失败删除时，文档应与 snapshot 一致");
+
+	// 成功删除并重建。
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonDeleteByKey(obj, "b"), "删除 obj.b 失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonDeleteByIndex(arr, 1), "删除 arr[1] 失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonDeleteByKey(meta, "ok"), "删除 meta.ok 失败");
+
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(obj, UINT32_MAX, RyanJsonCreateInt("c", 5)), "插入 obj.c 失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(arr, 1, RyanJsonCreateInt(NULL, 9)), "插入 arr[1]=9 失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(meta, 0, RyanJsonCreateString("status", "done")), "插入 meta.status 失败");
+
+	TEST_ASSERT_TRUE(RyanJsonHasObjectToKey(obj, "a"));
+	TEST_ASSERT_TRUE(RyanJsonHasObjectToKey(obj, "c"));
+	TEST_ASSERT_FALSE(RyanJsonHasObjectToKey(obj, "b"));
+	TEST_ASSERT_EQUAL_UINT32(3U, RyanJsonGetArraySize(arr));
+	TEST_ASSERT_EQUAL_INT(9, RyanJsonGetIntValue(RyanJsonGetObjectByIndex(arr, 1)));
+
+	RyanJson_t expect = RyanJsonParse(expectText);
+	TEST_ASSERT_NOT_NULL(expect);
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(root, expect), "Delete 链路重建结果与期望文档不一致");
+
+	char *printed = RyanJsonPrint(root, 160, RyanJsonFalse, NULL);
+	TEST_ASSERT_NOT_NULL(printed);
+	RyanJson_t roundtrip = RyanJsonParse(printed);
+	TEST_ASSERT_NOT_NULL(roundtrip);
+	TEST_ASSERT_TRUE(RyanJsonCompare(root, roundtrip));
+
+	RyanJsonDelete(roundtrip);
+	RyanJsonFree(printed);
+	RyanJsonDelete(expect);
+	RyanJsonDelete(snapshot);
+	RyanJsonDelete(root);
+}
+
 void testDeleteRunner(void)
 {
 	UnitySetTestFile(__FILE__);
@@ -265,4 +326,5 @@ void testDeleteRunner(void)
 	RUN_TEST(testDeleteTailAndMiddleThenAppend);
 	RUN_TEST(testDeleteStandardOperations);
 	RUN_TEST(testDeleteMassiveItemsStress);
+	RUN_TEST(testDeleteFailureAtomicityAndRebuildChain);
 }

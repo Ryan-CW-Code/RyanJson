@@ -3,7 +3,7 @@
 名称：`ryanjson-optimization`
 
 ## 定位
-- 面向 RyanJson 核心代码的正确性优先优化技能。
+- 面向 RyanJson 核心代码的正确性优先优化技能（先修正确性再提效）。
 
 ## 适用场景
 - 优化 Parse/Print/Item/Compare 等核心路径。

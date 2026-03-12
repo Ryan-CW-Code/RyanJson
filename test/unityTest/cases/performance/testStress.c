@@ -5,47 +5,6 @@
  *
  * @note 验证 RyanJson 处理大数据量（长字符串、大数组）的能力。
  */
-static RyanJson_t createSequentialIntArray(uint32_t arraySize)
-{
-	RyanJson_t array = RyanJsonCreateArray();
-	TEST_ASSERT_NOT_NULL(array);
-
-	for (uint32_t i = 0; i < arraySize; i++)
-	{
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(array, (int32_t)i), "向大数组添加整数失败");
-	}
-
-	return array;
-}
-
-static int32_t gStressFailAfter = -1;
-static int32_t gStressAllocCount = 0;
-
-static void *stressFailMalloc(size_t size)
-{
-	if (gStressFailAfter >= 0 && gStressAllocCount++ >= gStressFailAfter) { return NULL; }
-	return unityTestMalloc(size);
-}
-
-static void *stressFailRealloc(void *block, size_t size)
-{
-	if (gStressFailAfter >= 0 && gStressAllocCount++ >= gStressFailAfter) { return NULL; }
-	return unityTestRealloc(block, size);
-}
-
-static void stressSetFailAfter(int32_t failAfter)
-{
-	gStressFailAfter = failAfter;
-	gStressAllocCount = 0;
-	RyanJsonInitHooks(stressFailMalloc, unityTestFree, stressFailRealloc);
-}
-
-static void stressRestoreHooks(void)
-{
-	RyanJsonInitHooks(unityTestMalloc, unityTestFree, unityTestRealloc);
-	gStressFailAfter = -1;
-	gStressAllocCount = 0;
-}
 
 static void testStressLongString(void)
 {
@@ -68,7 +27,12 @@ static void testStressLargeArray(void)
 {
 	// 测试大数组 (1000 个整数)
 	const uint32_t arraySize = 1000;
-	RyanJson_t array = createSequentialIntArray(arraySize);
+	RyanJson_t array = RyanJsonCreateArray();
+	TEST_ASSERT_NOT_NULL(array);
+	for (uint32_t i = 0; i < arraySize; i++)
+	{
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(array, (int32_t)i), "向大数组添加整数失败");
+	}
 
 	TEST_ASSERT_EQUAL_UINT32_MESSAGE(arraySize, (uint32_t)RyanJsonGetArraySize(array), "大数组长度错误");
 
@@ -87,7 +51,12 @@ static void testStressPrint(void)
 {
 	// 序列化压力测试 (无格式)
 	const uint32_t arraySize = 1000;
-	RyanJson_t array = createSequentialIntArray(arraySize);
+	RyanJson_t array = RyanJsonCreateArray();
+	TEST_ASSERT_NOT_NULL(array);
+	for (uint32_t i = 0; i < arraySize; i++)
+	{
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(array, (int32_t)i), "向大数组添加整数失败");
+	}
 
 	char *printed = RyanJsonPrint(array, 8192, RyanJsonFalse, NULL);
 	TEST_ASSERT_NOT_NULL_MESSAGE(printed, "大数组序列化失败");
@@ -99,7 +68,12 @@ static void testStressPrint(void)
 static void testStressLargeArrayRoundtrip(void)
 {
 	const uint32_t arraySize = 2048;
-	RyanJson_t array = createSequentialIntArray(arraySize);
+	RyanJson_t array = RyanJsonCreateArray();
+	TEST_ASSERT_NOT_NULL(array);
+	for (uint32_t i = 0; i < arraySize; i++)
+	{
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(array, (int32_t)i), "向大数组添加整数失败");
+	}
 
 	// 关键位置抽样检查，避免仅检查尾节点导致漏检
 	const uint32_t sampleIndex[] = {0U, 1U, 2U, 127U, 1023U, 1536U, 2047U};
@@ -191,19 +165,24 @@ static void testStressLargeStringArrayPreallocatedNoTerminator(void)
 
 static void testStressPrintOomLargeArray(void)
 {
-	RyanJson_t array = createSequentialIntArray(2000);
+	RyanJson_t array = RyanJsonCreateArray();
+	TEST_ASSERT_NOT_NULL(array);
+	for (int32_t i = 0; i < 2000; i++)
+	{
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(array, i), "向大数组添加整数失败");
+	}
 
 	// 首次分配失败
-	stressSetFailAfter(0);
+	UNITY_TEST_OOM_BEGIN(0);
 	char *printed = RyanJsonPrint(array, 0, RyanJsonFalse, NULL);
-	stressRestoreHooks();
+	UNITY_TEST_OOM_END();
 	if (printed) { RyanJsonFree(printed); }
 	TEST_ASSERT_NULL_MESSAGE(printed, "Print OOM(首次分配失败) 应返回 NULL");
 
 	// 首次分配成功，扩容失败
-	stressSetFailAfter(1);
+	UNITY_TEST_OOM_BEGIN(1);
 	printed = RyanJsonPrint(array, 1, RyanJsonFalse, NULL);
-	stressRestoreHooks();
+	UNITY_TEST_OOM_END();
 	if (printed) { RyanJsonFree(printed); }
 	TEST_ASSERT_NULL_MESSAGE(printed, "Print OOM(扩容失败) 应返回 NULL");
 

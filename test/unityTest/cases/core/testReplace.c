@@ -473,6 +473,165 @@ static void testReplaceTypeSwitchingStress(void)
 	RyanJsonDelete(root);
 }
 
+static void testReplaceFailureRecoveryChainWithExpectedDocument(void)
+{
+	// 复杂链路：
+	// Parse -> ReplaceByKey(失败) -> 复用失败 item 成功 ReplaceByKey
+	// -> ReplaceByIndex(成功/失败交错) -> ReplaceByKey(嵌套对象) -> Compare(期望文档)。
+	// 目标：
+	// 1) 验证 Replace 失败不会错误消费 item；
+	// 2) 验证失败后复用同一 item 进行后续替换可稳定成功；
+	// 3) 验证对象替换与数组替换交错后语义仍可收敛到期望结果。
+	const char *source = "{\"meta\":{\"v\":1},\"arr\":[{\"id\":\"a\"},{\"id\":\"b\"}],\"flag\":true}";
+	const char *expectText = "{\"meta\":{\"v\":2},\"arr\":[{\"id\":\"a\"},{\"id\":\"bb\",\"done\":true}],\"flag\":\"x\"}";
+
+	RyanJson_t root = RyanJsonParse(source);
+	TEST_ASSERT_NOT_NULL_MESSAGE(root, "Replace 链路样本解析失败");
+	RyanJson_t meta = RyanJsonGetObjectToKey(root, "meta");
+	RyanJson_t arr = RyanJsonGetObjectToKey(root, "arr");
+	TEST_ASSERT_NOT_NULL(meta);
+	TEST_ASSERT_NOT_NULL(arr);
+
+	// 失败路径：不存在 key 的替换失败，item 应保持 detached。
+	RyanJson_t failThenReuse = RyanJsonCreateString("temp", "x");
+	TEST_ASSERT_NOT_NULL(failThenReuse);
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonReplaceByKey(root, "missing", failThenReuse), "ReplaceByKey(不存在 key) 应失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDetachedItem(failThenReuse), "失败后 failThenReuse 应保持 detached");
+
+	// 成功路径：复用同一 item 替换 flag（会自动改写 key）。
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(root, "flag", failThenReuse), "复用失败 item 替换 flag 应成功");
+	TEST_ASSERT_EQUAL_STRING("x", RyanJsonGetStringValue(RyanJsonGetObjectToKey(root, "flag")));
+
+	// 数组替换成功路径。
+	RyanJson_t arrReplace = RyanJsonCreateObject();
+	TEST_ASSERT_NOT_NULL(arrReplace);
+	TEST_ASSERT_TRUE(RyanJsonAddStringToObject(arrReplace, "id", "bb"));
+	TEST_ASSERT_TRUE(RyanJsonAddBoolToObject(arrReplace, "done", RyanJsonTrue));
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByIndex(arr, 1, arrReplace), "ReplaceByIndex(arr,1) 应成功");
+
+	// 数组越界失败路径：失败后 item 仍应由调用方释放。
+	RyanJson_t outRange = RyanJsonCreateInt(NULL, 7);
+	TEST_ASSERT_NOT_NULL(outRange);
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonReplaceByIndex(arr, 99, outRange), "ReplaceByIndex(arr,99) 应失败");
+	TEST_ASSERT_TRUE(RyanJsonIsDetachedItem(outRange));
+	RyanJsonDelete(outRange);
+
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(meta, "v", RyanJsonCreateInt("v", 2)), "ReplaceByKey(meta.v) 应成功");
+
+	RyanJson_t expect = RyanJsonParse(expectText);
+	TEST_ASSERT_NOT_NULL(expect);
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(root, expect), "Replace 链路最终结果与期望文档不一致");
+
+	char *printed = RyanJsonPrint(root, 192, RyanJsonFalse, NULL);
+	TEST_ASSERT_NOT_NULL(printed);
+	RyanJson_t roundtrip = RyanJsonParse(printed);
+	TEST_ASSERT_NOT_NULL(roundtrip);
+	TEST_ASSERT_TRUE(RyanJsonCompare(root, roundtrip));
+
+	RyanJsonDelete(roundtrip);
+	RyanJsonFree(printed);
+	RyanJsonDelete(expect);
+	RyanJsonDelete(root);
+}
+
+static void testReplaceByIndexArrayWithDetachedItemFromOtherArray(void)
+{
+	// Parse(arr1/arr2) -> DetachByIndex(arr2) -> ReplaceByIndex(arr1) -> Compare。
+	// 目标：验证 ReplaceByIndex(Array) 可接收来自另一数组的游离节点。
+	RyanJson_t arr1 = RyanJsonParse("[1,2,3]");
+	RyanJson_t arr2 = RyanJsonParse("[4,5,6]");
+	TEST_ASSERT_NOT_NULL(arr1);
+	TEST_ASSERT_NOT_NULL(arr2);
+
+	RyanJson_t moved = RyanJsonDetachByIndex(arr2, 1);
+	TEST_ASSERT_NOT_NULL(moved);
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByIndex(arr1, 0, moved), "跨数组 ReplaceByIndex 应成功");
+
+	RyanJson_t expect1 = RyanJsonParse("[5,2,3]");
+	RyanJson_t expect2 = RyanJsonParse("[4,6]");
+	TEST_ASSERT_NOT_NULL(expect1);
+	TEST_ASSERT_NOT_NULL(expect2);
+	TEST_ASSERT_TRUE(RyanJsonCompare(arr1, expect1));
+	TEST_ASSERT_TRUE(RyanJsonCompare(arr2, expect2));
+
+	RyanJsonDelete(expect2);
+	RyanJsonDelete(expect1);
+	RyanJsonDelete(arr2);
+	RyanJsonDelete(arr1);
+}
+
+static void testReplaceByIndexObjectWithDetachedRenamedItem(void)
+{
+	// Parse(Object) -> DetachByKey -> ChangeKey -> ReplaceByIndex(Object)。
+	// 目标：验证按索引替换对象字段时会保留游离节点的新 key 与索引位置。
+	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"b\":2,\"c\":3}");
+	TEST_ASSERT_NOT_NULL(obj);
+
+	RyanJson_t moved = RyanJsonDetachByKey(obj, "b");
+	TEST_ASSERT_NOT_NULL(moved);
+	TEST_ASSERT_TRUE(RyanJsonChangeKey(moved, "d"));
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByIndex(obj, 0, moved), "ReplaceByIndex(Object) 应成功");
+
+	TEST_ASSERT_EQUAL_UINT32(2U, RyanJsonGetSize(obj));
+	TEST_ASSERT_FALSE(RyanJsonHasObjectByKey(obj, "a"));
+	TEST_ASSERT_FALSE(RyanJsonHasObjectByKey(obj, "b"));
+	TEST_ASSERT_TRUE(RyanJsonHasObjectByKey(obj, "c"));
+	TEST_ASSERT_TRUE(RyanJsonHasObjectByKey(obj, "d"));
+	TEST_ASSERT_EQUAL_STRING("d", RyanJsonGetKey(RyanJsonGetObjectByIndex(obj, 0)));
+	TEST_ASSERT_EQUAL_STRING("c", RyanJsonGetKey(RyanJsonGetObjectByIndex(obj, 1)));
+	TEST_ASSERT_EQUAL_INT(2, RyanJsonGetIntValue(RyanJsonGetObjectByKey(obj, "d")));
+
+	RyanJsonDelete(obj);
+}
+
+static void testReplaceByKeyReuseDetachedSiblingAfterRename(void)
+{
+	// Parse(Object) -> DetachByKey -> ChangeKey -> ReplaceByKey(同名目标)。
+	// 目标：验证来自同一对象的游离兄弟节点可直接复用为 ReplaceByKey 参数。
+	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"b\":2}");
+	TEST_ASSERT_NOT_NULL(obj);
+
+	RyanJson_t moved = RyanJsonDetachByKey(obj, "b");
+	TEST_ASSERT_NOT_NULL(moved);
+	TEST_ASSERT_TRUE(RyanJsonChangeKey(moved, "a"));
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(obj, "a", moved), "复用游离兄弟节点 ReplaceByKey 应成功");
+
+	RyanJson_t expect = RyanJsonParse("{\"a\":2}");
+	TEST_ASSERT_NOT_NULL(expect);
+	TEST_ASSERT_TRUE(RyanJsonCompare(obj, expect));
+
+	RyanJsonDelete(expect);
+	RyanJsonDelete(obj);
+}
+
+static void testReplaceNestedObjectThenDetachChildToParent(void)
+{
+	// Parse -> ReplaceByKey(新对象) -> DetachByKey(子节点) -> ChangeKey -> Insert(父对象)。
+	// 目标：验证 ReplaceByKey 引入的新对象仍可继续分离子节点并回插到父对象。
+	RyanJson_t root = RyanJsonParse("{\"a\":{\"x\":1},\"b\":2}");
+	TEST_ASSERT_NOT_NULL(root);
+
+	RyanJson_t newObj = RyanJsonCreateObject();
+	TEST_ASSERT_NOT_NULL(newObj);
+	TEST_ASSERT_TRUE(RyanJsonAddIntToObject(newObj, "x", 1));
+	TEST_ASSERT_TRUE(RyanJsonAddIntToObject(newObj, "y", 2));
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(root, "a", newObj), "ReplaceByKey(root.a) 应成功");
+
+	RyanJson_t aNode = RyanJsonGetObjectByKey(root, "a");
+	TEST_ASSERT_NOT_NULL(aNode);
+	RyanJson_t detached = RyanJsonDetachByKey(aNode, "x");
+	TEST_ASSERT_NOT_NULL(detached);
+	TEST_ASSERT_TRUE(RyanJsonChangeKey(detached, "x2"));
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(root, UINT32_MAX, detached), "将分离子节点插回父对象应成功");
+
+	RyanJson_t expect = RyanJsonParse("{\"a\":{\"y\":2},\"b\":2,\"x2\":1}");
+	TEST_ASSERT_NOT_NULL(expect);
+	TEST_ASSERT_TRUE(RyanJsonCompare(root, expect));
+
+	RyanJsonDelete(expect);
+	RyanJsonDelete(root);
+}
+
 void testReplaceRunner(void)
 {
 	UnitySetTestFile(__FILE__);
@@ -482,6 +641,11 @@ void testReplaceRunner(void)
 	RUN_TEST(testReplaceFailureKeepsItemOwnership);
 	RUN_TEST(testReplaceFailureCallerMustDeleteItem);
 	RUN_TEST(testReplaceKeyRewriteAndWrapPaths);
+	RUN_TEST(testReplaceByIndexArrayWithDetachedItemFromOtherArray);
+	RUN_TEST(testReplaceByIndexObjectWithDetachedRenamedItem);
+	RUN_TEST(testReplaceByKeyReuseDetachedSiblingAfterRename);
+	RUN_TEST(testReplaceNestedObjectThenDetachChildToParent);
 	RUN_TEST(testReplaceStandardOperations);
 	RUN_TEST(testReplaceTypeSwitchingStress);
+	RUN_TEST(testReplaceFailureRecoveryChainWithExpectedDocument);
 }

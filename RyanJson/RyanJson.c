@@ -335,9 +335,14 @@ static RyanJsonBool_e RyanJsonInternalCompare(RyanJson_t leftJson, RyanJson_t ri
 	while (1)
 	{
 		// 比较当前节点的类型、值与规模
-		RyanJsonCheckReturnFalse(RyanJsonGetType(leftCurrent) == RyanJsonGetType(rightCurrent));
+		RyanJsonType_e leftType = RyanJsonGetType(leftCurrent);
+		RyanJsonCheckReturnFalse(leftType == RyanJsonGetType(rightCurrent));
 
-		switch (RyanJsonGetType(leftCurrent))
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcovered-switch-default"
+#endif
+		switch (leftType)
 		{
 		case RyanJsonTypeNull: break;
 		case RyanJsonTypeBool:
@@ -371,6 +376,9 @@ static RyanJsonBool_e RyanJsonInternalCompare(RyanJson_t leftJson, RyanJson_t ri
 		case RyanJsonTypeObject: RyanJsonCheckReturnFalse(RyanJsonGetSize(leftCurrent) == RyanJsonGetSize(rightCurrent)); break;
 		default: return RyanJsonFalse;
 		}
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 		// 容器节点尝试下沉到子节点继续比较
 		if (_checkType(leftCurrent, RyanJsonTypeArray) || _checkType(leftCurrent, RyanJsonTypeObject))
@@ -407,35 +415,84 @@ static RyanJsonBool_e RyanJsonInternalCompare(RyanJson_t leftJson, RyanJson_t ri
 			}
 		}
 
-		// 同层前进，必要时回溯
+		// 走到这里说明当前节点对已经比较完成，且若它们是容器，则其子树也已经比较完毕。
+		// 接下来要在“不使用递归栈”的前提下，找到 DFS 意义上的下一个待比较节点对：
+		// 1) 优先尝试同父层的下一个兄弟；
+		// 2) 当前层没有兄弟时，沿内部 parent 回链逐层回溯；
+		// 3) 一旦回溯到入口 root，说明整棵树已经完全比较结束。
 		while (1)
 		{
+			// 进入本循环时，leftCurrent/rightCurrent 表示“刚完成比较的节点对”。
+			// 如果它已经回到入口 root，且前面也没有可继续下沉的子节点，
+			// 则表示从 root 出发的整棵树都已匹配完成，可以直接返回 True。
 			if (leftCurrent == leftJson) { return RyanJsonTrue; }
 
-			// 优先定位右侧对应的兄弟节点
+			// 先看左侧当前节点是否还有同父兄弟。
+			// 有的话，下一个比较目标就必须切到这个兄弟；右侧则去找“语义上与它对应”的兄弟。
 			RyanJson_t leftNext = RyanJsonGetNext(leftCurrent);
 			if (leftNext)
 			{
 				RyanJson_t rightNext = NULL;
-				if (RyanJsonFalse == RyanJsonIsKey(leftNext)) { rightNext = RyanJsonGetNext(rightCurrent); }
+				if (RyanJsonFalse == RyanJsonIsKey(leftNext))
+				{
+					// 无 key 节点只会出现在数组路径上，数组比较是严格按顺序进行的，
+					// 因而右侧可以直接取当前节点的 next 兄弟，不需要额外查找。
+					rightNext = RyanJsonGetNext(rightCurrent);
+				}
 				else
 				{
 					RyanJsonCheckAssert(RyanJsonTrue == RyanJsonIsKey(leftNext));
 					const char *leftNextKey = RyanJsonGetKey(leftNext);
 					RyanJson_t rightParent = RyanJsonInternalGetParent(rightCurrent);
 
-					// 同序快路径：优先尝试右侧当前节点的直接兄弟，未命中再回退到按 key 查找
-					RyanJson_t rightCandidate = RyanJsonGetNext(rightCurrent);
-					if (rightCandidate) { RyanJsonCheckAssert(RyanJsonTrue == RyanJsonIsKey(rightCandidate)); }
-					if (rightCandidate &&
-					    RyanJsonTrue == RyanJsonInternalStrEq(leftNextKey, RyanJsonGetKey(rightCandidate)))
+					// 对象比较是“同层无序、同 key 对齐”语义，不能像数组那样直接依赖 rightCurrent->next：
+					// - strict 模式下 key 唯一，按 key 找即可；
+					// - non-strict 模式下允许重复 key，必须继续保证“同 key 的第 N 次出现”彼此对齐，
+					//   否则会把后一个重复 key 错配到右侧第一个同名节点，导致 Compare/CompareOnlyKey 语义漂移。
+					RyanJsonCheckAssert(NULL != rightParent && RyanJsonTrue == RyanJsonIsObject(rightParent));
+#if true == RyanJsonStrictObjectKeyCheck
+					// strict 模式下 key 唯一，直接按 key 查找即可。
+					rightNext = RyanJsonGetObjectByKey(rightParent, leftNextKey);
+#else
+					// 非严格模式下允许重复 key，按“同 key + 相同出现序号”精确匹配。
+					RyanJson_t leftParent = RyanJsonInternalGetParent(leftCurrent);
+					RyanJsonCheckAssert(NULL != leftParent && RyanJsonTrue == RyanJsonIsObject(leftParent));
+
+					// 先在左父节点里统计 leftNext 是该 key 的第几次出现（0-based）。
+					// 例如 leftParent 子节点是 a,b,a,c，则第二个 a 的序号是 1。
+					uint32_t leftSameKeyIndex = 0;
+					RyanJson_t leftScan = RyanJsonGetObjectValue(leftParent);
+					RyanJsonCheckAssert(NULL != leftScan);
+					while (leftScan != leftNext)
 					{
-						rightNext = rightCandidate;
+						RyanJsonCheckAssert(RyanJsonTrue == RyanJsonIsKey(leftScan));
+						if (RyanJsonTrue == RyanJsonInternalStrEq(leftNextKey, RyanJsonGetKey(leftScan)))
+						{
+							leftSameKeyIndex++;
+						}
+						leftScan = RyanJsonGetNext(leftScan);
+						RyanJsonCheckAssert(NULL != leftScan);
 					}
-					else
+
+					// 再在右父节点里找到“同 key 的同序号节点”。
+					// 这样重复 key 的比较就不是“命中任意一个同名节点”，而是稳定地按出现次序对齐。
+					uint32_t rightSameKeyIndex = 0;
+					RyanJson_t rightScan = RyanJsonGetObjectValue(rightParent);
+					while (rightScan)
 					{
-						rightNext = RyanJsonGetObjectByKey(rightParent, leftNextKey);
+						RyanJsonCheckAssert(RyanJsonTrue == RyanJsonIsKey(rightScan));
+						if (RyanJsonTrue == RyanJsonInternalStrEq(leftNextKey, RyanJsonGetKey(rightScan)))
+						{
+							if (rightSameKeyIndex == leftSameKeyIndex)
+							{
+								rightNext = rightScan;
+								break;
+							}
+							rightSameKeyIndex++;
+						}
+						rightScan = RyanJsonGetNext(rightScan);
 					}
+#endif
 				}
 
 				RyanJsonCheckReturnFalse(NULL != rightNext);
@@ -445,9 +502,17 @@ static RyanJsonBool_e RyanJsonInternalCompare(RyanJson_t leftJson, RyanJson_t ri
 				break;
 			}
 
-			// 无兄弟可比时回溯到父层
+			// 当前层已没有可比较的兄弟，开始回溯。
+			// 这里故意不用 RyanJsonGetNext(leftCurrent)：
+			// - 公开语义下，没有兄弟时它会返回 NULL；
+			// - 但内部链表约定中，“最后一个兄弟节点的 next”挂的是父节点，
+			//   正是这里做迭代式 DFS 回溯所需要的那条内部回链。
 			leftCurrent = leftCurrent->next;
 
+			// leftCurrent 此时已经被抬回父节点，所以这里按“父节点类型”决定右侧如何回溯。
+			// - array：左右两边始终按相同 sibling 顺序推进，rightCurrent->next 正好也挂回父节点；
+			// - object：右侧当前节点可能是按 key/序号匹配得到的任意兄弟，未必处在链表尾部，
+			//   这时不能假设 rightCurrent->next 是父节点，只能显式调用 RyanJsonInternalGetParent。
 			if (RyanJsonIsArray(leftCurrent)) { rightCurrent = rightCurrent->next; }
 			else
 			{

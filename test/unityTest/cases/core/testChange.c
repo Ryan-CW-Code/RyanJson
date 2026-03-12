@@ -57,6 +57,56 @@ static void testChangeEdgeCases(void)
 	RyanJsonDelete(keyedBoolNode);
 }
 
+static void testChangeKeyDuplicatePolicy(void)
+{
+	// 这个用例只证明“改成已存在 key”时的策略差异：
+	// strict 必须拒绝，non-strict 可以成功；不重复覆盖后续查询/roundtrip 语义。
+	RyanJson_t obj = RyanJsonCreateObject();
+	TEST_ASSERT_NOT_NULL(obj);
+
+	TEST_ASSERT_TRUE(RyanJsonAddIntToObject(obj, "a", 1));
+	TEST_ASSERT_TRUE(RyanJsonAddIntToObject(obj, "b", 2));
+
+	RyanJson_t bNode = RyanJsonGetObjectByKey(obj, "b");
+	TEST_ASSERT_NOT_NULL_MESSAGE(bNode, "前置条件失败：缺少 key=b");
+
+#if true == RyanJsonStrictObjectKeyCheck
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeKey(bNode, "a"), "严格模式下 ChangeKey 重复 key 应失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(RyanJsonGetObjectByKey(obj, "b"), "严格模式失败后原 key 应保持不变");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(2, RyanJsonGetIntValue(RyanJsonGetObjectByKey(obj, "b")), "严格模式失败后节点值不应变化");
+#else
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonChangeKey(bNode, "a"), "非严格模式下 ChangeKey 重复 key 应成功");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByKey(obj, "b"), "非严格模式成功后旧 key 应不存在");
+	TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, RyanJsonGetSize(obj), "非严格模式成功后对象元素数量应保持不变");
+#endif
+
+	RyanJsonDelete(obj);
+}
+
+static void testChangeKeySameTextNoOp(void)
+{
+	// 同文本改 key 应视为 no-op：
+	// 既不能被 strict 重复 key 检查误伤，也不能替换节点身份或污染兄弟节点。
+	RyanJson_t obj = RyanJsonCreateObject();
+	TEST_ASSERT_NOT_NULL(obj);
+	TEST_ASSERT_TRUE(RyanJsonAddIntToObject(obj, "a", 1));
+	TEST_ASSERT_TRUE(RyanJsonAddStringToObject(obj, "b", "keep"));
+
+	RyanJson_t aNode = RyanJsonGetObjectToKey(obj, "a");
+	RyanJson_t bNode = RyanJsonGetObjectToKey(obj, "b");
+	TEST_ASSERT_NOT_NULL(aNode);
+	TEST_ASSERT_NOT_NULL(bNode);
+
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonChangeKey(aNode, "a"), "ChangeKey(同文本 key) 应成功");
+	TEST_ASSERT_EQUAL_PTR_MESSAGE(aNode, RyanJsonGetObjectToKey(obj, "a"), "同文本 ChangeKey 不应替换节点身份");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(1, RyanJsonGetIntValue(RyanJsonGetObjectToKey(obj, "a")), "同文本 ChangeKey 后值不应变化");
+	TEST_ASSERT_EQUAL_STRING_MESSAGE("keep", RyanJsonGetStringValue(RyanJsonGetObjectToKey(obj, "b")),
+					 "同文本 ChangeKey 不应影响其他兄弟节点");
+	TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, RyanJsonGetSize(obj), "同文本 ChangeKey 不应改变对象元素数量");
+
+	RyanJsonDelete(obj);
+}
+
 static void testChangeValueStress(void)
 {
 	RyanJson_t root = RyanJsonCreateObject();
@@ -348,11 +398,148 @@ static void testChangeInlineCalcBoundary(void)
 	free(keyPtr);
 }
 
+static void testChangeNumericStringIdFidelity(void)
+{
+	// 覆盖“数字字符串 ID”保真：
+	// 1) 解析后仍为 string 类型，且保留前导零与大整数文本；
+	// 2) Print/Parse 往返不数值化；
+	// 3) ChangeStringValue 不会触发数值化或去零。
+	const char *text = "{\"id\":\"00123\",\"big\":\"9007199254740993\",\"arr\":[\"00123\",\"9007199254740993\"]}";
+	RyanJson_t root = RyanJsonParse(text);
+	TEST_ASSERT_NOT_NULL_MESSAGE(root, "数字字符串样本解析失败");
+
+	RyanJson_t idNode = RyanJsonGetObjectByKey(root, "id");
+	RyanJson_t bigNode = RyanJsonGetObjectByKey(root, "big");
+	RyanJson_t arr = RyanJsonGetObjectByKey(root, "arr");
+	TEST_ASSERT_NOT_NULL(idNode);
+	TEST_ASSERT_NOT_NULL(bigNode);
+	TEST_ASSERT_NOT_NULL(arr);
+	TEST_ASSERT_TRUE(RyanJsonIsArray(arr));
+	TEST_ASSERT_TRUE(RyanJsonIsString(idNode));
+	TEST_ASSERT_TRUE(RyanJsonIsString(bigNode));
+	TEST_ASSERT_EQUAL_STRING("00123", RyanJsonGetStringValue(idNode));
+	TEST_ASSERT_EQUAL_STRING("9007199254740993", RyanJsonGetStringValue(bigNode));
+	TEST_ASSERT_TRUE(RyanJsonIsString(RyanJsonGetObjectByIndex(arr, 0)));
+	TEST_ASSERT_TRUE(RyanJsonIsString(RyanJsonGetObjectByIndex(arr, 1)));
+	TEST_ASSERT_EQUAL_STRING("00123", RyanJsonGetStringValue(RyanJsonGetObjectByIndex(arr, 0)));
+	TEST_ASSERT_EQUAL_STRING("9007199254740993", RyanJsonGetStringValue(RyanJsonGetObjectByIndex(arr, 1)));
+
+	char *printed = RyanJsonPrint(root, 160, RyanJsonFalse, NULL);
+	TEST_ASSERT_NOT_NULL(printed);
+	RyanJson_t roundtrip = RyanJsonParse(printed);
+	TEST_ASSERT_NOT_NULL(roundtrip);
+	TEST_ASSERT_EQUAL_STRING("00123", RyanJsonGetStringValue(RyanJsonGetObjectByKey(roundtrip, "id")));
+	TEST_ASSERT_EQUAL_STRING("9007199254740993", RyanJsonGetStringValue(RyanJsonGetObjectByKey(roundtrip, "big")));
+	TEST_ASSERT_TRUE(RyanJsonIsString(RyanJsonGetObjectByKey(roundtrip, "id")));
+	TEST_ASSERT_TRUE(RyanJsonIsString(RyanJsonGetObjectByKey(roundtrip, "big")));
+	TEST_ASSERT_TRUE(RyanJsonIsString(RyanJsonGetObjectByIndex(RyanJsonGetObjectByKey(roundtrip, "arr"), 0)));
+	TEST_ASSERT_TRUE(RyanJsonIsString(RyanJsonGetObjectByIndex(RyanJsonGetObjectByKey(roundtrip, "arr"), 1)));
+	TEST_ASSERT_EQUAL_STRING("00123", RyanJsonGetStringValue(RyanJsonGetObjectByIndex(RyanJsonGetObjectByKey(roundtrip, "arr"), 0)));
+	TEST_ASSERT_EQUAL_STRING("9007199254740993",
+				 RyanJsonGetStringValue(RyanJsonGetObjectByIndex(RyanJsonGetObjectByKey(roundtrip, "arr"), 1)));
+
+	TEST_ASSERT_TRUE(RyanJsonChangeStringValue(idNode, "00001"));
+	TEST_ASSERT_TRUE(RyanJsonChangeStringValue(bigNode, "90071992547409930"));
+	TEST_ASSERT_TRUE(RyanJsonChangeStringValue(RyanJsonGetObjectByIndex(arr, 0), "00001"));
+	TEST_ASSERT_TRUE(RyanJsonChangeStringValue(RyanJsonGetObjectByIndex(arr, 1), "90071992547409930"));
+	TEST_ASSERT_TRUE(RyanJsonIsString(RyanJsonGetObjectByKey(root, "id")));
+	TEST_ASSERT_TRUE(RyanJsonIsString(RyanJsonGetObjectByKey(root, "big")));
+	TEST_ASSERT_EQUAL_STRING("00001", RyanJsonGetStringValue(RyanJsonGetObjectByKey(root, "id")));
+	TEST_ASSERT_EQUAL_STRING("90071992547409930", RyanJsonGetStringValue(RyanJsonGetObjectByKey(root, "big")));
+	TEST_ASSERT_EQUAL_STRING("00001", RyanJsonGetStringValue(RyanJsonGetObjectByIndex(arr, 0)));
+	TEST_ASSERT_EQUAL_STRING("90071992547409930", RyanJsonGetStringValue(RyanJsonGetObjectByIndex(arr, 1)));
+
+	char *printed2 = RyanJsonPrint(root, 160, RyanJsonFalse, NULL);
+	TEST_ASSERT_NOT_NULL(printed2);
+	RyanJson_t roundtrip2 = RyanJsonParse(printed2);
+	TEST_ASSERT_NOT_NULL(roundtrip2);
+	TEST_ASSERT_EQUAL_STRING("00001", RyanJsonGetStringValue(RyanJsonGetObjectByKey(roundtrip2, "id")));
+	TEST_ASSERT_EQUAL_STRING("90071992547409930", RyanJsonGetStringValue(RyanJsonGetObjectByKey(roundtrip2, "big")));
+	TEST_ASSERT_TRUE(RyanJsonIsString(RyanJsonGetObjectByKey(roundtrip2, "id")));
+	TEST_ASSERT_TRUE(RyanJsonIsString(RyanJsonGetObjectByKey(roundtrip2, "big")));
+	TEST_ASSERT_TRUE(RyanJsonIsString(RyanJsonGetObjectByIndex(RyanJsonGetObjectByKey(roundtrip2, "arr"), 0)));
+	TEST_ASSERT_TRUE(RyanJsonIsString(RyanJsonGetObjectByIndex(RyanJsonGetObjectByKey(roundtrip2, "arr"), 1)));
+	TEST_ASSERT_EQUAL_STRING("00001", RyanJsonGetStringValue(RyanJsonGetObjectByIndex(RyanJsonGetObjectByKey(roundtrip2, "arr"), 0)));
+	TEST_ASSERT_EQUAL_STRING("90071992547409930",
+				 RyanJsonGetStringValue(RyanJsonGetObjectByIndex(RyanJsonGetObjectByKey(roundtrip2, "arr"), 1)));
+
+	RyanJsonDelete(roundtrip2);
+	RyanJsonFree(printed2);
+	RyanJsonDelete(roundtrip);
+	RyanJsonFree(printed);
+	RyanJsonDelete(root);
+}
+
+static void testChangeFailureThenSuccessChainAgainstExpected(void)
+{
+	// 复杂链路：
+	// Parse -> Duplicate(snapshot) -> 连续失败 Change -> Compare(snapshot)
+	// -> 连续成功 Change(含 ChangeKey) -> CompareOnlyKey 差异 -> 对齐期望文档 -> Roundtrip。
+	// 目标：
+	// 1) 验证失败 Change 不会污染原树；
+	// 2) 验证失败与成功交错后，结构和值仍可稳定收敛到期望语义；
+	// 3) 覆盖 ChangeKey 引起的 key 结构变化对 CompareOnlyKey 的影响。
+	const char *source = "{\"cfg\":{\"mode\":\"a\",\"retry\":1},\"arr\":[{\"k\":\"x\"},{\"k\":\"y\"}],\"flag\":true}";
+	const char *expectText = "{\"cfg\":{\"mode\":\"b\",\"retry2\":9},\"arr\":[{\"k\":\"x\"},{\"k\":\"z\"}],\"flag\":false}";
+
+	RyanJson_t root = RyanJsonParse(source);
+	TEST_ASSERT_NOT_NULL_MESSAGE(root, "Change 链路样本解析失败");
+	RyanJson_t snapshot = RyanJsonDuplicate(root);
+	TEST_ASSERT_NOT_NULL_MESSAGE(snapshot, "Change 链路快照构造失败");
+
+	RyanJson_t cfg = RyanJsonGetObjectToKey(root, "cfg");
+	RyanJson_t arr = RyanJsonGetObjectToKey(root, "arr");
+	RyanJson_t arr0 = RyanJsonGetObjectToIndex(arr, 0);
+	RyanJson_t arr1 = RyanJsonGetObjectToIndex(arr, 1);
+	TEST_ASSERT_NOT_NULL(cfg);
+	TEST_ASSERT_NOT_NULL(arr);
+	TEST_ASSERT_NOT_NULL(arr0);
+	TEST_ASSERT_NOT_NULL(arr1);
+
+	// 失败路径：类型不匹配 + 数组元素无 key，不应改变文档语义。
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeIntValue(RyanJsonGetObjectToKey(cfg, "mode"), 1), "string 节点 ChangeIntValue 应失败");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeBoolValue(RyanJsonGetObjectToKey(arr0, "k"), RyanJsonTrue),
+				  "string 节点 ChangeBoolValue 应失败");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeKey(arr0, "arr0"), "数组元素无 key，ChangeKey 应失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(root, snapshot), "仅发生失败 Change 时，文档语义应与 snapshot 完全一致");
+
+	// 成功路径：值修改 + key 修改。
+	TEST_ASSERT_TRUE(RyanJsonChangeStringValue(RyanJsonGetObjectToKey(cfg, "mode"), "b"));
+	TEST_ASSERT_TRUE(RyanJsonChangeIntValue(RyanJsonGetObjectToKey(cfg, "retry"), 9));
+	TEST_ASSERT_TRUE(RyanJsonChangeStringValue(RyanJsonGetObjectToKey(arr1, "k"), "z"));
+	TEST_ASSERT_TRUE(RyanJsonChangeBoolValue(RyanJsonGetObjectToKey(root, "flag"), RyanJsonFalse));
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonChangeKey(RyanJsonGetObjectToKey(cfg, "retry"), "retry2"), "将 cfg.retry 重命名为 retry2 失败");
+
+	TEST_ASSERT_FALSE(RyanJsonHasObjectToKey(cfg, "retry"));
+	TEST_ASSERT_TRUE(RyanJsonHasObjectToKey(cfg, "retry2"));
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(root, snapshot), "发生 key 结构变化后 CompareOnlyKey 应返回 False");
+
+	RyanJson_t expect = RyanJsonParse(expectText);
+	TEST_ASSERT_NOT_NULL(expect);
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(root, expect), "Change 链路最终结果与期望文档不一致");
+
+	char *printed = RyanJsonPrint(root, 160, RyanJsonFalse, NULL);
+	TEST_ASSERT_NOT_NULL(printed);
+	RyanJson_t roundtrip = RyanJsonParse(printed);
+	TEST_ASSERT_NOT_NULL(roundtrip);
+	TEST_ASSERT_TRUE(RyanJsonCompare(root, roundtrip));
+
+	RyanJsonDelete(roundtrip);
+	RyanJsonFree(printed);
+	RyanJsonDelete(expect);
+	RyanJsonDelete(snapshot);
+	RyanJsonDelete(root);
+}
+
 void testChangeRunner(void)
 {
 	UnitySetTestFile(__FILE__);
 	RUN_TEST(testChangeEdgeCases);
+	RUN_TEST(testChangeKeyDuplicatePolicy);
+	RUN_TEST(testChangeKeySameTextNoOp);
 	RUN_TEST(testChangeValueStress);
 	RUN_TEST(testChangeScalarAndStorageMode);
 	RUN_TEST(testChangeInlineCalcBoundary);
+	RUN_TEST(testChangeNumericStringIdFidelity);
+	RUN_TEST(testChangeFailureThenSuccessChainAgainstExpected);
 }

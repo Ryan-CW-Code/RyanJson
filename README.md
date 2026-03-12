@@ -42,6 +42,7 @@ RyanJson 的核心在于对内存布局的精细控制，**结构体表示最小
 // 其余数据（flag、key、stringValue、numberValue、doubleValue 等）均通过动态内存分配管理。
 struct RyanJsonNode
 {
+	// 理论上next的低2位也是可以利用起来的
 	struct RyanJsonNode *next; // 单链表节点指针
 
 	/**
@@ -66,20 +67,19 @@ struct RyanJsonNode
 	 *
 	 * - bit3   : 扩展位
 	 *            Bool 类型：0=false, 1=true
-	 *            Number 类型：0=int(4字节), 1=double(8字节)
+	 *            Number 类型：0=int32_t(4字节), 1=double(8字节)
 	 *
-	 * - bit4   : 是否包含 Key
-	 *            0=无 Key（数组元素）
-	 *            1=有 Key（对象成员）
+	 * - bit4-5 : Key 长度字段字节数
+	 *            00:无key
+	 *            01:keyLen=1字节 (≤UINT8_MAX)
+	 *            10:keyLen=2字节 (≤UINT16_MAX)
+	 *            11:keyLen=4字节 (≤UINT32_MAX)
 	 *
-	 * - bit5-6 : Key 长度字段字节数
-	 *            00=1字节 (≤UINT8_MAX)
-	 *            01=2字节 (≤UINT16_MAX)
-	 *            10=3字节 (≤UINT24_MAX)
-	 *            11=4字节 (≤UINT32_MAX)
+	 * - bit6   : 表示key / strValue 存储模式
+	 *            0:inline 模式, 1:ptr 模式
 	 *
-	 * - bit7   : 表示key / strValue 存储模式
-	 *            0:inline 模式, 1=ptr 模式
+	 * - bit7   : 表示是否为当前链表的最后一位，是的话nexe指针会指向Parent(线索化链表)
+	 *            0:next 指向兄弟节点, 1:next 指向Parent节点
 	 *
 	 * @brief 动态载荷存储区
      * 目的：
@@ -90,7 +90,7 @@ struct RyanJsonNode
      * 存储策略：
      * 利用结构体内存对齐产生的 Padding（如 Flag 后的空隙）以及原本用于存储指针的空间，形成一个缓冲区
      * 若节点包含 key / strValue，则可能有两种方案：
-     * 1. inline 模式 (小数据优化)
+     * inline 模式 (小数据优化)
      *    - 当 (KeyLen + Key + Value) 的总长度 ≤ 阈值时，直接存储在结构体内部。
      *    - 阈值计算公式：
      *        阈值 = Padding + sizeof(void*) + (malloc头部空间的一半)，再向上对齐到字节边界。
@@ -103,16 +103,16 @@ struct RyanJsonNode
      *        [ KeyLen | Key | Value ]
      *      起始地址即为 flag 之后，数据紧凑排列，无需额外 malloc。
      *
-     * 2. ptr 模式 (大数据)
+     * ptr 模式 (大数据)
      *    - 当数据长度 > 阈值时，结构体存储一个指针，指向独立的堆区。
      *    - 存储布局：
-     *        [ KeyLen | *ptr ] -> (ptr指向) [ Key | Value ]
+     *        [ KeyLen | *ptr | Padding ] -> (ptr指向) [ Key | Value ]
      *    - KeyLen 的大小由 flag 中的长度字段决定 (最多 4 字节)。
      *    - 这样保证大数据不会撑爆结构体，同时保持 API 一致性。
 
      * 其他类型的存储：
 	 * - null / bool : 由 flag 位直接表示，无需额外空间。
-	 * - number      : 根据 flag 扩展位决定存储 int(4字节) 或 double(8字节)。
+	 * - number      : 根据 flag 扩展位决定存储 int32_t(4字节) 或 double(8字节)。
 	 * - object      : 动态分配空间存储子节点，采用链表结构。
      *
      * 设计考量：

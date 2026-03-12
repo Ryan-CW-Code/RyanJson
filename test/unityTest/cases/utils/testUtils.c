@@ -152,29 +152,6 @@ void testCheckRoot(RyanJson_t pJson)
 	testCheckRootEx(pJson, RyanJsonFalse);
 }
 
-static void testUtilsBasic(void)
-{
-	char jsonstr[] = "{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null,\"item\":"
-			 "{\"inter\":16,\"double\":16."
-			 "89,\"string\":\"hello\","
-			 "\"boolTrue\":true,\"boolFalse\":false,\"null\":null},\"arrayInt\":[16,16,16,16,16],\"arrayDouble\":[16.89,16.89,"
-			 "16.89,16.89,16.89],"
-			 "\"arrayString\":[\"hello\",\"hello\","
-			 "\"hello\",\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null],\"arrayItem\":[{\"inter\":16,"
-			 "\"double\":16.89,\"string\":"
-			 "\"hello\",\"boolTrue\":true,"
-			 "\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,"
-			 "\"boolFalse\":false,\"null\":null}]}";
-
-	RyanJson_t json = RyanJsonParse(jsonstr);
-	TEST_ASSERT_NOT_NULL(json);
-
-	// 调用全部校验辅助函数
-	testCheckRoot(json);
-
-	RyanJsonDelete(json);
-}
-
 static void testUtilsMinifyNoExtraSpace(void)
 {
 	char buf[4];
@@ -189,6 +166,15 @@ static void testUtilsMinifyNoExtraSpace(void)
 	TEST_ASSERT_EQUAL_UINT8('b', (uint8_t)buf[1]);
 	TEST_ASSERT_EQUAL_UINT8('c', (uint8_t)buf[2]);
 	TEST_ASSERT_EQUAL_UINT8('X', (uint8_t)buf[3]);
+}
+
+static void testUtilsMinifyZeroLengthNoWrite(void)
+{
+	char buf[] = "{}";
+	uint32_t count = RyanJsonMinify(buf, 0);
+
+	TEST_ASSERT_EQUAL_UINT32(0U, count);
+	TEST_ASSERT_EQUAL_STRING("{}", buf);
 }
 
 static void testUtilsMinifyWriteTerminatorWhenSpaceRemain(void)
@@ -215,43 +201,77 @@ static void testUtilsMinifyWriteTerminatorWhenSpaceRemain(void)
 	TEST_ASSERT_EQUAL_UINT8('#', (uint8_t)buf[4]);
 }
 
-static void testUtilsVarargsPathHelpers(void)
+static void testUtilsMinifyNoTerminatorOverflow(void)
 {
-	RyanJson_t root = RyanJsonCreateObject();
+	uint8_t rawBuf[8] = {'{', '\"', 'a', '\"', ':', '1', '}', '#'};
+	uint32_t count = RyanJsonMinify((char *)rawBuf, 7);
 
-	RyanJson_t objA = RyanJsonCreateObject();
-	RyanJson_t objB = RyanJsonCreateObject();
-	RyanJsonAddIntToObject(objB, "c", 3);
-	RyanJsonAddItemToObject(objA, "b", objB);
-	RyanJsonAddItemToObject(root, "a", objA);
+	TEST_ASSERT_EQUAL_UINT32(7U, count);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'#', rawBuf[7]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'{', rawBuf[0]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'\"', rawBuf[1]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'a', rawBuf[2]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'\"', rawBuf[3]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)':', rawBuf[4]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'1', rawBuf[5]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'}', rawBuf[6]);
+}
 
-	RyanJson_t c = RyanJsonGetObjectToKey(root, "a", "b", "c");
-	TEST_ASSERT_NOT_NULL_MESSAGE(c, "GetObjectToKey 多级路径失败");
-	TEST_ASSERT_EQUAL_INT_MESSAGE(3, RyanJsonGetIntValue(c), "多级路径取值错误");
+static void testUtilsMinifyCommentOnlyToEmpty(void)
+{
+	char buf[] = "/*comment*/";
+	uint32_t count = RyanJsonMinify(buf, (int32_t)strlen(buf));
 
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectToKey(root, "a", "missing"), "不存在的路径应返回 NULL");
+	TEST_ASSERT_EQUAL_UINT32(0U, count);
+	TEST_ASSERT_EQUAL_STRING("", buf);
+}
 
-	RyanJson_t arr = RyanJsonCreateArray();
-	RyanJson_t sub = RyanJsonCreateArray();
-	RyanJsonAddIntToArray(sub, 7);
-	RyanJsonAddItemToArray(arr, sub);
-	RyanJsonAddItemToObject(root, "arr", arr);
+static void testUtilsMinifyWhitespaceOnlyWritesTerminator(void)
+{
+	char buf[4] = {' ', '\t', '\n', '#'};
+	uint32_t count = RyanJsonMinify(buf, 3);
 
-	RyanJson_t arrNode = RyanJsonGetObjectToKey(root, "arr");
-	RyanJson_t v = RyanJsonGetObjectToIndex(arrNode, 0, 0);
-	TEST_ASSERT_NOT_NULL_MESSAGE(v, "GetObjectToIndex 多级索引失败");
-	TEST_ASSERT_EQUAL_INT_MESSAGE(7, RyanJsonGetIntValue(v), "多级索引取值错误");
+	TEST_ASSERT_EQUAL_UINT32(0U, count);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'\0', (uint8_t)buf[0]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'#', (uint8_t)buf[3]);
+}
 
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectToIndex(arrNode, 1), "越界索引应返回 NULL");
+static void testUtilsMinifyTruncatedEscapeDoesNotOverread(void)
+{
+	char rawTruncated[3] = {'\"', 'a', '\\'};
+	uint32_t count = RyanJsonMinify(rawTruncated, 3);
 
-	RyanJsonDelete(root);
+	TEST_ASSERT_EQUAL_UINT32(3U, count);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'\"', (uint8_t)rawTruncated[0]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'a', (uint8_t)rawTruncated[1]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'\\', (uint8_t)rawTruncated[2]);
+}
+
+static void testUtilsMinifyInvalidArgsNoWrite(void)
+{
+	// 参数守护分支：无论是 NULL 指针还是负长度，都只能返回 0，
+	// 且不得写坏调用方传入的缓冲区内容。
+	char buf[5] = {'{', '}', '!', '#', '@'};
+
+	TEST_ASSERT_EQUAL_UINT32(0U, RyanJsonMinify(NULL, 4));
+	TEST_ASSERT_EQUAL_UINT32(0U, RyanJsonMinify(buf, -1));
+
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'{', (uint8_t)buf[0]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'}', (uint8_t)buf[1]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'!', (uint8_t)buf[2]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'#', (uint8_t)buf[3]);
+	TEST_ASSERT_EQUAL_UINT8((uint8_t)'@', (uint8_t)buf[4]);
 }
 
 void testUtilsRunner(void)
 {
 	UnitySetTestFile(__FILE__);
-	RUN_TEST(testUtilsBasic);
 	RUN_TEST(testUtilsMinifyNoExtraSpace);
+	RUN_TEST(testUtilsMinifyZeroLengthNoWrite);
 	RUN_TEST(testUtilsMinifyWriteTerminatorWhenSpaceRemain);
-	RUN_TEST(testUtilsVarargsPathHelpers);
+	RUN_TEST(testUtilsMinifyNoTerminatorOverflow);
+	RUN_TEST(testUtilsMinifyCommentOnlyToEmpty);
+	RUN_TEST(testUtilsMinifyWhitespaceOnlyWritesTerminator);
+	RUN_TEST(testUtilsMinifyTruncatedEscapeDoesNotOverread);
+	RUN_TEST(testUtilsMinifyInvalidArgsNoWrite);
 }

@@ -1,5 +1,8 @@
 #include "RyanJson.h"
 
+// 示例入口会被单测 runner 直接调用，这里补前置声明以满足严格编译告警。
+RyanJsonBool_e RyanJsonExample(void);
+
 /**
  * @brief Json 构建示例
  *

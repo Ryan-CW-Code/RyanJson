@@ -17,7 +17,14 @@ RyanJsonInternalApi int32_t RyanJsonSnprintf(char *buf, size_t size, const char 
 
 	va_list args;
 	va_start(args, fmt);
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
 	int32_t ret = vsnprintf(buf, size, fmt, args);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 	va_end(args);
 	return ret;
 }
@@ -313,20 +320,15 @@ RyanJsonInternalApi RyanJson_t RyanJsonInternalNewNode(RyanJsonNodeInfo_t *info)
 	// 加1是flag的空间
 	uint32_t size = sizeof(struct RyanJsonNode) + RyanJsonFlagSize;
 
-	switch (info->type)
+	if (RyanJsonTypeNumber == info->type)
 	{
-	case RyanJsonTypeNumber:
 		if (RyanJsonFalse == info->numberIsDoubleFlag) { size += sizeof(int32_t); }
 		else
 		{
 			size += sizeof(double);
 		}
-		break;
-	case RyanJsonTypeArray:
-	case RyanJsonTypeObject: size += sizeof(RyanJson_t); break;
-
-	default: break;
 	}
+	else if (RyanJsonTypeArray == info->type || RyanJsonTypeObject == info->type) { size += sizeof(RyanJson_t); }
 
 	// 是否内联字符串
 	if (NULL != info->key || RyanJsonTypeString == info->type) { size += RyanJsonInlineStringSize; }

@@ -2,6 +2,29 @@
 #include "RyanJsonFuzzer.h"
 
 /**
+ * @brief minify 模块的一次性确定性自检
+ *
+ * 这里只保留运行期 harness 不会主动构造的非法入参。
+ */
+void RyanJsonFuzzerSelfTestMinifyCases(void)
+{
+	// 运行期总是传入非负 size，这里只补齐负长度保护。
+	{
+		uint8_t rawBuf[5] = {'a', 'b', 'c', '#', '#'};
+		assert(0 == RyanJsonMinify((char *)rawBuf, -10));
+		assert('a' == rawBuf[0]);
+		assert('b' == rawBuf[1]);
+		assert('c' == rawBuf[2]);
+		assert('#' == rawBuf[3]);
+		assert('#' == rawBuf[4]);
+	}
+
+	assert(0 == RyanJsonMinify(NULL, 0));
+	assert(0 == RyanJsonMinify(NULL, 10));
+	assert(0 == RyanJsonMinify(NULL, -10));
+}
+
+/**
  * @brief 压缩测试
  *
  * 测试 RyanJson 的 Minify 功能（去除空白字符）。
@@ -15,42 +38,13 @@
  */
 RyanJsonBool_e RyanJsonFuzzerTestMinify(const char *data, uint32_t size)
 {
-	// 一次性覆盖 textLen 无额外 '\0' 空间时的边界路径
-	static RyanJsonBool_e minifyBoundaryCovered = RyanJsonFalse;
-	if (RyanJsonFalse == minifyBoundaryCovered)
-	{
-		uint8_t rawBuf[8] = {'{', '\"', 'a', '\"', ':', '1', '}', '#'};
-		assert(7 == RyanJsonMinify((char *)rawBuf, 7));
-		assert('#' == rawBuf[7]);
-
-		// 返回值小于 textLen 时，应写入 '\0'
-		uint8_t rawBuf2[5] = {'a', ' ', 'b', 'c', '#'};
-		assert(3 == RyanJsonMinify((char *)rawBuf2, 4));
-		assert('a' == rawBuf2[0]);
-		assert('b' == rawBuf2[1]);
-		assert('c' == rawBuf2[2]);
-		assert('\0' == rawBuf2[3]);
-		assert('#' == rawBuf2[4]);
-
-		assert(0 == RyanJsonMinify(NULL, 0));
-		assert(0 == RyanJsonMinify(NULL, 10));
-		assert(0 == RyanJsonMinify(NULL, -10));
-
-		minifyBoundaryCovered = RyanJsonTrue;
-	}
-
 	// 准备缓冲区并拷贝数据
 	// 分配比原始数据稍大的缓冲区，防止边界溢出
-	char *buf = (char *)malloc(size + 100);
+	char *buf = (char *)malloc((size_t)size + 1U);
 	if (!buf) { return RyanJsonFalse; }
 
 	memcpy(buf, data, size);
-	// 确保有足够的终止符与安全填充
-	memset(buf + size, 0, 100);
-
-	// 边界与异常参数测试
-	// 测试负数长度输入
-	assert(0 == RyanJsonMinify(buf, -10));
+	buf[size] = '\0';
 
 	// 执行 Minify
 	// RyanJsonMinify 会原地修改缓冲区并移除空白字符

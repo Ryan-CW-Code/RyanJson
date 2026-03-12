@@ -44,10 +44,21 @@ RyanJsonBool_e RyanJsonFuzzerTestDetach(RyanJson_t pJson, uint32_t size)
 	// 先递归处理子节点
 	RyanJson_t item = NULL;
 	RyanJson_t lastItem = NULL;
-	RyanJsonObjectForEach(pJson, item)
+	if (RyanJsonTrue == RyanJsonIsArray(pJson))
 	{
-		RyanJsonFuzzerTestDetach(item, size);
-		lastItem = item;
+		RyanJsonArrayForEach(pJson, item)
+		{
+			RyanJsonFuzzerTestDetach(item, size);
+			lastItem = item;
+		}
+	}
+	else
+	{
+		RyanJsonObjectForEach(pJson, item)
+		{
+			RyanJsonFuzzerTestDetach(item, size);
+			lastItem = item;
+		}
 	}
 
 	// 节点分离

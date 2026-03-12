@@ -2,6 +2,144 @@
 #include "RyanJsonFuzzer.h"
 
 /**
+ * @brief replace 模块的一次性确定性自检
+ *
+ * 这里只保留运行期 fuzz 不会主动构造的失败合同，
+ * 包括 attached item 与非法插入组合。
+ */
+void RyanJsonFuzzerSelfTestReplaceCases(void)
+{
+	RyanJsonBool_e lastIsEnableMemFail;
+	RyanJsonFuzzerMemFailPush(lastIsEnableMemFail, RyanJsonFalse);
+
+	RyanJson_t scalar = RyanJsonCreateInt(NULL, 1);
+	RyanJson_t strItem = RyanJsonCreateString("", "NULL");
+	assert(NULL != scalar && NULL != strItem);
+
+	assert(RyanJsonFalse == RyanJsonIsDetachedItem(NULL));
+	assert(RyanJsonFalse == RyanJsonReplaceByKey(NULL, NULL, NULL));
+	assert(RyanJsonFalse == RyanJsonReplaceByKey(scalar, NULL, NULL));
+	assert(RyanJsonFalse == RyanJsonReplaceByKey(NULL, "NULL", NULL));
+	assert(RyanJsonFalse == RyanJsonReplaceByKey(NULL, NULL, strItem));
+	assert(RyanJsonFalse == RyanJsonReplaceByKey(scalar, "NULL", NULL));
+	assert(RyanJsonFalse == RyanJsonReplaceByKey(NULL, "NULL", strItem));
+	assert(RyanJsonFalse == RyanJsonReplaceByKey(scalar, "NULL", strItem));
+
+	assert(RyanJsonFalse == RyanJsonReplaceByIndex(NULL, 0, NULL));
+	assert(RyanJsonFalse == RyanJsonReplaceByIndex(scalar, 0, NULL));
+	assert(RyanJsonFalse == RyanJsonReplaceByIndex(NULL, 0, strItem));
+	assert(RyanJsonFalse == RyanJsonReplaceByIndex(scalar, 0, strItem));
+
+	{
+		RyanJson_t objItem = RyanJsonCreateObject();
+		assert(NULL != objItem);
+		assert(RyanJsonFalse == RyanJsonReplaceByKey(objItem, "NULL", strItem));
+		assert(RyanJsonFalse == RyanJsonReplaceByIndex(objItem, 0, strItem));
+
+		assert(RyanJsonTrue == RyanJsonAddItemToObject(objItem, "item", RyanJsonCreateObject()));
+		assert(RyanJsonFalse == RyanJsonReplaceByKey(objItem, "NULL222", strItem));
+		assert(RyanJsonFalse == RyanJsonReplaceByIndex(objItem, INT32_MAX, strItem));
+
+		RyanJson_t keepObjItem = RyanJsonCreateInt("keep", 1);
+		assert(NULL != keepObjItem);
+		assert(RyanJsonTrue == RyanJsonIsDetachedItem(keepObjItem));
+		assert(RyanJsonFalse == RyanJsonReplaceByKey(objItem, "not_found", keepObjItem));
+		assert(RyanJsonTrue == RyanJsonIsDetachedItem(keepObjItem));
+		RyanJsonDelete(keepObjItem);
+
+		RyanJsonDelete(objItem);
+	}
+
+	{
+		RyanJson_t arrayItem = RyanJsonCreateArray();
+		RyanJson_t keepArrItem = RyanJsonCreateString(NULL, "keep");
+		assert(NULL != arrayItem && NULL != keepArrItem);
+		assert(RyanJsonTrue == RyanJsonAddIntToArray(arrayItem, 9));
+		assert(RyanJsonTrue == RyanJsonIsDetachedItem(keepArrItem));
+		assert(RyanJsonFalse == RyanJsonReplaceByIndex(arrayItem, 7, keepArrItem));
+		assert(RyanJsonTrue == RyanJsonIsDetachedItem(keepArrItem));
+		RyanJsonDelete(keepArrItem);
+		RyanJsonDelete(arrayItem);
+	}
+
+	{
+		RyanJson_t objA = RyanJsonCreateObject();
+		RyanJson_t objB = RyanJsonCreateObject();
+		assert(NULL != objA && NULL != objB);
+		assert(RyanJsonTrue == RyanJsonAddIntToObject(objA, "a", 1));
+		assert(RyanJsonTrue == RyanJsonAddIntToObject(objB, "b", 2));
+
+		RyanJson_t attachedObjItem = RyanJsonGetObjectByKey(objA, "a");
+		assert(attachedObjItem);
+		assert(RyanJsonFalse == RyanJsonIsDetachedItem(attachedObjItem));
+		assert(RyanJsonFalse == RyanJsonReplaceByKey(objB, "b", attachedObjItem));
+		assert(2 == RyanJsonGetIntValue(RyanJsonGetObjectByKey(objB, "b")));
+
+		RyanJson_t arr1 = RyanJsonCreateArray();
+		RyanJson_t arr2 = RyanJsonCreateArray();
+		assert(NULL != arr1 && NULL != arr2);
+		assert(RyanJsonTrue == RyanJsonAddIntToArray(arr1, 10));
+		assert(RyanJsonTrue == RyanJsonAddIntToArray(arr2, 20));
+
+		RyanJson_t attachedArrItem = RyanJsonGetObjectByIndex(arr1, 0);
+		assert(attachedArrItem);
+		assert(RyanJsonFalse == RyanJsonIsDetachedItem(attachedArrItem));
+		assert(RyanJsonFalse == RyanJsonReplaceByIndex(arr2, 0, attachedArrItem));
+		assert(20 == RyanJsonGetIntValue(RyanJsonGetObjectByIndex(arr2, 0)));
+
+		RyanJsonDelete(objA);
+		RyanJsonDelete(objB);
+		RyanJsonDelete(arr1);
+		RyanJsonDelete(arr2);
+	}
+
+	{
+		RyanJson_t ownerObj = RyanJsonCreateObject();
+		RyanJson_t dstObj = RyanJsonCreateObject();
+		assert(NULL != ownerObj && NULL != dstObj);
+		assert(RyanJsonTrue == RyanJsonAddIntToObject(ownerObj, "src", 7));
+
+		RyanJson_t attachedObjItem = RyanJsonGetObjectByKey(ownerObj, "src");
+		assert(NULL != attachedObjItem);
+		assert(RyanJsonFalse == RyanJsonIsDetachedItem(attachedObjItem));
+		assert(RyanJsonFalse == RyanJsonAddItemToObject(dstObj, "dst", attachedObjItem));
+		assert(RyanJsonFalse == RyanJsonIsDetachedItem(attachedObjItem));
+
+		RyanJsonDelete(ownerObj);
+		RyanJsonDelete(dstObj);
+	}
+
+	{
+		RyanJson_t ownerArray = RyanJsonCreateArray();
+		RyanJson_t dstArray = RyanJsonCreateArray();
+		assert(NULL != ownerArray && NULL != dstArray);
+		assert(RyanJsonTrue == RyanJsonAddIntToArray(ownerArray, 9));
+
+		RyanJson_t attachedArrayItem = RyanJsonGetObjectByIndex(ownerArray, 0);
+		assert(NULL != attachedArrayItem);
+		assert(RyanJsonFalse == RyanJsonIsDetachedItem(attachedArrayItem));
+		assert(RyanJsonFalse == RyanJsonInsert(dstArray, 0, attachedArrayItem));
+		assert(RyanJsonFalse == RyanJsonIsDetachedItem(attachedArrayItem));
+
+		RyanJsonDelete(ownerArray);
+		RyanJsonDelete(dstArray);
+	}
+
+	{
+		RyanJson_t objectParent = RyanJsonCreateObject();
+		RyanJson_t invalidScalarItem = RyanJsonCreateString(NULL, "invalid");
+		assert(NULL != objectParent && NULL != invalidScalarItem);
+		assert(RyanJsonTrue == RyanJsonIsDetachedItem(invalidScalarItem));
+		assert(RyanJsonFalse == RyanJsonInsert(objectParent, 0, invalidScalarItem));
+		RyanJsonDelete(objectParent);
+	}
+
+	RyanJsonDelete(strItem);
+	RyanJsonDelete(scalar);
+	RyanJsonFuzzerMemFailPop(lastIsEnableMemFail);
+}
+
+/**
  * @brief 节点替换测试
  *
  * 测试 RyanJson 的节点替换功能（ReplaceByKey、ReplaceByIndex）。
@@ -16,198 +154,27 @@
  */
 RyanJsonBool_e RyanJsonFuzzerTestReplace(RyanJson_t pJson, uint32_t size)
 {
-	// 一次性覆盖对象 ReplaceByIndex 重复 key 防御分支
-	static RyanJsonBool_e replaceConflictCovered = RyanJsonFalse;
-	if (RyanJsonFalse == replaceConflictCovered)
-	{
-		RyanJsonBool_e lastIsEnableMemFail = g_fuzzerState.isEnableMemFail;
-		g_fuzzerState.isEnableMemFail = false;
-
-		RyanJson_t obj = RyanJsonCreateObject();
-		assert(NULL != obj);
-		assert(RyanJsonTrue == RyanJsonAddIntToObject(obj, "a", 1));
-		assert(RyanJsonTrue == RyanJsonAddIntToObject(obj, "b", 2));
-
-		RyanJson_t newItem = RyanJsonCreateInt("a", 9);
-		assert(NULL != newItem);
-#if true == RyanJsonDefaultAddAtHead
-		uint32_t replaceIndex = 0;
-#else
-		uint32_t replaceIndex = 1;
-#endif
-
-#if true == RyanJsonStrictObjectKeyCheck
-		assert(RyanJsonFalse == RyanJsonReplaceByIndex(obj, replaceIndex, newItem));
-		RyanJsonDelete(newItem);
-		assert(2 == RyanJsonGetIntValue(RyanJsonGetObjectByKey(obj, "b")));
-#else
-		assert(RyanJsonTrue == RyanJsonReplaceByIndex(obj, replaceIndex, newItem));
-		assert(NULL == RyanJsonGetObjectByKey(obj, "b"));
-#if true == RyanJsonDefaultAddAtHead
-		assert(9 == RyanJsonGetIntValue(RyanJsonGetObjectByKey(obj, "a")));
-#else
-		assert(1 == RyanJsonGetIntValue(RyanJsonGetObjectByKey(obj, "a")));
-#endif
-#endif
-
-		// 同 key 替换应成功（覆盖冲突检测的 skipItem 分支）
-		newItem = RyanJsonCreateInt("b", 99);
-		assert(NULL != newItem);
-		assert(RyanJsonTrue == RyanJsonReplaceByIndex(obj, replaceIndex, newItem));
-		assert(99 == RyanJsonGetIntValue(RyanJsonGetObjectByKey(obj, "b")));
-
-		RyanJsonDelete(obj);
-		g_fuzzerState.isEnableMemFail = lastIsEnableMemFail;
-		replaceConflictCovered = RyanJsonTrue;
-	}
-
-	// 一次性覆盖“通过 Replace 修改 value 类型”的推荐用法
-	static RyanJsonBool_e replaceTypeSwitchCovered = RyanJsonFalse;
-	if (RyanJsonFalse == replaceTypeSwitchCovered)
-	{
-		RyanJsonBool_e lastIsEnableMemFail = g_fuzzerState.isEnableMemFail;
-		g_fuzzerState.isEnableMemFail = false;
-
-		RyanJson_t obj = RyanJsonCreateObject();
-		assert(NULL != obj);
-		assert(RyanJsonTrue == RyanJsonAddIntToObject(obj, "k", 1));
-
-		assert(RyanJsonTrue == RyanJsonReplaceByKey(obj, "k", RyanJsonCreateObject()));
-		RyanJson_t item = RyanJsonGetObjectByKey(obj, "k");
-		assert(NULL != item && RyanJsonTrue == RyanJsonIsObject(item));
-		assert(RyanJsonTrue == RyanJsonAddIntToObject(item, "x", 7));
-
-		assert(RyanJsonTrue == RyanJsonReplaceByKey(obj, "k", RyanJsonCreateArray()));
-		item = RyanJsonGetObjectByKey(obj, "k");
-		assert(NULL != item && RyanJsonTrue == RyanJsonIsArray(item));
-
-		RyanJson_t arr = RyanJsonCreateArray();
-		assert(NULL != arr);
-		assert(RyanJsonTrue == RyanJsonAddIntToArray(arr, 1));
-		assert(RyanJsonTrue == RyanJsonReplaceByIndex(arr, 0, RyanJsonCreateObject()));
-		item = RyanJsonGetObjectByIndex(arr, 0);
-		assert(NULL != item && RyanJsonTrue == RyanJsonIsObject(item));
-
-		RyanJsonDelete(arr);
-		RyanJsonDelete(obj);
-
-		g_fuzzerState.isEnableMemFail = lastIsEnableMemFail;
-		replaceTypeSwitchCovered = RyanJsonTrue;
-	}
-
-	// 故障注入与异常参数测试
-	if (RyanJsonFuzzerShouldFail(100))
-	{
-		g_fuzzerState.isEnableMemFail = false; // 临时禁用内存失败模拟，确保测试对象创建成功
-
-		RyanJson_t strItem = RyanJsonCreateString("", "NULL");
-
-		// key 替换异常测试
-		assert(RyanJsonFalse == RyanJsonReplaceByKey(NULL, NULL, NULL));
-		assert(RyanJsonFalse == RyanJsonReplaceByKey(pJson, NULL, NULL));
-		assert(RyanJsonFalse == RyanJsonReplaceByKey(NULL, "NULL", NULL));
-		assert(RyanJsonFalse == RyanJsonReplaceByKey(NULL, NULL, strItem));
-		assert(RyanJsonFalse == RyanJsonReplaceByKey(pJson, "NULL", NULL));
-		assert(RyanJsonFalse == RyanJsonReplaceByKey(NULL, "NULL", strItem));
-
-		// 类型错误测试：非对象调用 ReplaceByKey
-		if (RyanJsonFalse == RyanJsonIsObject(RyanJsonGetObjectByIndex(pJson, 0)))
-		{
-			// 如果意外成功（说明 pJson 其实是对象且碰巧存在该 key），
-			// 需要把 strItem 取回，避免后续 RyanJsonDelete(strItem) 触发重复释放。
-			if (RyanJsonTrue == RyanJsonReplaceByKey(pJson, "NULL", strItem)) { strItem = RyanJsonDetachByKey(pJson, "NULL"); }
-		}
-
-		// index 替换异常测试
-		assert(RyanJsonFalse == RyanJsonReplaceByIndex(NULL, 0, NULL));
-		assert(RyanJsonFalse == RyanJsonReplaceByIndex(pJson, 0, NULL));
-		assert(RyanJsonFalse == RyanJsonReplaceByIndex(NULL, 0, strItem));
-		assert(RyanJsonFalse == RyanJsonReplaceByIndex(pJson, 0, NULL));
-		assert(RyanJsonFalse == RyanJsonReplaceByIndex(NULL, 0, strItem));
-
-		// 类型错误测试：非容器调用 ReplaceByIndex
-		if (RyanJsonFalse == RyanJsonIsArray(pJson) && RyanJsonFalse == RyanJsonIsObject(pJson))
-		{
-			assert(RyanJsonFalse == RyanJsonReplaceByIndex(pJson, 0, strItem));
-		}
-
-		// 构造临时对象，测试不存在 key 和越界 index
-		RyanJson_t objItem = RyanJsonCreateObject();
-		assert(RyanJsonFalse == RyanJsonReplaceByKey(objItem, "NULL", strItem));
-		assert(RyanJsonFalse == RyanJsonReplaceByIndex(objItem, 0, strItem));
-
-		RyanJsonAddItemToObject(objItem, "item", RyanJsonCreateObject());
-		assert(RyanJsonFalse == RyanJsonReplaceByKey(objItem, "NULL222", strItem));
-		assert(RyanJsonFalse == RyanJsonReplaceByIndex(objItem, INT32_MAX, strItem));
-
-		// Replace 失败后，item 仍应保持游离态（由调用方继续持有）
-		{
-			RyanJson_t keepObjItem = RyanJsonCreateInt("keep", 1);
-			assert(NULL != keepObjItem);
-			assert(RyanJsonTrue == RyanJsonIsDetachedItem(keepObjItem));
-			assert(RyanJsonFalse == RyanJsonReplaceByKey(objItem, "not_found", keepObjItem));
-			assert(RyanJsonTrue == RyanJsonIsDetachedItem(keepObjItem));
-			RyanJsonDelete(keepObjItem);
-
-			RyanJson_t arrayItem = RyanJsonCreateArray();
-			assert(NULL != arrayItem);
-			assert(RyanJsonTrue == RyanJsonAddIntToArray(arrayItem, 9));
-
-			RyanJson_t keepArrItem = RyanJsonCreateString(NULL, "keep");
-			assert(NULL != keepArrItem);
-			assert(RyanJsonTrue == RyanJsonIsDetachedItem(keepArrItem));
-			assert(RyanJsonFalse == RyanJsonReplaceByIndex(arrayItem, 7, keepArrItem));
-			assert(RyanJsonTrue == RyanJsonIsDetachedItem(keepArrItem));
-
-			RyanJsonDelete(keepArrItem);
-			RyanJsonDelete(arrayItem);
-		}
-
-		// 已挂树的 item 不应被 Replace
-		{
-			RyanJson_t objA = RyanJsonCreateObject();
-			RyanJson_t objB = RyanJsonCreateObject();
-			RyanJsonAddIntToObject(objA, "a", 1);
-			RyanJsonAddIntToObject(objB, "b", 2);
-
-			RyanJson_t attachedObjItem = RyanJsonGetObjectByKey(objA, "a");
-			assert(attachedObjItem);
-			assert(RyanJsonFalse == RyanJsonIsDetachedItem(attachedObjItem));
-			assert(RyanJsonFalse == RyanJsonReplaceByKey(objB, "b", attachedObjItem));
-			assert(2 == RyanJsonGetIntValue(RyanJsonGetObjectByKey(objB, "b")));
-
-			RyanJson_t arr1 = RyanJsonCreateArray();
-			RyanJson_t arr2 = RyanJsonCreateArray();
-			RyanJsonAddIntToArray(arr1, 10);
-			RyanJsonAddIntToArray(arr2, 20);
-
-			RyanJson_t attachedArrItem = RyanJsonGetObjectByIndex(arr1, 0);
-			assert(attachedArrItem);
-			assert(RyanJsonFalse == RyanJsonIsDetachedItem(attachedArrItem));
-			assert(RyanJsonFalse == RyanJsonReplaceByIndex(arr2, 0, attachedArrItem));
-			assert(20 == RyanJsonGetIntValue(RyanJsonGetObjectByIndex(arr2, 0)));
-
-			RyanJsonDelete(objA);
-			RyanJsonDelete(objB);
-			RyanJsonDelete(arr1);
-			RyanJsonDelete(arr2);
-		}
-
-		g_fuzzerState.isEnableMemFail = true; // 恢复状态
-
-		RyanJsonDelete(objItem);
-		RyanJsonDelete(strItem);
-	}
 
 	// 递归遍历与替换
 	// 仅处理容器类型（Object/Array）
 	if (RyanJsonFalse == RyanJsonIsArray(pJson) && RyanJsonFalse == RyanJsonIsObject(pJson)) { return RyanJsonTrue; }
 
 	RyanJson_t item = NULL;
-	RyanJsonObjectForEach(pJson, item)
+	if (RyanJsonTrue == RyanJsonIsArray(pJson))
 	{
-		// 递归调用
-		if (RyanJsonTrue != RyanJsonFuzzerTestReplace(item, size)) { return RyanJsonFalse; }
+		RyanJsonArrayForEach(pJson, item)
+		{
+			// 递归调用
+			if (RyanJsonTrue != RyanJsonFuzzerTestReplace(item, size)) { return RyanJsonFalse; }
+		}
+	}
+	else
+	{
+		RyanJsonObjectForEach(pJson, item)
+		{
+			// 递归调用
+			if (RyanJsonTrue != RyanJsonFuzzerTestReplace(item, size)) { return RyanJsonFalse; }
+		}
 	}
 
 	// 按 key 替换（仅 Object）

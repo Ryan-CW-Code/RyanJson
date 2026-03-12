@@ -215,31 +215,9 @@ static int32_t runAllUnitTests(void)
 
 	RUN_TEST(testRyanJsonExample);
 
-	testChangeRunner();
-	testCompareRunner();
-	testCreateRunner();
-	testDeleteRunner();
-	testDetachRunner();
-	testDuplicateRunner();
-	testForEachRunner();
-	testLoadSuccessRunner();
-	testLoadFailureRunner();
-	testReplaceRunner();
-
-	testEqualityBoolRunner();
-	testEqualityDoubleRunner();
-	testEqualityIntRunner();
-	testEqualityStringRunner();
-
-	testUtilsRunner();
-	testRobustRunner();
-	testPrintRunner();
-	testStressRunner();
-#if !defined(RyanJsonTestPlatformQemu)
-	testRfc8259Runner();
-#endif
-	testMemoryRunner();
-	testDeepRecursionRunner();
+#define UNITY_TEST_LIST_ENTRY(name) name();
+#include "test_list.inc"
+#undef UNITY_TEST_LIST_ENTRY
 
 	return UnityEnd();
 }

@@ -351,6 +351,19 @@ RyanJsonBool_e RyanJsonChangeKey(RyanJson_t pJson, const char *key)
 {
 	RyanJsonCheckReturnFalse(NULL != pJson && NULL != key);
 	RyanJsonCheckReturnFalse(RyanJsonIsKey(pJson));
+
+#if true == RyanJsonStrictObjectKeyCheck
+	// 严格模式下，若节点挂在 Object 下，改 key 不能制造重复 key
+	if (RyanJsonTrue != RyanJsonInternalStrEq(RyanJsonGetKey(pJson), key))
+	{
+		RyanJson_t parent = RyanJsonInternalGetParent(pJson);
+		if (NULL != parent && RyanJsonTrue == RyanJsonIsObject(parent))
+		{
+			RyanJsonCheckReturnFalse(RyanJsonFalse == RyanJsonObjectHasKeyConflict(parent, key, pJson));
+		}
+	}
+#endif
+
 	return RyanJsonInternalChangeString(pJson, RyanJsonFalse, key, RyanJsonIsString(pJson) ? RyanJsonGetStringValue(pJson) : NULL);
 }
 
