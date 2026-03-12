@@ -10,7 +10,6 @@ null
 *.exe
 
 # 忽略
-core
 build
 .xmake
 .dump
@@ -19,6 +18,7 @@ build
 default.profdata
 default.profraw
 test/fuzzer/corpus
-docs
+./coverage/**
 
 fuzz-*
+RyanJson_Technical_Paper.md

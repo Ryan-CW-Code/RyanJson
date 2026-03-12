@@ -1,0 +1,34 @@
+/*********************************************************************************************************
+ *  ------------------------------------------------------------------------------------------------------
+ *  file description
+ *  ------------------------------------------------------------------------------------------------------
+ *         \file  valloc.h
+ *         \unit  valloc
+ *        \brief  Test how much space is allocated
+ *       \author  Lamdonn
+ *      \details  v1.0.0
+ ********************************************************************************************************/
+#ifndef valloc
+#define valloc
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdlib.h>
+#include <stdint.h>
+
+extern void *v_malloc(size_t size);
+extern void *v_calloc(size_t num, size_t size);
+extern void v_free(void *block);
+extern void *v_realloc(void *block, size_t size);
+extern int v_mcheck(int *dstCount, int *dstUse);
+extern void displayMem(void);
+extern int32_t vallocGetArea(void);
+extern int32_t vallocGetUse(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

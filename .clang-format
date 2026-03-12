@@ -1,51 +1,175 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# Note: The list of ForEachMacros can be obtained using:
-#
-#    git grep -h '^#define [^[:space:]]*FOR_EACH[^[:space:]]*(' include/ \
-#    | sed "s,^#define \([^[:space:]]*FOR_EACH[^[:space:]]*\)(.*$,  - '\1'," \
-#    | sort | uniq
-#
-# References:
-#   - https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+# RyanJson clang-format 基线配置
+# 说明：
+# - 注释尽量覆盖每个配置项，便于长期维护
+# - 以 LLVM 为基线，只覆盖项目明确约束
+# - 参考：https://clang.llvm.org/docs/ClangFormatStyleOptions.html
 
 ---
-# 基于 LLVM 的代码风格作为起点，随后覆盖指定字段
+# 基础风格模板：以 LLVM 为起点
 BasedOnStyle: LLVM
 
-# 连续宏定义的对齐方式
-# Enabled: true         -> 启用对齐连续宏定义
-# AcrossComments: true  -> 跨注释也会对齐，适合一组宏中间穿插注释的情况
-AlignConsecutiveMacros:
-  Enabled: true
-  AcrossComments: true
+# 单行最大宽度：超过后自动换行
+ColumnLimit: 140
 
-# 是否允许短代码块（如 { ... }）出现在单行
-AllowShortBlocksOnASingleLine: true
+# 基础缩进宽度（单位：列）
+IndentWidth: 8
+
+# Tab 显示宽度（单位：列）
+TabWidth: 8
+
+# 续行缩进宽度（函数参数折行、表达式折行等）
+ContinuationIndentWidth: 8
+
+# 构造函数初始化列表缩进宽度（主要影响 C++，保留统一）
+ConstructorInitializerIndentWidth: 8
+
+# Tab 使用策略：缩进和续行使用 Tab
+UseTab: ForContinuationAndIndentation
+
+# 注释重排：false 表示不自动重排注释文本
+ReflowComments: false
+
+# 是否允许短代码块单行（如 { return; }）
+AllowShortBlocksOnASingleLine: Always
+
+# 是否允许短函数单行
+AllowShortFunctionsOnASingleLine: false
+
+# 是否允许短 if 单行
+AllowShortIfStatementsOnASingleLine: WithoutElse
+
+# 是否允许短循环单行
+AllowShortLoopsOnASingleLine: false
 
 # 是否允许短 case 标签单行
-# true  -> 允许 `case X: doSomething();`
 AllowShortCaseLabelsOnASingleLine: true
 
-# 是否允许短枚举在一行
-# true  -> 允许短枚举如 `enum { A, B };`
-AllowShortEnumsOnASingleLine: false
-
-# 是否允许短函数在单行
-AllowShortFunctionsOnASingleLine: true
-
+# 是否允许短 case 表达式单行
 AllowShortCaseExpressionOnASingleLine: true
 
-# 短 if 语句单行显示策略
-# Always  -> 允许并尽可能保留短 if 语句为单行（包括带 else 的情况）
-# 你希望单行 + 大括号时使用这个选项
-AllowShortIfStatementsOnASingleLine: true
+# 是否允许短枚举单行
+AllowShortEnumsOnASingleLine: false
 
-# 是否允许短循环（for/while）单行显示
-AllowShortLoopsOnASingleLine: true
+# 花括号总策略：自定义
+BreakBeforeBraces: Custom
 
-# 属性宏列表，列出在格式化时应视为属性的宏（影响对齐、换行等）
-# 如果代码库使用自定义属性宏，把它们列在这里可以提升格式化准确性
+# case 标签后的大括号是否换行
+BraceWrapping:
+  AfterCaseLabel: false
+
+  # class 后的大括号是否换行
+  AfterClass: true
+
+  # 控制语句（if/for/while）后的大括号换行策略
+  AfterControlStatement: Always
+
+  # enum 后的大括号是否换行
+  AfterEnum: true
+
+  # extern block 后的大括号是否换行
+  AfterExternBlock: false
+
+  # 函数定义后的大括号是否换行
+  AfterFunction: true
+
+  # namespace 后的大括号是否换行
+  AfterNamespace: true
+
+  # ObjC 声明后的大括号是否换行
+  AfterObjCDeclaration: true
+
+  # struct 后的大括号是否换行
+  AfterStruct: true
+
+  # union 后的大括号是否换行
+  AfterUnion: false
+
+  # catch 前是否换行
+  BeforeCatch: true
+
+  # else 前是否换行
+  BeforeElse: true
+
+  # lambda 体前是否换行
+  BeforeLambdaBody: false
+
+  # do...while 中 while 前是否换行
+  BeforeWhile: false
+
+  # 大括号行本身是否额外缩进
+  IndentBraces: false
+
+  # 空函数是否分裂成多行
+  SplitEmptyFunction: true
+
+  # 空记录（如空 struct）是否分裂成多行
+  SplitEmptyRecord: true
+
+  # 空命名空间是否分裂成多行
+  SplitEmptyNamespace: true
+
+# switch 内 case 标签是否额外缩进
+IndentCaseLabels: false
+
+# goto 标签是否额外缩进
+IndentGotoLabels: false
+
+# 是否强制插入花括号（单语句控制流也加花括号）
+InsertBraces: true
+
+# 文件末尾是否补换行
+InsertNewlineAtEOF: true
+
+# 位域冒号前后空格策略
+BitFieldColonSpacing: After
+
+# 控制语句括号前空格策略（if (x)）
+SpaceBeforeParens: ControlStatementsExceptControlMacros
+
+# 继承冒号前空格策略（主要影响 C++）
+SpaceBeforeInheritanceColon: false
+
+# 连续宏定义对齐策略
+AlignConsecutiveMacros:
+  # 是否启用连续宏对齐
+  Enabled: true
+
+  # 是否跨注释继续对齐
+  AcrossComments: true
+
+# include 是否自动排序（Never 表示保持人工顺序）
+SortIncludes: Never
+
+# include 分类规则（数值越小优先级越高）
+IncludeCategories:
+  # 项目内双引号头文件
+  - Regex: '^".*\.h"$'
+    Priority: 0
+
+  # C 标准库头文件
+  - Regex: '^<(assert|complex|ctype|errno|fenv|float|inttypes|limits|locale|math|setjmp|signal|stdarg|stdbool|stddef|stdint|stdio|stdlib|string|tgmath|time|wchar|wctype)\.h>$'
+    Priority: 1
+
+  # Ryan 体系头文件
+  - Regex: '^<Ryan/.*\.h>$'
+    Priority: 2
+
+  # 兜底分类
+  - Regex: ".*"
+    Priority: 3
+
+# 视为 foreach 语义的宏列表（用于正确缩进与换行）
+ForEachMacros:
+  - RyanJsonArrayForEach
+  - RyanJsonObjectForEach
+
+# 视为 if 语义的宏列表
+IfMacros:
+  - CHECKIF
+
+# 视为属性的宏列表（影响断行与对齐）
 AttributeMacros:
   - __aligned
   - __deprecated
@@ -55,95 +179,7 @@ AttributeMacros:
   - __syscall_always_inline
   - __subsystem
 
-# 位字段冒号后的空格：After 表示 `int x : 3;` 中冒号后带一个空格（风格选择）
-BitFieldColonSpacing: After
-
-# 大括号换行策略：使用 Custom 配合 BraceWrapping 指定细节
-# 你用了 Custom，这意味着下面的 BraceWrapping 字段决定具体行为
-BreakBeforeBraces: Custom
-BraceWrapping:
-  AfterCaseLabel: false           # case 标签后不另起行放 {，通常 case: 仍和语句对齐
-  AfterClass: true                # class 后大括号另起行
-  AfterControlStatement: Always   # 控制语句（if/for/while）后通常将 { 放在新行（可被覆盖）
-  AfterEnum: true                 # enum 后另起行
-  AfterExternBlock: false
-  AfterFunction: true             # 函数体大括号另起行
-  AfterNamespace: true
-  AfterObjCDeclaration: true
-  AfterStruct: true
-  AfterUnion: false
-  BeforeCatch: true
-  BeforeElse: true
-  BeforeLambdaBody: false
-  BeforeWhile: false
-  IndentBraces: false             # 不单独缩进大括号行
-  SplitEmptyFunction: true
-  SplitEmptyRecord: true
-  SplitEmptyNamespace: true
-
-# 单行代码的最大列数（换行阈值）
-ColumnLimit: 140
-
-# 构造函数初始化列表的缩进宽度（可针对长列表调整可读性）
-ConstructorInitializerIndentWidth: 8
-
-# 折行缩进宽度（续行缩进）
-ContinuationIndentWidth: 8
-
-# ForEach 宏列表：告诉 clang-format 哪些宏应当当作循环处理（便于格式化块体）
-ForEachMacros:
-  - "ARRAY_FOR_EACH"
-  - "ARRAY_FOR_EACH_PTR"
-  - "FOR_EACH"
-
-# If 宏列表：把 CHECKIF 等宏视为 if 语句（影响括号和后续块处理）
-IfMacros:
-  - "CHECKIF"
-
-# include 文件的分类和排序优先级
-# Regex: 正则匹配，Priority: 数字越小优先级越高（越先放）
-IncludeCategories:
-  - Regex: '^".*\.h"$'
-    Priority: 0
-  - Regex: '^<(assert|complex|ctype|errno|fenv|float|inttypes|limits|locale|math|setjmp|signal|stdarg|stdbool|stddef|stdint|stdio|stdlib|string|tgmath|time|wchar|wctype)\.h>$'
-    Priority: 1
-  - Regex: '^\<Ryan/.*\.h\>$'
-    Priority: 2
-  - Regex: ".*"
-    Priority: 3
-
-# case 标签是否缩进（true 会将 case 缩进到 switch 中）
-# false -> case 与 switch 对齐（你原先设置 false）
-IndentCaseLabels: false
-
-# goto 标签是否缩进（false 表示标签在行首）
-IndentGotoLabels: false
-
-# 缩进宽度（通常与制表符策略配合使用）
-IndentWidth: 8
-
-# 自动插入大括号（即使单语句也插入 { }）
-# 这可以避免单行语句因为后续添加语句而引入 bug
-InsertBraces: true
-
-# 文件末尾自动插入换行
-InsertNewlineAtEOF: true
-
-# 继承冒号前是否加空格（False 表示不加空格："class A: public B"）
-SpaceBeforeInheritanceColon: False
-
-# 控制语句后是否加空格（这个值控制 if/for/while 等的格式）
-# ControlStatementsExceptControlMacros -> 控制语句（非宏）前加空格：`if (cond)` 而非 `if(cond)`
-SpaceBeforeParens: ControlStatementsExceptControlMacros
-
-# 包含文件是否自动排序（Never 表示不排序）
-SortIncludes: Never
-
-# 缩进与续行使用制表符策略
-# ForContinuationAndIndentation -> 续行与缩进使用制表符，其他空格仍按规则
-UseTab: ForContinuationAndIndentation
-
-# 对空白敏感的宏列表（多用于预处理器宏展开格式保持）
+# 空白敏感宏：保持参数空格布局，避免被格式化破坏
 WhitespaceSensitiveMacros:
   - COND_CODE_0
   - COND_CODE_1
@@ -153,11 +189,3 @@ WhitespaceSensitiveMacros:
   - STRINGIFY
   - Z_STRINGIFY
   - DT_FOREACH_PROP_ELEM_SEP
-
-# --------------------------
-# 可选：降低 clang-format 拆行惩罚，使其更倾向于保留短 if/else 单行
-# 下面两个值可以帮助把格式化后的多行 if/else 更可能压缩成单行（仅在 AllowShortIfStatementsOnASingleLine: Always 有效时可用）
-# PenaltyBreakIfElse: 0
-# PenaltyBreakStatement: 0
-
-# 注：上面的 Penalty 设置是可选的，如果你发现 clang-format 依旧不把某些 if/else 压成单行，可以取消注释并试验效果。
