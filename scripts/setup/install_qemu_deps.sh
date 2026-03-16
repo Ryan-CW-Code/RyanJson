@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install ARM bare-metal toolchain + QEMU needed by RyanJsonQemu.
-# Supported package managers: apt, dnf, yum, pacman, brew.
+# 安装 RyanJsonQemu 所需的 ARM 交叉工具链与 QEMU。
+# 支持的包管理器：apt / dnf / yum / pacman / brew。
+
+scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/common.sh
+source "${scriptDir}/../lib/common.sh"
 
 SCRIPT_NAME="$(basename "$0")"
 NO_UPDATE="0"
 
 usage() {
   cat <<USAGE
-Usage: ${SCRIPT_NAME} [--no-update]
+用法: ${SCRIPT_NAME} [--no-update]
 
-Options:
-  --no-update   Skip package index refresh step (apt/dnf/yum/pacman).
+选项:
+  --no-update   跳过包索引刷新步骤（apt/dnf/yum/pacman）。
 USAGE
 }
 
@@ -27,7 +31,7 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      echo "[ERROR] Unknown argument: $1"
+      ryanjson_log_error "未知参数: $1"
       usage
       exit 1
       ;;
@@ -40,20 +44,23 @@ else
   if command -v sudo >/dev/null 2>&1; then
     SUDO="sudo"
   else
-    echo "[ERROR] sudo is required when not running as root."
+    ryanjson_log_error "非 root 环境需要 sudo 权限。"
     exit 1
   fi
 fi
 
 log() {
-  echo "[install_qemu_deps] $*"
+  # 安装日志输出
+  ryanjson_log_info "install_qemu_deps: $*"
 }
 
 have_cmd() {
+  # 判断命令是否存在
   command -v "$1" >/dev/null 2>&1
 }
 
 install_with_apt() {
+  # Ubuntu/Debian 系列安装
   local -a pkgs=(
     gcc-arm-none-eabi
     binutils-arm-none-eabi
@@ -71,6 +78,7 @@ install_with_apt() {
 }
 
 install_with_dnf() {
+  # Fedora/CentOS Stream 系列安装
   local -a pkgs=(
     arm-none-eabi-gcc-cs
     arm-none-eabi-binutils-cs
@@ -87,6 +95,7 @@ install_with_dnf() {
 }
 
 install_with_yum() {
+  # CentOS/RHEL 系列安装
   local -a pkgs=(
     arm-none-eabi-gcc-cs
     arm-none-eabi-binutils-cs
@@ -103,6 +112,7 @@ install_with_yum() {
 }
 
 install_with_pacman() {
+  # Arch 系列安装
   local -a pkgs=(
     arm-none-eabi-gcc
     arm-none-eabi-binutils
@@ -119,6 +129,7 @@ install_with_pacman() {
 }
 
 install_with_brew() {
+  # macOS Homebrew 安装
   local -a pkgs=(
     arm-none-eabi-gcc
     qemu
@@ -129,6 +140,7 @@ install_with_brew() {
 }
 
 install_deps() {
+  # 选择可用的包管理器
   if have_cmd apt-get; then
     install_with_apt
     return
@@ -150,7 +162,7 @@ install_deps() {
     return
   fi
 
-  echo "[ERROR] Unsupported package manager. Please install manually:"
+  ryanjson_log_error "未识别到受支持的包管理器，请手动安装："
   echo "  - arm-none-eabi-gcc"
   echo "  - arm-none-eabi-objcopy (binutils)"
   echo "  - qemu-system-arm"
@@ -158,12 +170,13 @@ install_deps() {
 }
 
 verify() {
+  # 安装后检查必需命令
   local missing=0
   for cmd in arm-none-eabi-gcc arm-none-eabi-objcopy qemu-system-arm; do
     if have_cmd "${cmd}"; then
       log "found ${cmd}: $(command -v "${cmd}")"
     else
-      echo "[ERROR] missing command after install: ${cmd}"
+      ryanjson_log_error "安装后仍缺少命令: ${cmd}"
       missing=1
     fi
   done
@@ -176,7 +189,7 @@ verify() {
   arm-none-eabi-objcopy --version | head -n 1
   qemu-system-arm --version | head -n 1
 
-  log "Dependencies are ready."
+  log "依赖准备完成。"
 }
 
 install_deps

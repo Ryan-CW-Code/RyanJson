@@ -15,24 +15,34 @@ source "${scriptDir}/scripts/lib/common.sh"
 repoRoot="$(ryanjson_repo_root_from_source "${BASH_SOURCE[0]}" 0)"
 cd "${repoRoot}"
 
-ryanjson_print_banner_begin "本地 CI 启动：阶段 1/2 -> Base 单元测试"
-ryanjson_print_banner_end
-bash ./run_local_base.sh
+main() {
+	ryanjson_print_banner_begin "本地 CI 启动：阶段 1/2 -> Base 单元测试"
+	ryanjson_print_banner_end
+	bash ./run_local_base.sh
 
-ryanjson_print_banner_begin "本地 CI 启动：阶段 2/2 -> Fuzz quick"
-ryanjson_print_banner_end
+	ryanjson_print_banner_begin "本地 CI 启动：阶段 2/2 -> Fuzz quick"
+	ryanjson_print_banner_end
 
-RYANJSON_STRICT_OBJECT_KEY_CHECK="${RYANJSON_STRICT_OBJECT_KEY_CHECK:-false}" \
-RYANJSON_DEFAULT_ADD_AT_HEAD="${RYANJSON_DEFAULT_ADD_AT_HEAD:-true}" \
-RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC="${RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC:-true}" \
-FUZZ_MODE="${FUZZ_MODE:-quick}" \
-FUZZ_SKIP_COV="${FUZZ_SKIP_COV:-1}" \
-FUZZ_RUNS="${FUZZ_RUNS:-}" \
-FUZZ_MAX_TOTAL_TIME="${FUZZ_MAX_TOTAL_TIME:-45}" \
-FUZZ_WORKERS="${FUZZ_WORKERS:-2}" \
-FUZZ_JOBS="${FUZZ_JOBS:-2}" \
-XMAKE_FORCE_CLEAN="${XMAKE_FORCE_CLEAN:-0}" \
-bash ./run_local_fuzz.sh
+	: "${RYANJSON_STRICT_OBJECT_KEY_CHECK:=false}"
+	: "${RYANJSON_DEFAULT_ADD_AT_HEAD:=true}"
+	: "${RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC:=true}"
+	: "${FUZZ_MODE:=quick}"
+	: "${FUZZ_SKIP_COV:=1}"
+	: "${FUZZ_RUNS:=}"
+	: "${FUZZ_MAX_TOTAL_TIME:=45}"
+	: "${FUZZ_WORKERS:=2}"
+	: "${FUZZ_JOBS:=2}"
+	: "${XMAKE_FORCE_CLEAN:=0}"
 
-ryanjson_print_banner_begin "本地 CI 执行完成"
-ryanjson_print_banner_end
+	export RYANJSON_STRICT_OBJECT_KEY_CHECK
+	export RYANJSON_DEFAULT_ADD_AT_HEAD
+	export RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC
+	export FUZZ_MODE FUZZ_SKIP_COV FUZZ_RUNS FUZZ_MAX_TOTAL_TIME FUZZ_WORKERS FUZZ_JOBS
+	export XMAKE_FORCE_CLEAN
+	bash ./run_local_fuzz.sh
+
+	ryanjson_print_banner_begin "本地 CI 执行完成"
+	ryanjson_print_banner_end
+}
+
+main "$@"

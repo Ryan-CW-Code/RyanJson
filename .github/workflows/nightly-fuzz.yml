@@ -71,7 +71,7 @@ jobs:
 
       - name: 执行单元测试 full 矩阵（8 组配置全覆盖）
         run: |
-          chmod +x ./scripts/ci/runBaseCoverage.sh
+          chmod +x ./run_local_base.sh
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             unitMode="full"
@@ -89,7 +89,7 @@ jobs:
           UNIT_MODE="${unitMode}" \
           UNIT_SKIP_COV="${unitSkipCov}" \
           UNIT_STOP_ON_FAIL=0 \
-          bash ./scripts/ci/runBaseCoverage.sh
+          bash ./run_local_base.sh
 
       - name: 上传单测产物
         if: always()
@@ -150,7 +150,7 @@ jobs:
           RYANJSON_DEFAULT_ADD_AT_HEAD: ${{ matrix.head }}
           RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC: ${{ matrix.scientific }}
         run: |
-          chmod +x ./scripts/ci/runCoverage.sh
+          chmod +x ./run_local_fuzz.sh
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ inputs.fuzzSkipCov }}" == "true" ]]; then
@@ -174,7 +174,7 @@ jobs:
           FUZZ_MAX_TOTAL_TIME="${fuzzMaxTotalTime}" \
           FUZZ_WORKERS="${fuzzWorkers}" \
           FUZZ_JOBS="${fuzzJobs}" \
-          bash ./scripts/ci/runCoverage.sh
+          bash ./run_local_fuzz.sh
 
       - name: 上传 nightly fuzz 产物
         if: always()
@@ -214,7 +214,7 @@ jobs:
           RYANJSON_DEFAULT_ADD_AT_HEAD: "true"
           RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC: "true"
         run: |
-          chmod +x ./scripts/ci/runCoverage.sh
+          chmod +x ./run_local_fuzz.sh
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             fuzzMaxTotalTime="${{ inputs.fuzzMaxTotalTime }}"
@@ -231,7 +231,7 @@ jobs:
           FUZZ_MAX_TOTAL_TIME="${fuzzMaxTotalTime}" \
           FUZZ_WORKERS="${fuzzWorkers}" \
           FUZZ_JOBS="${fuzzJobs}" \
-          bash ./scripts/ci/runCoverage.sh
+          bash ./run_local_fuzz.sh
 
       - name: 上传 nightly 覆盖率基线产物
         if: always()
@@ -308,7 +308,7 @@ jobs:
           RYANJSON_DEFAULT_ADD_AT_HEAD: ${{ matrix.head }}
           RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC: ${{ matrix.scientific }}
         run: |
-          chmod +x ./scripts/ci/runCoverage.sh
+          chmod +x ./run_local_fuzz.sh
 
           if [[ "${{ inputs.fuzzSkipCov }}" == "true" ]]; then
             fuzzSkipCov=1
@@ -321,7 +321,7 @@ jobs:
           FUZZ_MAX_TOTAL_TIME="${{ inputs.fuzzMaxTotalTime }}" \
           FUZZ_WORKERS="${{ inputs.fuzzWorkers }}" \
           FUZZ_JOBS="${{ inputs.fuzzJobs }}" \
-          bash ./scripts/ci/runCoverage.sh
+          bash ./run_local_fuzz.sh
 
       - name: 上传 full fuzz 产物
         if: always()
