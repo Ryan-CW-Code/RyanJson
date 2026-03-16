@@ -21,8 +21,13 @@ static void RyanJsonFuzzerExerciseCreateArrayBuilderCases(uint32_t size)
 		assert(NULL != emptyIntArray && NULL != intArray);
 		assert(0 == RyanJsonGetArraySize(emptyIntArray));
 		assert(2 == RyanJsonGetArraySize(intArray));
+#if true == RyanJsonDefaultAddAtHead
+		assert(intValues[1] == RyanJsonGetIntValue(RyanJsonGetObjectByIndex(intArray, 0)));
+		assert(intValues[0] == RyanJsonGetIntValue(RyanJsonGetObjectByIndex(intArray, 1)));
+#else
 		assert(intValues[0] == RyanJsonGetIntValue(RyanJsonGetObjectByIndex(intArray, 0)));
 		assert(intValues[1] == RyanJsonGetIntValue(RyanJsonGetObjectByIndex(intArray, 1)));
+#endif
 		RyanJsonDelete(emptyIntArray);
 		RyanJsonDelete(intArray);
 
@@ -31,8 +36,13 @@ static void RyanJsonFuzzerExerciseCreateArrayBuilderCases(uint32_t size)
 		assert(NULL != emptyDoubleArray && NULL != doubleArray);
 		assert(0 == RyanJsonGetArraySize(emptyDoubleArray));
 		assert(2 == RyanJsonGetArraySize(doubleArray));
+#if true == RyanJsonDefaultAddAtHead
+		assert(RyanJsonCompareDouble(doubleValues[1], RyanJsonGetDoubleValue(RyanJsonGetObjectByIndex(doubleArray, 0))));
+		assert(RyanJsonCompareDouble(doubleValues[0], RyanJsonGetDoubleValue(RyanJsonGetObjectByIndex(doubleArray, 1))));
+#else
 		assert(RyanJsonCompareDouble(doubleValues[0], RyanJsonGetDoubleValue(RyanJsonGetObjectByIndex(doubleArray, 0))));
 		assert(RyanJsonCompareDouble(doubleValues[1], RyanJsonGetDoubleValue(RyanJsonGetObjectByIndex(doubleArray, 1))));
+#endif
 		RyanJsonDelete(emptyDoubleArray);
 		RyanJsonDelete(doubleArray);
 
@@ -41,8 +51,13 @@ static void RyanJsonFuzzerExerciseCreateArrayBuilderCases(uint32_t size)
 		assert(NULL != emptyStringArray && NULL != stringArray);
 		assert(0 == RyanJsonGetArraySize(emptyStringArray));
 		assert(2 == RyanJsonGetArraySize(stringArray));
+#if true == RyanJsonDefaultAddAtHead
+		assert(0 == strcmp(stringValues[1], RyanJsonGetStringValue(RyanJsonGetObjectByIndex(stringArray, 0))));
+		assert(0 == strcmp(stringValues[0], RyanJsonGetStringValue(RyanJsonGetObjectByIndex(stringArray, 1))));
+#else
 		assert(0 == strcmp(stringValues[0], RyanJsonGetStringValue(RyanJsonGetObjectByIndex(stringArray, 0))));
 		assert(0 == strcmp(stringValues[1], RyanJsonGetStringValue(RyanJsonGetObjectByIndex(stringArray, 1))));
+#endif
 		RyanJsonDelete(emptyStringArray);
 		RyanJsonDelete(stringArray);
 	});
@@ -65,8 +80,13 @@ static void RyanJsonFuzzerSelfTestCreateWrappedContainerCases(void)
 	RyanJson_t wrappedArray = RyanJsonGetObjectByKey(parent, "arr");
 	assert(NULL != wrappedArray && RyanJsonTrue == RyanJsonIsArray(wrappedArray));
 	assert(2 == RyanJsonGetArraySize(wrappedArray));
+#if true == RyanJsonDefaultAddAtHead
+	assert(2 == RyanJsonGetIntValue(RyanJsonGetObjectByIndex(wrappedArray, 0)));
+	assert(1 == RyanJsonGetIntValue(RyanJsonGetObjectByIndex(wrappedArray, 1)));
+#else
 	assert(1 == RyanJsonGetIntValue(RyanJsonGetObjectByIndex(wrappedArray, 0)));
 	assert(2 == RyanJsonGetIntValue(RyanJsonGetObjectByIndex(wrappedArray, 1)));
+#endif
 	RyanJsonDelete(parent);
 
 	parent = RyanJsonCreateObject();
