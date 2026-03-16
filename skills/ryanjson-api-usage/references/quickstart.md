@@ -3,8 +3,12 @@
 ## 范围
 - 本文提供“最小可跑通”的公开 API 路径。
 - 完整业务模板见 `integrationTemplate.md`。
-- 平台差异实现见 `rtThreadExamples.md`。
+- 平台差异实现见 `rt-thread-examples.md`。
 - 失败所有权细则见 `ownershipAndErrors.md`。
+
+## 新手提示
+- 不懂 RTOS 也没关系：先用 `malloc/free/realloc` 跑通，再做平台适配。
+- 不熟 JSON 术语：先读 `beginnerPrimer.md`。
 
 ## 入口条件（必须）
 1. 任何 Json API 前先完成 `RyanJsonInitHooks`。

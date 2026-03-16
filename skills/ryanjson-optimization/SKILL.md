@@ -34,8 +34,13 @@ description: RyanJson 核心实现的正确性优先优化技能。用于 Parse/
 3. 证据：unit、fuzz、覆盖、内存与性能数据。
 4. 风险：未覆盖边界、回滚触发条件、下一步建议。
 
+## 示例
+- 用户问“解析性能慢，不改 API 前提下怎么优化？”：走本技能，给出最小改动与验证门禁。
+- 用户问“内存峰值过高，允许新增宏开关”：走本技能，评估兼容影响与回归链路。
+
 ## 参考导航
 - 共享基线：`../shared/ryanJsonCommon.md`
+- 架构与数据结构：`../shared/architecture.md`
 - 注释规范：统一用 Doxygen 风格，类型名/字段语义/API 名保持英文（见共享基线第 9 节）
 - 工作流：`references/coreWorkflow.md`
 - 门禁：`references/regressionGates.md`

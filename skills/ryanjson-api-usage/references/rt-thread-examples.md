@@ -4,6 +4,7 @@
 - 本页只放 RT-Thread 平台差异：hooks 映射、任务入口、日志与并发建议。
 - 通用 API 路径见 `quickstart.md` / `integrationTemplate.md`。
 - 失败语义与释放规则见 `ownershipAndErrors.md`。
+- 若不是 RT-Thread 环境，可跳过本页。
 
 ## 接入建议
 1. 应用初始化阶段完成 hooks 初始化（如 `INIT_APP_EXPORT`）。

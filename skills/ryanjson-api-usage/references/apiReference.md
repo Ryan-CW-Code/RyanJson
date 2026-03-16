@@ -3,7 +3,7 @@
 ## 范围
 - 本页是公开 API 的语义速查，不展开内部实现优化细节。
 - 场景化路径优先看 `apiPatterns.md`，所有权细节看 `ownershipAndErrors.md`。
-- hooks 与平台接入看 `hooksInitPolicy.md`、`rtThreadExamples.md`。
+- hooks 与平台接入看 `hooksInitPolicy.md`、`rt-thread-examples.md`。
 
 ## 0. 初始化与配置
 ### `RyanJsonInitHooks(malloc, free, realloc)`

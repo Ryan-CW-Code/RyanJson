@@ -11,11 +11,11 @@
 - 所有随机创建/替换/打印路径都要走 hooks 分配器。
 - 需要故障注入时，通过 hooks 驱动，不直接改核心 API 逻辑。
 - fuzz 构建使用专用 target：`xmake -b RyanJsonFuzz`（该目标内置 `isEnableFuzzer` + `-fsanitize=fuzzer`）。
-- 覆盖链路统一使用 `scripts/ci/runCoverage.sh`（fuzzer 执行 + `llvm-profdata` + `llvm-cov`）。
-- 本地常规优先 `./run_local_fuzz.sh`；只有特殊测试（自定义参数）才直调 `scripts/ci/runCoverage.sh`。
+- 覆盖链路统一使用 `run_local_fuzz.sh`（fuzzer 执行 + `llvm-profdata` + `llvm-cov`）。
+- 本地常规与特殊测试都用 `./run_local_fuzz.sh`，通过环境变量做细粒度调参。
 
-## 脚本参数约定（`scripts/ci/runCoverage.sh`）
-- 模式预算：`quick/nightly/full` 分别对应短/中/长预算（具体默认值以 `scripts/ci/runCoverage.sh` 为准）。
+## 脚本参数约定（`run_local_fuzz.sh`）
+- 模式预算：`quick/nightly/full` 分别对应短/中/长预算（具体默认值以 `run_local_fuzz.sh` 为准）。
 - 次数优先级：
   - 设置 `FUZZ_RUNS` 时按固定轮次执行（覆盖 `FUZZ_MAX_TOTAL_TIME`）
   - 未设置 `FUZZ_RUNS` 时按 `FUZZ_MAX_TOTAL_TIME`（或模式默认值）执行
@@ -88,7 +88,7 @@
 - `test/fuzzer/entry.c`：`LLVMFuzzerTestOneInput` 中 hooks 初始化与断言
 - `test/fuzzer/utils/fuzzerSelfTest.c`：一次性自检的归属边界
 - `xmake.lua`：`target("RyanJsonFuzz")` 的 fuzz 宏与 `-fsanitize=fuzzer` 配置
-- `scripts/ci/runCoverage.sh`：fuzz 覆盖执行链与参数默认值
+- `run_local_fuzz.sh`：fuzz 覆盖执行链与参数默认值
 - `test/fuzzer/cases/fuzzerCreate.c`：Add/Insert 失败与游离态分支
 - `test/fuzzer/cases/fuzzerParse.c`：超长数字溢出与大输入预算控制
 - `test/fuzzer/cases/fuzzerReplace.c`：Replace 失败不消费 `item`

@@ -6,8 +6,8 @@
 - 执行入口、模式隔离、覆盖目录口径见 `../../shared/ryanJsonCommon.md`。
 
 ## 分诊常用命令
-- unit 覆盖（全矩阵）：`UNIT_MODE=full UNIT_SKIP_COV=0 bash scripts/ci/runBaseCoverage.sh`
-- fuzz 覆盖（夜间预算）：`FUZZ_MODE=nightly FUZZ_SKIP_COV=0 bash scripts/ci/runCoverage.sh`
+- unit 覆盖（全矩阵）：`UNIT_MODE=full UNIT_SKIP_COV=0 bash run_local_base.sh`
+- fuzz 覆盖（夜间预算）：`FUZZ_MODE=nightly FUZZ_SKIP_COV=0 bash run_local_fuzz.sh`
 
 ## 解读原则
 - 行覆盖高不代表质量高；优先看关键分支的 true/false 是否都触发。

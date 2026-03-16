@@ -1,4 +1,4 @@
 interface:
   display_name: "RyanJson 核心优化"
   short_description: "正确性优先的核心优化、回归证据与门禁风险评估说明策略"
-  default_prompt: "使用 $ryanjson-optimization 在不改公开API语义前提下做核心优化，给出最小改动方案与可复现回归证据。"
+  default_prompt: "使用 $ryanjson-optimization 在不改公开API语义前提下做核心优化，给出最小改动方案与可复现回归证据，且遵循共享基线。"

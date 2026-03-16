@@ -7,6 +7,7 @@
   - `skills/ryanjson-test-engineering`
 - 各技能的领域细节仍以各自 `references/` 文档为准。
 - 统一术语字典：`terminology.md`。
+- 架构与数据结构参考：`architecture.md`。
 
 ## 2. 仓库事实（必须遵守）
 - 主机侧主入口是 `xmake`。
@@ -19,19 +20,19 @@
   - 不在 QEMU 目标上启用 `-mno-unaligned-access`，避免编译器辅助对齐掩盖真实语义。
   - `YYJSON_DISABLE_UNALIGNED_MEMORY_ACCESS=1` 作为第三方库局部防御开关保留，除非用户明确要求调整。
 - 覆盖脚本分工：
-  - `scripts/ci/runBaseCoverage.sh`：单元测试矩阵（`quick=2` / `nightly=4` / `full=8`）
-  - `scripts/ci/runCoverage.sh`：fuzzer 执行与覆盖率生成
-- Unity runner 列表自动生成：`scripts/ci/checkUnityRunnerList.sh` 生成 `test/unityTest/runner/test_list.inc`，由 `scripts/ci/runBaseCoverage.sh` 调用；不要手改 `test_list.inc`，新增/删除 runner 后运行脚本或 `run_local_base.sh`。
+  - `run_local_base.sh`：单元测试矩阵（`quick=2` / `nightly=4` / `full=8`）
+  - `run_local_fuzz.sh`：fuzzer 执行与覆盖率生成
+- Unity runner 列表自动生成：`run_local_base.sh` 会同步 `test/unityTest/runner/test_list.inc`，不要手改；新增/删除 runner 后运行脚本（可用 `UNIT_SYNC_ONLY=1` 仅同步）。
 - 本地便捷入口在仓库根目录：
   - `run_local_base.sh`：本地一键 unit 矩阵
   - `run_local_qemu.sh`：本地一键 QEMU 矩阵（默认 full，覆盖 localbase 用例并校验对齐异常）
   - `run_local_ci.sh`：本地模拟 `ci-pr`（unit + quick fuzz）
-  - `run_local_fuzz.sh`：本地固定 6 并发 fuzz
+  - `run_local_fuzz.sh`：本地默认低并发 fuzz
   - 默认值摘要：
     - `run_local_base.sh`：`UNIT_MODE=full`、`UNIT_SKIP_COV=1`
     - `run_local_qemu.sh`：`QEMU_MODE=full`、`QEMU_STOP_ON_FAIL=1`
     - `run_local_ci.sh`：full unit + quick fuzz（`FUZZ_SKIP_COV=1`）
-    - `run_local_fuzz.sh`：`FUZZ_RUNS=10000`、`FUZZ_WORKERS/JOBS=6`
+    - `run_local_fuzz.sh`：`FUZZ_RUNS=100000`、`FUZZ_WORKERS/JOBS=1/9`
   - `run_local_qemu.sh` 默认保留 ANSI 颜色输出；仅在用户明确要求“去色/净化日志”时再剥离控制符。
 - 覆盖率目录固定且每次执行前清理（仅保留最新结果）：
   - unit：`coverage/unitMatrix`（`report.txt` + `html/`）
@@ -44,9 +45,9 @@
 - `xmake.lua`：`RyanJsonFuzz` 中 `add_defines("isEnableFuzzer")` 与 `-fsanitize=fuzzer`
 - `xmake.lua`：`RyanJson` 为链接兼容补入 `test/fuzzer/utils/fuzzerDriver.c`、`fuzzerMemory.c`（不启用 fuzz sanitizer）
 - `test/unityTest/runner/main.c`：`#ifndef isEnableFuzzer` 包裹 Unity `main`
-- `scripts/ci/runBaseCoverage.sh`：unit 矩阵执行与合并覆盖率
-- `scripts/ci/runCoverage.sh`：构建/执行 `RyanJsonFuzz` + `llvm-cov`
-- `scripts/ci/checkUnityRunnerList.sh`：自动生成 `test/unityTest/runner/test_list.inc`
+- `run_local_base.sh`：unit 矩阵执行与合并覆盖率
+- `run_local_fuzz.sh`：构建/执行 `RyanJsonFuzz` + `llvm-cov`
+- `run_local_base.sh`：自动生成 `test/unityTest/runner/test_list.inc`
 - `run_local_base.sh`、`run_local_qemu.sh`、`run_local_ci.sh`、`run_local_fuzz.sh`：本地入口封装
 - `test/qemu/platform/qemuStartup.c`：`SCB->CCR.UNALIGN_TRP=1` 的运行时设置与启动日志
 - `xmake.lua`：QEMU target 保留 `YYJSON_DISABLE_UNALIGNED_MEMORY_ACCESS=1`，不启用 `-mno-unaligned-access`
@@ -92,7 +93,7 @@
 ## 6. 测试模式契约
 - unit：走 Unity `main` 入口，不允许 fuzz sanitizer 注入 `main`。
 - qemu：走 `RyanJsonQemu*` 目标，校验 FreeRTOS 调度与非对齐访问 fault 语义。
-- fuzz：按 fuzz 宏/编译参数构建，使用 `scripts/ci/runCoverage.sh` 进行覆盖链路。
+- fuzz：按 fuzz 宏/编译参数构建，使用 `run_local_fuzz.sh` 进行覆盖链路。
 - 禁止在同一条执行建议中混写 unit/qemu/fuzz 的前提。
 - 推荐命令：
   - unit：`xmake -b RyanJson`
@@ -105,13 +106,13 @@
   - `./run_local_qemu.sh`
   - `./run_local_ci.sh`
   - `./run_local_fuzz.sh`
-- CI/细粒度调参时再直调 `scripts/ci/*`
-  - unit 快检：`UNIT_MODE=quick UNIT_SKIP_COV=1 bash scripts/ci/runBaseCoverage.sh`
-  - unit 全矩阵：`UNIT_MODE=full bash scripts/ci/runBaseCoverage.sh`
-  - fuzz 快检：`FUZZ_MODE=quick FUZZ_SKIP_COV=1 bash scripts/ci/runCoverage.sh`
-  - fuzz 覆盖：`FUZZ_MODE=nightly FUZZ_SKIP_COV=0 bash scripts/ci/runCoverage.sh`
+- 细粒度调参时直接用根目录入口并传环境变量
+  - unit 快检：`UNIT_MODE=quick UNIT_SKIP_COV=1 bash run_local_base.sh`
+  - unit 全矩阵：`UNIT_MODE=full bash run_local_base.sh`
+  - fuzz 快检：`FUZZ_MODE=quick FUZZ_SKIP_COV=1 bash run_local_fuzz.sh`
+  - fuzz 覆盖：`FUZZ_MODE=nightly FUZZ_SKIP_COV=0 bash run_local_fuzz.sh`
 - `XMAKE_FORCE_CLEAN=1` 仅在怀疑配置缓存污染时启用；默认增量模式更快。
-- `scripts/ci/runCoverage.sh` 会先把 `llvm-cov report --use-color` 输出到终端，再写入 `coverage/fuzz/report.txt`。
+- `run_local_fuzz.sh` 会先把 `llvm-cov report --use-color` 输出到终端，再写入 `coverage/fuzz/report.txt`。
 - RFC8259 用例列表通过目录扫描（`readdir`）获取，不再维护 `rfc8259_filelist.inc`。
 
 ## 7. 输出契约

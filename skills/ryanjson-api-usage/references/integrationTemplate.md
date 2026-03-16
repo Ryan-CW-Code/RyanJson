@@ -2,7 +2,7 @@
 
 ## 范围
 - 这是 API 技能的 **基线模板**：初始化 -> 解析/修改 -> 输出 -> 释放。
-- `quickstart.md` 与 `rtThreadExamples.md` 都可基于本模板裁剪。
+- `quickstart.md` 与 `rt-thread-examples.md` 都可基于本模板裁剪。
 - 共性口径见 `../../shared/ryanJsonCommon.md`。
 
 ## 基线伪代码

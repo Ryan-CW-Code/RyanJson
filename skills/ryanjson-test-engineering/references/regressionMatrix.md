@@ -31,7 +31,7 @@
 
 ## 执行策略
 - 本地常规：优先 `run_local_*`。
-- 特殊回归：按需直调 `scripts/ci/runBaseCoverage.sh` / `scripts/ci/runCoverage.sh`。
+- 特殊回归：按需直调 `run_local_base.sh` / `run_local_fuzz.sh`。
 - 推荐分层顺序：每轮增量修改先 `UNIT_MODE=quick`，合并前再 `UNIT_MODE=full`。
 - 全量日志建议重定向到临时文件并尾部审阅（例如 `/tmp/*.log`），避免终端截断导致误判。
 

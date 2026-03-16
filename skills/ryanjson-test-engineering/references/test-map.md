@@ -12,7 +12,7 @@
 
 ## test/unityTest/runner
 - `main.c`：Unity runner 入口，注册并执行全部测试 runner。
-- `test_list.inc`：runner 列表（被 main.c 编译包含），由 `scripts/ci/checkUnityRunnerList.sh` 自动生成，禁止手改。
+- `test_list.inc`：runner 列表（被 main.c 编译包含），由 `run_local_base.sh` 自动生成，禁止手改。
 
 ## test/unityTest/cases
 

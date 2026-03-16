@@ -13,7 +13,7 @@
 
 ## 3. 回归顺序
 1. 本地常规先跑 `run_local_*`。
-2. 需要细调矩阵/并发/覆盖时，再直调 `scripts/ci/*`。
+2. 需要细调矩阵/并发/覆盖时，直接用 `run_local_*` 传环境变量。
 3. 最终门禁覆盖 unit + fuzz + 历史崩溃样本。
 
 ## 4. 交付结构
@@ -25,7 +25,7 @@
 ## 5. 依据（仓库内）
 - `xmake.lua`：`RyanJson` / `RyanJsonFuzz` 模式 target
 - `run_local_base.sh`、`run_local_ci.sh`、`run_local_fuzz.sh`：本地常规入口
-- `scripts/ci/runBaseCoverage.sh`：unit 特殊矩阵/覆盖执行链
-- `scripts/ci/runCoverage.sh`：fuzz 特殊参数/覆盖执行链
+- `run_local_base.sh`：unit 特殊矩阵/覆盖执行链
+- `run_local_fuzz.sh`：fuzz 特殊参数/覆盖执行链
 - `RyanJson/RyanJsonConfig.h`：宏前提
 - `test/unityTest/runner/main.c`：unit 入口模式隔离
