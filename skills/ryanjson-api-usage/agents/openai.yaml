@@ -1,4 +1,4 @@
 interface:
   display_name: "RyanJson API 使用"
-  short_description: "公开API选型、调用顺序、所有权与失败释放的落地说明"
-  default_prompt: "使用 $ryanjson-api-usage 给出 RyanJson 公开 API 的可运行方案，包含宏前提、成功/失败路径与所有权释放责任，且遵循共享基线。"
+  short_description: "回答、审查或实现公开 API 选型、调用顺序与失败释放"
+  default_prompt: "使用 $ryanjson-api-usage 回答、审查或实现 RyanJson 公开 API 相关需求；先明确宏前提与环境，再给出可运行方案或问题分析，包含成功/失败路径与所有权释放责任，并遵循共享基线。"

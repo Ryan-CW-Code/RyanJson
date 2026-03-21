@@ -1,7 +1,8 @@
 # RyanJson 共性规则
 
 ## 1. 范围
-- 本文件是以下三个技能的共性约束基线：
+- 本文件是以下四个技能的共性约束基线：
+  - `skills/ryanjson-project-guide`
   - `skills/ryanjson-api-usage`
   - `skills/ryanjson-optimization`
   - `skills/ryanjson-test-engineering`

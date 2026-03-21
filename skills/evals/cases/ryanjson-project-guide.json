@@ -1,0 +1,93 @@
+{
+  "suite": "ryanjson-project-guide",
+  "description": "RyanJson 仓库导航、构建入口、CI 与报告路径路由样本。",
+  "cases": [
+    {
+      "id": "project-first-read-path",
+      "query": "我第一次接触 RyanJson，这个仓库应该先看哪几个文件和目录？",
+      "expected_skill": "ryanjson-project-guide",
+      "must_reference": [
+        "skills/ryanjson-project-guide/SKILL.md",
+        "skills/ryanjson-project-guide/references/repoMap.md",
+        "README.md",
+        "AGENTS.md"
+      ],
+      "must_not_route_to": [
+        "ryanjson-api-usage",
+        "ryanjson-optimization",
+        "ryanjson-test-engineering"
+      ],
+      "tags": ["project", "onboarding", "repo-map"]
+    },
+    {
+      "id": "project-commit-script-selection",
+      "query": "我改了 Parse 和 Print 路径，提交前本地最少应该跑哪些脚本？",
+      "expected_skill": "ryanjson-project-guide",
+      "must_reference": [
+        "skills/ryanjson-project-guide/references/buildAndValidation.md",
+        "scripts/README.md",
+        "run_local_base.sh",
+        "run_local_fuzz.sh",
+        "run_local_ci.sh"
+      ],
+      "must_not_route_to": [
+        "ryanjson-api-usage",
+        "ryanjson-optimization",
+        "ryanjson-test-engineering"
+      ],
+      "tags": ["project", "scripts", "pre-commit"]
+    },
+    {
+      "id": "project-report-locations",
+      "query": "内存对比报告和 RFC8259 报告现在都放在哪，分别由哪个脚本生成？",
+      "expected_skill": "ryanjson-project-guide",
+      "must_reference": [
+        "skills/ryanjson-project-guide/references/docsAndReports.md",
+        "reports/memory/qemu.md",
+        "reports/rfc8259/qemu.md",
+        "run_local_memory.sh",
+        "run_local_rfc8259.sh"
+      ],
+      "must_not_route_to": [
+        "ryanjson-api-usage",
+        "ryanjson-optimization",
+        "ryanjson-test-engineering"
+      ],
+      "tags": ["project", "reports", "docs"]
+    },
+    {
+      "id": "project-ci-jobs-overview",
+      "query": "这个仓库 PR 的 CI 现在实际会跑哪些 job？skills 文档校验是在里面吗？",
+      "expected_skill": "ryanjson-project-guide",
+      "must_reference": [
+        "skills/ryanjson-project-guide/references/buildAndValidation.md",
+        ".github/workflows/ci-pr.yml",
+        "run_local_skills.sh"
+      ],
+      "must_not_route_to": [
+        "ryanjson-api-usage",
+        "ryanjson-optimization",
+        "ryanjson-test-engineering"
+      ],
+      "tags": ["project", "ci", "skills"]
+    },
+    {
+      "id": "project-which-skill-route",
+      "query": "如果我想问 Add/Replace 失败语义、内存优化和单测归属，这三类问题分别该走哪个 skill？",
+      "expected_skill": "ryanjson-project-guide",
+      "must_reference": [
+        "skills/ryanjson-project-guide/SKILL.md",
+        "AGENTS.md",
+        "skills/ryanjson-api-usage/SKILL.md",
+        "skills/ryanjson-optimization/SKILL.md",
+        "skills/ryanjson-test-engineering/SKILL.md"
+      ],
+      "must_not_route_to": [
+        "ryanjson-api-usage",
+        "ryanjson-optimization",
+        "ryanjson-test-engineering"
+      ],
+      "tags": ["project", "routing", "skills"]
+    }
+  ]
+}

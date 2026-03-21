@@ -59,6 +59,6 @@
 
 ## 依据（仓库内）
 - `RyanJson/RyanJsonParse.c`：Parse 默认尾部语义与数值路径
-- `RyanJson/RyanJsonPrint.c`、`test/unityTest/cases/utils/testPrint.c`：Print 预分配边界与失败路径
+- `RyanJson/RyanJsonPrint.c`、`test/unityTest/cases/utils/print/testPrintGeneral.c`：Print 预分配边界与失败路径
 - `RyanJson/RyanJson.c`：Minify 行为与 Compare 入口
 - `test/unityTest/cases/core/testReplace.c`、`test/unityTest/cases/core/testCreate.c`：核心失败语义回归

@@ -1,0 +1,4 @@
+interface:
+  display_name: "RyanJson 项目导航"
+  short_description: "仓库结构、脚本/CI、报告与 skills 路由的项目级导航"
+  default_prompt: "使用 $ryanjson-project-guide 回答 RyanJson 仓库结构、构建/验证入口、CI、报告与 skills 路由问题；给出精确路径、脚本或下一步阅读建议，并在问题超出仓库导航时转到对应 skill。"

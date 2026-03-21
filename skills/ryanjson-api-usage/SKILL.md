@@ -1,6 +1,6 @@
 ---
 name: ryanjson-api-usage
-description: RyanJson 公开 API 使用与 RT-Thread 集成指南。用于接口选型、调用顺序、所有权与失败释放、以及 RyanJsonInitHooks 初始化集成；用户问“怎么用/怎么集成/失败谁释放/示例代码”时使用。测试补强转 ryanjson-test-engineering，内部优化转 ryanjson-optimization。
+description: RyanJson 公开 API 使用与审查。用于接口选型、调用顺序、初始化 hooks、所有权与失败释放、集成示例；用户问“怎么用/怎么集成/失败谁释放/这段 API 调用对不对”时使用。测试补强转 ryanjson-test-engineering，内部优化转 ryanjson-optimization。
 ---
 
 # RyanJson API 使用技能

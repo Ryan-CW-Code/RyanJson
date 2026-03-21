@@ -20,6 +20,7 @@
 - 架构与数据结构：`skills/shared/architecture.md`
 
 ## 技能路由
+- 项目概览、目录结构、构建脚本、CI 与报告路径：`skills/ryanjson-project-guide/SKILL.md`
 - 涉及内部实现/数据结构：先读 `skills/shared/architecture.md`，再进入对应技能。
 - API 使用、集成、所有权与示例：`skills/ryanjson-api-usage/SKILL.md`
 - 核心优化、性能、内存与语义边界：`skills/ryanjson-optimization/SKILL.md`
@@ -27,4 +28,7 @@
 
 ## Agent 入口
 - 技能内的 agent 模板：`skills/*/agents/openai.yaml`
-- 仓库级规则补充：`.agent/rules/gemini.md`
+
+## 本地校验
+- skills/agents 文档校验入口：`run_local_skills.sh`
+- 仓库内 validator：`scripts/tools/validate_skills.py`

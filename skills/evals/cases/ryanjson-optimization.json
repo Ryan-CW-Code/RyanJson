@@ -1,0 +1,86 @@
+{
+  "suite": "ryanjson-optimization",
+  "description": "RyanJson 核心实现优化、性能权衡与语义边界路由样本。",
+  "cases": [
+    {
+      "id": "opt-unalign-access-policy",
+      "query": "QEMU 路径为什么不直接开 -mno-unaligned-access，而是保留 UNALIGN_TRP 语义去抓问题？",
+      "expected_skill": "ryanjson-optimization",
+      "must_reference": [
+        "skills/ryanjson-optimization/SKILL.md",
+        "skills/ryanjson-optimization/references/coreWorkflow.md",
+        "skills/shared/ryanJsonCommon.md"
+      ],
+      "must_not_route_to": [
+        "ryanjson-project-guide",
+        "ryanjson-api-usage",
+        "ryanjson-test-engineering"
+      ],
+      "tags": ["optimization", "qemu", "unalign"]
+    },
+    {
+      "id": "opt-parse-performance-no-api-change",
+      "query": "Parse 性能慢，但我不想改公开 API 语义，应该从哪些模块热点开始分析？",
+      "expected_skill": "ryanjson-optimization",
+      "must_reference": [
+        "skills/ryanjson-optimization/references/moduleHotspots.md",
+        "skills/ryanjson-optimization/references/coreWorkflow.md",
+        "skills/ryanjson-optimization/references/optimizationRecipes.md"
+      ],
+      "must_not_route_to": [
+        "ryanjson-project-guide",
+        "ryanjson-api-usage",
+        "ryanjson-test-engineering"
+      ],
+      "tags": ["optimization", "parse", "performance"]
+    },
+    {
+      "id": "opt-memory-peak-with-config",
+      "query": "如果允许新增宏开关，想进一步压低节点内存峰值，应该重点评估哪些配置和兼容风险？",
+      "expected_skill": "ryanjson-optimization",
+      "must_reference": [
+        "skills/ryanjson-optimization/references/configSwitches.md",
+        "skills/ryanjson-optimization/references/optimizationTemplate.md",
+        "skills/shared/ryanJsonCommon.md"
+      ],
+      "must_not_route_to": [
+        "ryanjson-project-guide",
+        "ryanjson-api-usage",
+        "ryanjson-test-engineering"
+      ],
+      "tags": ["optimization", "memory", "config"]
+    },
+    {
+      "id": "opt-item-path-crash-root-cause",
+      "query": "Replace 相关路径出现 crash，我想先做根因分析和最小回归闭环，这类问题该怎么切？",
+      "expected_skill": "ryanjson-optimization",
+      "must_reference": [
+        "skills/ryanjson-optimization/references/coreWorkflow.md",
+        "skills/ryanjson-optimization/references/regressionGates.md",
+        "skills/ryanjson-optimization/references/moduleHotspots.md"
+      ],
+      "must_not_route_to": [
+        "ryanjson-project-guide",
+        "ryanjson-api-usage",
+        "ryanjson-test-engineering"
+      ],
+      "tags": ["optimization", "crash", "replace"]
+    },
+    {
+      "id": "opt-review-compare-risk",
+      "query": "帮我评估一下 Compare 和 CompareOnlyKey 的内部优化风险，尤其是重复 key 和非递归遍历这块。",
+      "expected_skill": "ryanjson-optimization",
+      "must_reference": [
+        "skills/ryanjson-optimization/references/coreArchitecture.md",
+        "skills/ryanjson-optimization/references/moduleHotspots.md",
+        "skills/shared/architecture.md"
+      ],
+      "must_not_route_to": [
+        "ryanjson-project-guide",
+        "ryanjson-api-usage",
+        "ryanjson-test-engineering"
+      ],
+      "tags": ["optimization", "compare", "review"]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 ---
 name: ryanjson-optimization
-description: RyanJson 核心实现的正确性优先优化技能。用于 Parse/Print/Item/Compare 优化、宏语义设计、内存与性能权衡、以及 crash/覆盖率回归闭环；用户请求“核心优化”“最小内存提效”“不改 API 前提下优化”时使用。接口用法转 ryanjson-api-usage，测试补强转 ryanjson-test-engineering。
+description: RyanJson 核心实现优化与审查。用于 Parse/Print/Item/Compare 优化、宏语义设计、内存/性能权衡、crash 根因与回归门禁；用户问“为什么这样实现/这里有何风险/如何在不改 API 前提下优化”时使用。接口用法转 ryanjson-api-usage，测试补强转 ryanjson-test-engineering。
 ---
 
 # RyanJson 核心优化技能
@@ -50,5 +50,4 @@ description: RyanJson 核心实现的正确性优先优化技能。用于 Parse/
 - 配置开关：`references/configSwitches.md`
 - 优化配方：`references/optimizationRecipes.md`
 - 术语：`references/terminology.md`
-- Gemini 对齐：`references/geminiCompat.md`
 - 本地压缩文档：`architecture.md`、`pitfalls.md`、`sop.md`

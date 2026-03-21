@@ -110,5 +110,5 @@
 - `RyanJson/RyanJson.c`：`RyanJsonMinify` 行为
 - `test/unityTest/cases/core/testCreate.c`：Add/Insert/Detach 相关断言
 - `test/unityTest/cases/core/testReplace.c`：Replace 失败不消费 `item`
-- `test/unityTest/cases/utils/testPrint.c`：非格式化打印与 preallocated 边界
-- `test/unityTest/cases/utils/testUtils.c`、`test/unityTest/cases/utils/testRobust.c`、`test/fuzzer/cases/fuzzerMinify.c`：Minify 边界与稳健性
+- `test/unityTest/cases/utils/print/testPrintGeneral.c`：非格式化打印与 preallocated 边界
+- `test/unityTest/cases/utils/testUtils.c`、`test/unityTest/cases/edge/parseprint/testEdgeMinifySlices.c`、`test/fuzzer/cases/fuzzerMinify.c`：Minify 边界与稳健性

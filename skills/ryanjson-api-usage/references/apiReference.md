@@ -131,9 +131,9 @@
 - `RyanJson/RyanJsonItem.c`（`RyanJsonInsert` 失败清理、`RyanJsonAddItemToObject` 标量失败删除、`RyanJsonReplaceByKey/ByIndex` 失败不消费）
 - `test/unityTest/cases/core/testCreate.c`（Insert/Add 失败语义与已挂树拒绝）
 - `test/unityTest/cases/core/testReplace.c`（Replace 失败所有权）
-- `test/unityTest/cases/utils/testPrint.c`（`format=false` 紧凑输出与 preallocated 行为）
+- `test/unityTest/cases/utils/print/testPrintGeneral.c`（`format=false` 紧凑输出与 preallocated 行为）
 - `RyanJson/RyanJson.c` 中 `RyanJsonMinify` 实现
-- `test/unityTest/cases/utils/testUtils.c`、`test/unityTest/cases/utils/testRobust.c`、`test/fuzzer/cases/fuzzerMinify.c`
+- `test/unityTest/cases/utils/testUtils.c`、`test/unityTest/cases/edge/parseprint/testEdgeMinifySlices.c`、`test/fuzzer/cases/fuzzerMinify.c`
 
 ## 9. 对外/对内边界
 - `RyanJsonChangeObjectValue` 属于内部实现接口，不作为公开 API 使用。
