@@ -34,7 +34,7 @@ extern "C" {
 #define RyanJsonStrcmp             strcmp
 #define RyanJsonSnprintf           snprintf
 #define RyanJsonPlatformAssert(EX) assert(EX)
-#define RyanJsonMallocHeaderSize   12U
+#define RyanJsonMallocHeaderSize   8U
 #define RyanJsonMallocAlign        8U
 #endif
 
