@@ -3,7 +3,7 @@
 static void testKeyMutationChangeToEmptyThenLookup(void)
 {
 	// 复杂链路：
-	// Parse -> ChangeKey(空字符串) -> PathLookup -> Compare(期望文档)。
+	// Parse -> ChangeKey(空 String) -> PathLookup -> Compare(期望文档)。
 	// 目标：验证空 key 可被正确定位与序列化。
 	RyanJson_t root = RyanJsonParse("{\"a\":{\"b\":1}}");
 	TEST_ASSERT_NOT_NULL(root);
@@ -27,7 +27,7 @@ static void testKeyMutationChangeToEscapedThenLookup(void)
 {
 	// 复杂链路：
 	// Parse -> ChangeKey(含引号/反斜杠) -> Lookup -> Compare(期望文档)。
-	// 目标：验证转义 key 需使用“解码后字符串”进行查找。
+	// 目标：验证转义 key 需使用“解码后 String”进行查找。
 	const char *newKey = "a\"b\\c";
 	RyanJson_t root = RyanJsonParse("{\"a\":1}");
 	TEST_ASSERT_NOT_NULL(root);

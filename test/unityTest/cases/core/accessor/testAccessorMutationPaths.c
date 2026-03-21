@@ -3,8 +3,8 @@
 static void testAccessorMutationIndexPathAfterArrayChurn(void)
 {
 	// 复杂链路：
-	// Parse(二维数组) -> DetachByIndex -> Insert -> GetObjectToIndex。
-	// 目标：验证索引路径在数组重排后仍可正确命中。
+	// Parse(二维 Array) -> DetachByIndex -> Insert -> GetObjectToIndex。
+	// 目标：验证索引路径在 Array 重排后仍可正确命中。
 	RyanJson_t root = RyanJsonParse("[[1,2],[3,4]]");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -25,7 +25,7 @@ static void testAccessorMutationIndexPathAfterArrayChurn(void)
 static void testAccessorMutationKeyPathAfterTypeReplace(void)
 {
 	// 复杂链路：
-	// Parse -> GetObjectToKey(失败) -> ReplaceByKey(标量->对象) -> GetObjectToKey。
+	// Parse -> GetObjectToKey(失败) -> ReplaceByKey(标量->Object) -> GetObjectToKey。
 	// 目标：验证类型替换后路径查找恢复可用。
 	RyanJson_t root = RyanJsonParse("{\"a\":1}");
 	TEST_ASSERT_NOT_NULL(root);
@@ -47,8 +47,8 @@ static void testAccessorMutationKeyPathAfterTypeReplace(void)
 static void testAccessorMutationGetObjectByIndexsAfterChurn(void)
 {
 	// 复杂链路：
-	// Parse(三层数组) -> DetachByIndex -> ChangeIntValue -> Insert -> GetObjectByIndexs。
-	// 目标：验证多级 varargs 索引路径在数组重排后仍正确命中。
+	// Parse(三层 Array) -> DetachByIndex -> ChangeIntValue -> Insert -> GetObjectByIndexs。
+	// 目标：验证多级 varargs 索引路径在 Array 重排后仍正确命中。
 	RyanJson_t root = RyanJsonParse("[[[1,2],[3,4]],[[5,6],[7,8]]]");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -118,7 +118,7 @@ static void testAccessorMutationDeepGetObjectByIndexsAfterChurn(void)
 {
 	// 复杂链路：
 	// Parse -> GetObjectByIndexs 深路径 -> Change -> Detach -> Compare(期望)。
-	// 目标：验证深路径访问在数组 churn 后仍稳定。
+	// 目标：验证深路径访问在 Array churn 后仍稳定。
 	RyanJson_t root = RyanJsonParse("{\"root\":[{\"child\":[{\"v\":1},{\"v\":2}]}]}");
 	TEST_ASSERT_NOT_NULL(root);
 

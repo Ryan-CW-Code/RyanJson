@@ -70,7 +70,7 @@ static void testEdgeContainerOpsAddItemToObjectRejectScalarThenRecover(void)
 {
 	// 复杂链路：
 	// Create(Object) -> AddItemToObject(标量失败) -> AddIntToObject(成功)。
-	// 目标：验证 AddItemToObject 失败后对象仍可稳定复用。
+	// 目标：验证 AddItemToObject 失败后 Object 仍可稳定复用。
 	RyanJson_t obj = RyanJsonCreateObject();
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -89,7 +89,7 @@ static void testEdgeContainerOpsDeleteByIndexArrayOfObjects(void)
 {
 	// 复杂链路：
 	// Parse(Array<Object>) -> DeleteByIndex -> 结构校验。
-	// 目标：验证删除对象数组元素后剩余元素正确。
+	// 目标：验证删除 Object Array 元素后剩余元素正确。
 	RyanJson_t arr = RyanJsonParse("[{\"a\":1},{\"b\":2}]");
 	TEST_ASSERT_NOT_NULL(arr);
 
@@ -105,8 +105,8 @@ static void testEdgeContainerOpsDeleteByIndexArrayOfObjects(void)
 static void testEdgeContainerOpsDeleteByKeyObjectWithArray(void)
 {
 	// 复杂链路：
-	// Parse(Object) -> DeleteByKey(数组) -> Size 校验。
-	// 目标：验证删除数组字段后对象结构正确。
+	// Parse(Object) -> DeleteByKey(Array) -> Size 校验。
+	// 目标：验证删除 Array 字段后 Object 结构正确。
 	RyanJson_t obj = RyanJsonParse("{\"a\":[1],\"b\":2}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -196,7 +196,7 @@ static void testEdgeContainerOpsInsertKeyedItemIntoArray(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> DetachByKey -> Insert(Array) -> Key 校验。
-	// 目标：验证数组接受携带 key 的节点。
+	// 目标：验证 Array 接受携带 key 的节点。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1}");
 	TEST_ASSERT_NOT_NULL(obj);
 	RyanJson_t arr = RyanJsonCreateArray();
@@ -220,7 +220,7 @@ static void testEdgeContainerOpsDeleteByIndexOnObject(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> DeleteByIndex -> Key 校验。
-	// 目标：验证对象按索引删除语义。
+	// 目标：验证 Object 按索引删除语义。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"b\":2,\"c\":3}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -235,8 +235,8 @@ static void testEdgeContainerOpsDeleteByIndexOnObject(void)
 static void testEdgeContainerOpsDeleteByIndexOnEmptyObject(void)
 {
 	// 复杂链路：
-	// Create(Object) -> DeleteByIndex(空对象) -> 返回 false。
-	// 目标：验证空对象删除失败路径。
+	// Create(Object) -> DeleteByIndex(空 Object) -> 返回 false。
+	// 目标：验证空 Object 删除失败路径。
 	RyanJson_t obj = RyanJsonCreateObject();
 	TEST_ASSERT_NOT_NULL(obj);
 	TEST_ASSERT_FALSE(RyanJsonDeleteByIndex(obj, 0));
@@ -247,7 +247,7 @@ static void testEdgeContainerOpsDetachByIndexObjectOutOfRange(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> DetachByIndex(越界) -> 返回 NULL。
-	// 目标：验证对象越界分离失败路径。
+	// 目标：验证 Object 越界分离失败路径。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1}");
 	TEST_ASSERT_NOT_NULL(obj);
 	TEST_ASSERT_NULL(RyanJsonDetachByIndex(obj, 2));
@@ -258,7 +258,7 @@ static void testEdgeContainerOpsChangeKeyOnArrayElement(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> DetachByKey -> Insert(Array) -> ChangeKey -> 校验。
-	// 目标：验证数组内带 key 元素可改 key。
+	// 目标：验证 Array 内带 key 元素可改 key。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1}");
 	TEST_ASSERT_NOT_NULL(obj);
 	RyanJson_t arr = RyanJsonCreateArray();

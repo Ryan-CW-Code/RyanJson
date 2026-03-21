@@ -33,8 +33,8 @@ RyanJsonInternalApi int32_t RyanJsonSnprintf(char *buf, size_t size, const char 
 /**
  * @brief 比较两个 C 字符串是否相等
  *
- * @param s1 字符串1
- * @param s2 字符串2
+ * @param s1 字符串 1
+ * @param s2 字符串 2
  * @return RyanJsonBool_e 是否相等
  */
 RyanJsonInternalApi RyanJsonBool_e RyanJsonInternalStrEq(const char *s1, const char *s2)
@@ -52,7 +52,7 @@ RyanJsonInternalApi RyanJsonBool_e RyanJsonInternalStrEq(const char *s1, const c
 }
 
 /**
- * @brief 安全的浮点数比较
+ * @brief 安全的 Double 比较
  */
 RyanJsonBool_e RyanJsonCompareDouble(double a, double b)
 {
@@ -73,6 +73,7 @@ RyanJsonBool_e RyanJsonCompareDouble(double a, double b)
  *
  * @param pJson Json 节点
  * @return uint8_t* 缓冲区首地址
+ * @note 仅适用于 strMode=ptr 的节点，调用前需确保 RyanJsonGetPayloadStrIsPtrByFlag 为 true。
  */
 RyanJsonInternalApi uint8_t *RyanJsonInternalGetStrPtrModeBuf(RyanJson_t pJson)
 {
@@ -89,6 +90,7 @@ RyanJsonInternalApi uint8_t *RyanJsonInternalGetStrPtrModeBuf(RyanJson_t pJson)
  *
  * @param pJson Json 节点
  * @param heapPtr 缓冲区首地址
+ * @note 仅适用于 strMode=ptr 的节点，调用方需确保 flag 状态已正确设置。
  */
 RyanJsonInternalApi void RyanJsonInternalSetStrPtrModeBuf(RyanJson_t pJson, uint8_t *heapPtr)
 {
@@ -106,8 +108,9 @@ RyanJsonInternalApi void RyanJsonInternalSetStrPtrModeBuf(RyanJson_t pJson, uint
  * @brief 获取字符串指针模式指定偏移处的地址
  *
  * @param pJson Json 节点
- * @param index 索引
+ * @param index 偏移字节数
  * @return uint8_t* 偏移后的地址
+ * @note 仅适用于 strMode=ptr 的节点，调用前需确保 RyanJsonGetPayloadStrIsPtrByFlag 为 true。
  */
 RyanJsonInternalApi uint8_t *RyanJsonInternalGetStrPtrModeBufAt(RyanJson_t pJson, uint32_t index)
 {
@@ -116,10 +119,10 @@ RyanJsonInternalApi uint8_t *RyanJsonInternalGetStrPtrModeBufAt(RyanJson_t pJson
 }
 
 /**
- * @brief 计算 key 长度需要的字节数
+ * @brief 计算 key 长度字段编码值
  *
  * @param len key 长度
- * @return uint8_t 需要的字节数
+ * @return uint8_t 编码值（1/2/3，对应 1/2/4 字节）
  */
 RyanJsonInternalApi uint8_t RyanJsonInternalCalcLenBytes(uint32_t len)
 {
@@ -129,10 +132,10 @@ RyanJsonInternalApi uint8_t RyanJsonInternalCalcLenBytes(uint32_t len)
 }
 
 /**
- * @brief 解码 key 长度字段
+ * @brief 解码 key 长度字段编码
  *
  * @param encoded 编码后的 key 长度字段
- * @return uint8_t 解码后的 key 长度
+ * @return uint8_t 字段字节数（0/1/2/4）
  */
 RyanJsonInternalApi uint8_t RyanJsonInternalDecodeKeyLenField(uint8_t encoded)
 {
@@ -187,6 +190,7 @@ RyanJsonInternalApi uint32_t RyanJsonInternalGetKeyLen(RyanJson_t pJson)
  *
  * @param pJson Json 节点
  * @return void* value 地址
+ * @note 仅 Number/Array/Object 的 value 有效；String/Null/Bool 不使用该区域。
  */
 RyanJsonInternalApi void *RyanJsonInternalGetValue(RyanJson_t pJson)
 {
@@ -205,6 +209,8 @@ RyanJsonInternalApi void *RyanJsonInternalGetValue(RyanJson_t pJson)
  * @param key key 字符串
  * @param strValue strValue
  * @return RyanJsonBool_e
+ * @note key/strValue 内容会被拷贝，输入指针不会被保存。
+ * @note isNew 为 false 时，若原先为指针模式，会在切换成功后释放旧堆缓冲。
  */
 RyanJsonInternalApi RyanJsonBool_e RyanJsonInternalChangeString(RyanJson_t pJson, RyanJsonBool_e isNew, const char *key,
 								const char *strValue)
@@ -312,12 +318,13 @@ RyanJsonInternalApi RyanJsonBool_e RyanJsonInternalChangeString(RyanJson_t pJson
  *
  * @param info 节点信息
  * @return RyanJson_t 节点
+ * @note key/strValue 会被拷贝进节点，返回节点拥有其内存。
  */
 RyanJsonInternalApi RyanJson_t RyanJsonInternalNewNode(RyanJsonNodeInfo_t *info)
 {
 	RyanJsonCheckAssert(NULL != info);
 
-	// 加1是flag的空间
+	// 加 1 是 flag 的空间
 	uint32_t size = sizeof(struct RyanJsonNode) + RyanJsonFlagSize;
 
 	if (RyanJsonTypeNumber == info->type)
@@ -347,7 +354,7 @@ RyanJsonInternalApi RyanJson_t RyanJsonInternalNewNode(RyanJsonNodeInfo_t *info)
 		return NULL;
 	});
 
-	// 设置 bool / number
+	// 设置 Bool / Number
 	if (RyanJsonTypeBool == info->type) { RyanJsonSetPayloadBoolValueByFlag(pJson, info->boolIsTrueFlag); }
 	else if (RyanJsonTypeNumber == info->type) { RyanJsonSetPayloadNumberIsDoubleByFlag(pJson, info->numberIsDoubleFlag); }
 
@@ -360,6 +367,7 @@ RyanJsonInternalApi RyanJson_t RyanJsonInternalNewNode(RyanJsonNodeInfo_t *info)
  * @param parent 父节点（Object 或 Array）
  * @param prev 前驱兄弟节点，为 NULL 表示头插
  * @param item 待插入节点
+ * @note 要求 parent 为容器节点且 item 为游离节点。
  */
 RyanJsonInternalApi void RyanJsonInternalListInsertAfter(RyanJson_t parent, RyanJson_t prev, RyanJson_t item)
 {
@@ -377,7 +385,7 @@ RyanJsonInternalApi void RyanJsonInternalListInsertAfter(RyanJson_t parent, Ryan
 	}
 	else
 	{
-		// 插入到头部。RyanJsonNode 结构保证了 Object 和 Array 的 Value 指针位置一致
+		// 插入到头部，RyanJsonNode 结构保证了 Object 和 Array 的 Value 指针位置一致
 		nextItem = RyanJsonGetObjectValue(parent);
 	}
 
@@ -454,6 +462,7 @@ RyanJsonInternalApi RyanJson_t RyanJsonInternalGetParent(RyanJson_t pJson)
  * @param pJson 起始节点
  * @param key 第一级 key
  * @return RyanJson_t 目标节点，失败返回 NULL
+ * @note 可变参以 NULL 作为终止标记。
  */
 RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, const char *key, ...)
 {
@@ -483,6 +492,7 @@ RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, const char *key, ...)
  * @param pJson 起始节点
  * @param index 第一级索引
  * @return RyanJson_t 目标节点，失败返回 NULL
+ * @note 可变参以 UINT32_MAX 作为终止标记。
  */
 RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, uint32_t index, ...)
 {
@@ -506,11 +516,11 @@ RyanJson_t RyanJsonGetObjectByIndexs(RyanJson_t pJson, uint32_t index, ...)
 }
 
 /**
- * @brief 创建 int32_t 数组节点
+ * @brief 创建 int32_t Array 节点
  *
  * @param numbers 输入数组
  * @param count 元素个数
- * @return RyanJson_t 新建数组节点，失败返回 NULL
+ * @return RyanJson_t 新建 Array 节点，失败返回 NULL
  */
 RyanJson_t RyanJsonCreateIntArray(const int32_t *numbers, uint32_t count)
 {
@@ -529,11 +539,11 @@ RyanJson_t RyanJsonCreateIntArray(const int32_t *numbers, uint32_t count)
 }
 
 /**
- * @brief 创建 double 数组节点
+ * @brief 创建 Double Array 节点
  *
  * @param numbers 输入数组
  * @param count 元素个数
- * @return RyanJson_t 新建数组节点，失败返回 NULL
+ * @return RyanJson_t 新建 Array 节点，失败返回 NULL
  */
 RyanJson_t RyanJsonCreateDoubleArray(const double *numbers, uint32_t count)
 {
@@ -552,11 +562,11 @@ RyanJson_t RyanJsonCreateDoubleArray(const double *numbers, uint32_t count)
 }
 
 /**
- * @brief 创建字符串数组节点
+ * @brief 创建 String Array 节点
  *
  * @param strings 输入字符串数组
  * @param count 元素个数
- * @return RyanJson_t 新建数组节点，失败返回 NULL
+ * @return RyanJson_t 新建 Array 节点，失败返回 NULL
  */
 RyanJson_t RyanJsonCreateStringArray(const char **strings, uint32_t count)
 {

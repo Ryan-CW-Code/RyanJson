@@ -101,7 +101,7 @@ extern "C" {
 
 /**
  * @brief RyanJsonSnprintfSupportScientific: 声明目标平台 snprintf 是否支持科学计数法（%g/%e）。
- * @note 该配置会影响 double 序列化策略与 RyanJsonDoubleBufferSize 默认值。
+ * @note 该配置会影响 Double 序列化策略与 RyanJsonDoubleBufferSize 默认值。
  * @note 默认值为 true。
  */
 #ifndef RyanJsonSnprintfSupportScientific
@@ -109,7 +109,7 @@ extern "C" {
 #endif
 
 /**
- * @brief RyanJsonDoubleBufferSize: double 序列化临时缓冲区大小。
+ * @brief RyanJsonDoubleBufferSize: Double 序列化临时缓冲区大小。
  * @note 若支持科学计数法：默认 32（建议 >= 32）。
  * @note 若不支持科学计数法：默认 64（理论上完整输出可到 330+，可按需求增大）。
  */
@@ -117,8 +117,8 @@ extern "C" {
 #if true == RyanJsonSnprintfSupportScientific
 #define RyanJsonDoubleBufferSize 32
 #else
-// 不支持科学计数法的平台使用 ".17lf" 最大将会输出 330+ 字节的数据,对于此库来说占用太高了.
-// 如果用户可以接受,就修改 RyanJsonDoubleBufferSize 宏,由你来决定RyanJson给 ".17lf" 提供多大缓冲区
+// 不支持科学计数法的平台使用 ".17lf" 最大将会输出 330+ 字节的数据，对于此库来说占用太高。
+// 如果用户可以接受，就修改 RyanJsonDoubleBufferSize 宏，由你来决定 RyanJson 给 ".17lf" 提供多大缓冲区。
 #define RyanJsonDoubleBufferSize 64
 #endif
 #endif

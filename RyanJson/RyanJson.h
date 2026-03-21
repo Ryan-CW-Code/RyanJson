@@ -36,121 +36,115 @@ extern "C" {
 	} while (0)
 #else
 #define RyanJsonCheckAssert(EX)
-// 无论是否开启断言都会“求值”，但只有在开启断言时才会 assert。 保留EX的副作用
+// 无论是否开启断言都会“求值”，但只有在开启断言时才会 assert。保留 EX 的副作用
 #define RyanJsonAssertAlwaysEval(EX) ((void)(EX))
 #endif
 
-// Json 的最基础节点，所有 Json 元素都由该节点表示。
-// 结构体中仅包含固定的 next 指针，用于单向链表串联。
-// 其余数据（flag、key、stringValue、numberValue、doubleValue 等）均通过动态内存分配管理。
+// Json 最基础节点，所有 Json 元素都由该节点表示。
+// 结构体仅包含固定的 next 指针，用于单向链表串联。
+// 其余数据（如 flag/key/strValue/intValue/doubleValue/objValue 等）均通过动态内存分配管理。
 struct RyanJsonNode
 {
-	// 理论上next的低2位也是可以利用起来的
+	// 理论上 next 的低 2 位也可复用
 	struct RyanJsonNode *next; // 单链表节点指针
 
 	/**
-	 * @brief RyanJson 节点结构体
-	 * 每个节点由链表连接，包含元数据标识 (Flag) 与动态载荷存储区。
+	 * @brief RyanJson 节点结构与载荷布局说明（面向使用者的实现约定）。
+	 * @details
+	 * `struct RyanJsonNode` 本体仅保存 `next` 指针，所有元数据与真实载荷都放在结构体后面的
+	 * 动态区域（payload）。该 payload 的第一个字节就是 flag，紧跟其后的区域根据 flag 语义切分。
+	 * 这种布局能缩小节点本体，并让 key/strValue 的存储策略可切换。
 	 *
-	 * 内存布局：
-	 * [ next指针 | flag(1字节) | padding/指针空间 | 动态载荷区 ]
+	 * Layout（逻辑示意）:
+	 * [ next | flag(1B) | keyLenField(0/1/2/4B) | inline/ptr payload ... | value ]
 	 *
-	 * @brief 节点元数据标识 (Flag)
-	 * 紧跟 next 指针后，利用 1 字节位域描述节点类型及存储状态。
+	 * Flag Bits（bit7..bit0）:
+	 * - bit0-2: Type（Null/Bool/Number/String/Array/Object）
+	 * - bit3  : Bool/Number 扩展位（Bool: true/false；Number: Int/Double）
+	 * - bit4-5: keyLenField 编码（0/1/2/4 字节）
+	 * - bit6  : strMode（inline/ptr）
+	 * - bit7  : IsLast（1 表示 next 指向 Parent 线索）
 	 *
-	 * flag 位分布定义：
-	 * bit7   bit6   bit5   bit4   bit3   bit2   bit1   bit0
-	 * -----------------------------------------------------
-	 * strMode KeyLen KeyLen HasKey NumExt Type2  Type1  Type0
+	 * keyLenField（key 长度字段）:
+	 * - 位于 flag 之后，长度由 bit4-5 编码决定。
+	 * - 记录 key 的字节长度（不含 '\\0'），按低字节在前写入。
+	 * - 编码值 3 表示字段宽度 4 字节（不是 3 字节）。
+	 *   这是为了用 2 bit 表达 0/1/2/4 四种宽度，详见 RyanJsonInternalDecodeKeyLenField。
 	 *
-	 * 各位含义：
-	 * - bit0-2 : 节点类型
-	 *            000=Unknown, 001=Null, 010=Bool, 011=Number,
-	 *            100=String, 101=Array, 110=Object, 111=Reserved
+	 * Payload（key/strValue 存储策略）:
+	 * - 固定字符串区（仅当节点有 key 或类型为 String 时存在）：
+	 *   位置：flag 后固定长度 `RyanJsonInlineStringSize`。
+	 *   起点：先写 keyLenField（宽度由 flag 编码 0/1/2/4 字节）。
 	 *
-	 * - bit3   : 扩展位
-	 *            Bool 类型：0=false, 1=true
-	 *            Number 类型：0=int32_t(4字节), 1=double(8字节)
+	 * - inline 模式：
+	 *   内容：keyLenField 后顺序写 key\\0 与 strValue\\0。
+	 *   变体：String 节点有 strValue；key 为空则仅 strValue\\0；非 String 节点仅 key\\0。
 	 *
-	 * - bit4-5 : Key 长度字段字节数
-	 *            00:无key
-	 *            01:keyLen=1字节 (≤UINT8_MAX)
-	 *            10:keyLen=2字节 (≤UINT16_MAX)
-	 *            11:keyLen=4字节 (≤UINT32_MAX)
+	 * - ptr 模式：
+	 *   指针槽：固定在 flag + RyanJsonKeyFeidLenMaxSize，不随 keyLenField 宽度变化。
+	 *   说明：读写指针用 memcpy，规避潜在非对齐访问。
+	 *   堆区：有 key 则 [key\\0]；String 节点再追加 [strValue\\0]；无 key 则仅 [strValue\\0]。
 	 *
-	 * - bit6   : 表示key / strValue 存储模式
-	 *            0:inline 模式, 1:ptr 模式
+	 * - 内联判定：
+	 *   条件：key/strValue 字节总和 + keyLenField 宽度 <= `RyanJsonInlineStringSize`。
+	 *   说明：无 key 时 keyLenField 宽度为 0。
 	 *
-	 * - bit7   : 表示是否为当前链表的最后一位，是的话nexe指针会指向Parent(线索化链表)
-	 *            0:next 指向兄弟节点, 1:next 指向Parent节点
+	 * Value 存储位置（与 key 是否存在相关）:
+	 * - Number/Array/Object 的 value 位于 payload 中固定偏移处。
+	 * - String 的 value 存在于 key/strValue 区域，不使用 value 偏移。
+	 * - 如果节点带 key，则 value 放在 flag + RyanJsonInlineStringSize 之后；
+	 *   这样无论 inline/ptr 模式，value 偏移都稳定。
+	 * - 若节点无 key，则 value 紧跟 flag。
+	 * - Null/Bool 仅使用 flag 位表达，无额外 payload。
+	 * - 实际偏移以 RyanJsonInternalGetValue 的计算为准。
 	 *
-	 * @brief 动态载荷存储区
-     * 目的：
-     * - 在保持 API 易用性和稳定性的同时，最大限度减少 malloc 调用次数。
-     * - 尤其在嵌入式平台，malloc 代价高昂：不仅有堆头部空间浪费，还会产生内存碎片。
-     * - 通过利用结构体内的对齐填充 (Padding) 和指针空间，形成一个灵活的缓冲区。
-     *
-     * 存储策略：
-     * 利用结构体内存对齐产生的 Padding（如 Flag 后的空隙）以及原本用于存储指针的空间，形成一个缓冲区
-     * 若节点包含 key / strValue，则可能有两种方案：
-     * inline 模式 (小数据优化)
-     *    - 当 (KeyLen + Key + Value) 的总长度 ≤ 阈值时，直接存储在结构体内部。
-     *    - 阈值计算公式：
-     *        阈值 = Padding + sizeof(void*) + (malloc头部空间的一半)，再向上对齐到字节边界。
-     *      举例：
-     *        - 内存对齐：4字节
-     *        - malloc头部空间：8字节
-     *        - 可用空间 = 3 (flag后padding) + 4 (指针空间) + 4 (malloc头部一半)
-     *        - 向上对齐后得到阈值12字节
-     *    - 存储布局：
-     *        [ KeyLen | Key | Value ]
-     *      起始地址即为 flag 之后，数据紧凑排列，无需额外 malloc。
-     *
-     * ptr 模式 (大数据)
-     *    - 当数据长度 > 阈值时，结构体存储一个指针，指向独立的堆区。
-     *    - 存储布局：
-     *        [ KeyLen | *ptr | Padding ] -> (ptr指向) [ Key | Value ]
-     *    - KeyLen 的大小由 flag 中的长度字段决定 (最多 4 字节)。
-     *    - 这样保证大数据不会撑爆结构体，同时保持 API 一致性。
-
-     * 其他类型的存储：
-	 * - null / bool : 由 flag 位直接表示，无需额外空间。
-	 * - number      : 根据 flag 扩展位决定存储 int32_t(4字节) 或 double(8字节)。
-	 * - object      : 动态分配空间存储子节点，采用链表结构。
-     *
-     * 设计考量：
-     * - malloc 在嵌入式平台的开销：
-     *    * RTT 最小内存管理算法中，malloc 头部约 12 字节(可以考虑tlsf算法头部空间仅4字节，内存碎片也控制的很好，适合物联网应用)。
-     *    * 一个 RyanJson 节点本身可能只有个位数字节，头部空间就让内存占用翻倍。
-     * - 因此：
-     *    * 小数据尽量 inline 存储，避免二次 malloc。
-     *    * 大数据 fallback 到 ptr 模式，保证灵活性。
-     * - 修改场景：
-     *    * 理想情况：节点结构体后面直接跟 key/strValue，修改时释放并重新申请节点。
-     *    * 但这样 changKey/changStrValue 接口改动太大，用户层需要修改指针，代价高。
-     *    * 实际策略：提供就地修改接口。
-     *        - 若新值长度 ≤ 原有 inline 缓冲区，直接覆盖。
-     *        - 若超过阈值，自动切换到 ptr 模式，用户层无需关心。
+	 * inline / ptr 简化示意（payload 仅示意，不含 value 区）:
+	 * - inline 示例:
+	 *   key + strValue: [ flag | keyLenField | key\\0 | strValue\\0 | ... ]
+	 *   key only (非 String): [ flag | keyLenField | key\\0 | ... ]
+	 *   strValue only (key 为空): [ flag | keyLenField | strValue\\0 | ... ]
+	 * - ptr 示例:
+	 *   key + strValue: [ flag | keyLenField | (pad) | ptr | ... ]  ptr -> [ key\\0 | strValue\\0 ]
+	 *   key only (非 String): [ flag | keyLenField | (pad) | ptr | ... ]  ptr -> [ key\\0 ]
+	 *   strValue only (key 为空): [ flag | keyLenField | (pad) | ptr | ... ]  ptr -> [ strValue\\0 ]
+	 *   padding 表示内联区未使用的剩余空间或对齐填充。
 	 *
-     * 链表结构示例：
-     *   {
-     *       "name": "RyanJson",
-     *   next (
-     *       "version": "xxx",
-     *   next (
-     *       "repository": "https://github.com/Ryan-CW-Code/RyanJson",
-     *   next (
-     *       "keywords": [
-     *           "json",
-     *       next (
-     *           "streamlined",
-     *       next (
-     *           "parser"
-     *       ))
-     *       ],
-     *   next (
-     *       "others": { ... }
-     *   }
+	 * Threaded List（线索化链表）:
+	 * - 同层兄弟节点通过 `next` 串联。
+	 * - 最后一个兄弟节点的 `next` 指向父节点，并设置 IsLast=1。
+	 * - 对外遍历必须使用 `RyanJsonGetNext`，它会屏蔽父节点线索。
+	 * - 因此 `next` 不是“永远指向兄弟”，IsLast=1 时它是父节点线索。
+	 *
+	 * Example（Object 子节点链表示意）:
+	 *   root(Object)
+	 *     |
+	 *     +-- "a":1  -> "b":2  -> (IsLast=1, next=root)
+	 *   RyanJsonGetNext("b") == NULL
+	 *
+	 * Array/Object 子节点与父节点线索示意:
+	 *   parent(Object)
+	 *     |
+	 *     +-- child0 -> child1(Last, next=parent)
+	 *            |
+	 *            +-- grandChild0 -> grandChild1(Last, next=child1)
+	 *
+	 * Offset 快速对照（从 payload 起点算起，用于理解访问宏偏移）:
+	 * - flag: 0
+	 * - keyLenField: 1
+	 * - inline/ptr payload: 1 + keyLenField 宽度
+	 * - value（无 key）: 1
+	 * - value（有 key）: 1 + RyanJsonInlineStringSize
+	 *
+	 * 修改影响范围提示:
+	 * - 改动 flag 位语义或 keyLenField 编码时，需同步 RyanJsonGetKey/RyanJsonGetStringValue。
+	 * - 改动 payload 布局或内联阈值时，需同步 RyanJsonInternalGetValue 与相关测试。
+	 *
+	 * @note 该布局依赖 flag 位语义与 keyLenField 编码规则。
+	 * @note 常见误解提示:
+	 * - IsLast=1 的节点其 next 不是兄弟，而是父节点线索。
+	 * - 遍历同层必须使用 RyanJsonGetNext，不能直接读 next。
+	 * - value 偏移与是否有 key 强相关，不能用固定结构体偏移理解。
+	 * @note 修改内联阈值或 payload 布局时需同步更新注释与测试。
 	 */
 };
 
@@ -158,7 +152,7 @@ typedef struct RyanJsonNode *RyanJson_t;
 
 typedef enum
 {
-	// 类型标志 占用8字节,剩余一个备用
+	// 类型标志占用 3 bit（共 8 种，1 个保留）
 	RyanJsonTypeNull = 1,
 	RyanJsonTypeBool = 2,
 	RyanJsonTypeNumber = 3,
@@ -199,7 +193,7 @@ typedef void *(*RyanJsonRealloc_t)(void *block, size_t size);
 #define RyanJsonGetType(pJson)       ((RyanjsonType_e)RyanJsonGetPayloadFlagField((pJson), 0, RyanJsonGetMask(3)))
 #define RyanJsonSetType(pJson, type) (RyanJsonSetPayloadFlagField((pJson), 0, RyanJsonGetMask(3), (RyanjsonType_e)(type)))
 
-// bool跟number用一个字段，因为bool和number类型不会同时存在
+// Bool 跟 Number 共用一个字段，因为 Bool 和 Number 类型不会同时存在
 #define RyanJsonGetPayloadBoolValueByFlag(pJson)             RyanJsonGetPayloadFlagField((pJson), 3, RyanJsonGetMask(1))
 #define RyanJsonSetPayloadBoolValueByFlag(pJson, value)      RyanJsonSetPayloadFlagField((pJson), 3, RyanJsonGetMask(1), (value))
 #define RyanJsonGetPayloadNumberIsDoubleByFlag(pJson)        RyanJsonGetPayloadFlagField((pJson), 3, RyanJsonGetMask(1))
@@ -353,7 +347,7 @@ extern RyanJson_t RyanJsonGetObjectByKeys(RyanJson_t pJson, const char *key, ...
  * @note 建议调用前先用 `RyanJsonIsObject/RyanJsonIsArray` 做类型校验。
  * @note Add/Insert 在 `item` 为游离节点时失败会自动释放 `item`。
  * @note `item` 非游离节点时失败不会释放 `item`（保护原树）。
- * @note Object key 必须唯一，重复 key 会失败（Parse 也拒绝重复 key）。
+ * @note 严格模式下 Object key 必须唯一；非严格模式允许重复 key，但按 key 的 API 通常只命中首个节点。
  * @note `AddItem` 仅接受 Array/Object 节点；标量请使用 `AddInt/AddString` 等接口。
  */
 #define RyanJsonAddNullToObject(pJson, key)           RyanJsonInsert(pJson, RyanJsonAddPosition, RyanJsonCreateNull(key))
@@ -393,9 +387,10 @@ extern RyanJsonBool_e RyanJsonChangeBoolValue(RyanJson_t pJson, RyanJsonBool_e b
  * @note 示例：`RyanJsonReplaceByIndex(arr, i, RyanJsonCreateString(NULL, "v"));`
  * @note Replace 成功后，`item` 所有权转移到目标树。
  * @note Replace 失败后，调用方仍持有 `item`，需自行释放或复用。
+ * @note `ReplaceByIndex` 可用于 Object，但不推荐。
  */
 extern RyanJsonBool_e RyanJsonReplaceByKey(RyanJson_t pJson, const char *key, RyanJson_t item);
-extern RyanJsonBool_e RyanJsonReplaceByIndex(RyanJson_t pJson, uint32_t index, RyanJson_t item); // object对象也可以使用，但是不推荐
+extern RyanJsonBool_e RyanJsonReplaceByIndex(RyanJson_t pJson, uint32_t index, RyanJson_t item);
 
 #ifdef __cplusplus
 }

@@ -66,7 +66,7 @@ static void RyanJsonFuzzerExerciseCreateArrayBuilderCases(uint32_t size)
 /**
  * @brief 补齐“非空容器包装后挂树”路径
  *
- * 运行期 generator 只会生成空 object/array，无法自然到达 RyanJsonCreateItem
+ * 运行期 generator 只会生成空 Object/Array，无法自然到达 RyanJsonCreateItem
  * 中 children!=NULL 的分支。
  */
 static void RyanJsonFuzzerSelfTestCreateWrappedContainerCases(void)
@@ -129,12 +129,12 @@ void RyanJsonFuzzerSelfTestCreateCases(void)
 /**
  * @brief 创建与插入测试
  *
- * 测试 RyanJson 的节点创建、数据类型设置以及对象/数组的插入操作。
+ * 测试 RyanJson 的节点创建、数据类型设置以及 Object/Array 的插入操作。
  * 覆盖场景：
  * 异常参数注入：测试空指针、无效 key、类型不匹配等错误处理。
- * 基础类型创建：测试 Bool/Int/Double/String 及其数组的创建与添加。
- * 递归结构构建：递归地向对象/数组中添加随机生成的子节点。
- * 边界插入测试：覆盖数组头部与中间位置插入。
+ * 基础类型创建：测试 Bool/Int/Double/String 及其 Array 的创建与添加。
+ * 递归结构构建：递归地向 Object/Array 中添加随机生成的子节点。
+ * 边界插入测试：覆盖 Array 头部与中间位置插入。
  *
  * @param state Fuzzer 状态上下文
  * @param pJson 当前正在操作的 Json 节点
@@ -144,7 +144,7 @@ RyanJsonBool_e RyanJsonFuzzerTestCreate(RyanJson_t pJson, uint32_t size)
 {
 	static RyanJsonBool_e duplicateKeyGuardCovered = RyanJsonFalse;
 
-	// duplicate key 守卫与当前输入无关，只需确定性命中一次，避免每轮重复造对象。
+	// duplicate key 守卫与当前输入无关，只需确定性命中一次，避免每轮重复造 Object。
 	if (RyanJsonFalse == duplicateKeyGuardCovered)
 	{
 		RyanJsonBool_e lastIsEnableMemFail;
@@ -307,7 +307,7 @@ RyanJsonBool_e RyanJsonFuzzerTestCreate(RyanJson_t pJson, uint32_t size)
 	// 对容器这是正常 append；对标量则是刻意保留的误用合同覆盖。
 	RyanJsonAddNullToObject(pJson, key);
 
-	// 如果当前节点是 key 类型，尝试获取其 key 字符串作为后续操作 key
+	// 如果当前节点是 key 类型，尝试获取其 key String 作为后续操作 key
 	if (RyanJsonTrue == RyanJsonIsKey(pJson))
 	{
 		// Change 系列测试已在 modify 用例覆盖
@@ -326,7 +326,7 @@ RyanJsonBool_e RyanJsonFuzzerTestCreate(RyanJson_t pJson, uint32_t size)
 
 	if (RyanJsonTrue == RyanJsonIsNumber(pJson) && RyanJsonFuzzerShouldFail(index))
 	{
-		// number 路径既覆盖 AddInt/AddDouble，也顺带覆盖 typed-array builder 的运行期成功路径。
+		// Number 路径既覆盖 AddInt/AddDouble，也顺带覆盖 typed Array builder 的运行期成功路径。
 		// 这正是“数学上可由 fuzz 命中，所以不应塞进 self-test”的典型例子。
 		if (RyanJsonTrue == RyanJsonIsInt(pJson))
 		{
@@ -385,7 +385,7 @@ RyanJsonBool_e RyanJsonFuzzerTestCreate(RyanJson_t pJson, uint32_t size)
 	}
 	if (RyanJsonTrue == RyanJsonIsString(pJson) && RyanJsonFuzzerShouldFail(index))
 	{
-		// string 路径与数值路径保持相同结构，方便后续维护时按类型成组审阅覆盖缺口。
+		// String 路径与 Number 路径保持相同结构，方便后续维护时按类型成组审阅覆盖缺口。
 		if (RyanJsonTrue == RyanJsonAddStringToObject(pJson, key, RyanJsonGetStringValue(pJson)))
 		{
 			fuzzTestWithMemFail(assert(
@@ -427,7 +427,7 @@ RyanJsonBool_e RyanJsonFuzzerTestCreate(RyanJson_t pJson, uint32_t size)
 		}
 		else
 		{
-			// 对 object 必须保留 key 语义，不能偷懒统一走 ArrayForEach。
+			// 对 Object 必须保留 key 语义，不能偷懒统一走 ArrayForEach。
 			RyanJsonObjectForEach(pJson, item)
 			{
 				RyanJsonFuzzerTestCreate(item, size);
@@ -464,8 +464,8 @@ RyanJsonBool_e RyanJsonFuzzerTestCreate(RyanJson_t pJson, uint32_t size)
 
 		if (RyanJsonTrue == RyanJsonIsArray(pJson))
 		{
-			// 以下分支只在 array 下执行，集中覆盖数组专属 append/insert 语义。
-			// object 的 key 语义更强，相关路径已在前面的 Add*ToObject / AddItemToObject 中单独验证。
+			// 以下分支只在 Array 下执行，集中覆盖 Array 专属 append/insert 语义。
+			// Object 的 key 语义更强，相关路径已在前面的 Add*ToObject / AddItemToObject 中单独验证。
 			if (RyanJsonFuzzerShouldFail(index / 8) && RyanJsonTrue == RyanJsonAddNullToArray(pJson))
 			{
 				fuzzTestWithMemFail({
@@ -589,7 +589,7 @@ RyanJsonBool_e RyanJsonFuzzerTestCreate(RyanJson_t pJson, uint32_t size)
 				uint32_t idx = len / 2;
 
 				// 测试中间位置插入
-				// 注意：每次插入后，数组长度增加，idx 相对位置其实在变动，
+				// 注意：每次插入后，Array 长度增加，idx 相对位置其实在变动，
 				// 这里为简化逻辑保持 index 不变，覆盖随机位置插入行为
 				RyanJsonInsert(pJson, idx, RyanJsonCreateBool(key, 0 != size % 2 ? RyanJsonTrue : RyanJsonFalse));
 				RyanJsonInsert(pJson, idx, RyanJsonCreateString(key, "NULL"));

@@ -3,7 +3,7 @@
 static void testScenarioCompositeDetachReplaceInsertAndRoundtrip(void)
 {
 	// 复杂链路：Parse -> Duplicate -> Detach -> Change -> Replace -> Insert -> Print -> Parse。
-	// 目标：覆盖“数组与对象之间的协同变更”以及往返一致性。
+	// 目标：覆盖“Array 与 Object 之间的协同变更”以及往返一致性。
 	const char *source = "{\"jobs\":[{\"id\":\"a\",\"state\":\"new\"},{\"id\":\"b\",\"state\":\"new\"}],"
 			     "\"byId\":{\"a\":{\"state\":\"new\"},\"b\":{\"state\":\"new\"}},\"meta\":{\"ver\":1}}";
 
@@ -55,7 +55,7 @@ static void testScenarioCompositeDetachReplaceInsertAndRoundtrip(void)
 static void testScenarioCompositeMoveAndRenameDetachedKeyNode(void)
 {
 	// 复杂链路：Parse -> DetachByKey -> ChangeKey/ChangeStringValue -> Insert(Object) -> DeleteByIndex -> ReplaceByKey -> Roundtrip。
-	// 目标：覆盖“对象节点分离后重命名并迁移到另一对象”以及多点修改后的一致性检查。
+	// 目标：覆盖“Object 节点分离后重命名并迁移到另一 Object”以及多点修改后的一致性检查。
 	const char *source = "{\"spec\":{\"owner\":\"ops\",\"retry\":3},\"profile\":{\"team\":\"core\"},\"audit\":[1,2]}";
 
 	RyanJson_t root = RyanJsonParse(source);
@@ -77,7 +77,7 @@ static void testScenarioCompositeMoveAndRenameDetachedKeyNode(void)
 	TEST_ASSERT_NOT_NULL_MESSAGE(detachedOwner, "分离 spec.owner 失败");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDetachedItem(detachedOwner), "分离后的 owner 节点应为游离状态");
 
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonChangeStringValue(detachedOwner, "platform"), "修改 owner 字符串失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonChangeStringValue(detachedOwner, "platform"), "修改 owner String 失败");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonChangeKey(detachedOwner, "ownerAlias"), "重命名 owner key 失败");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(profile, 0, detachedOwner), "插入 profile.ownerAlias 失败");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonIsDetachedItem(detachedOwner), "插入后节点不应保持游离状态");
@@ -106,7 +106,7 @@ static void testScenarioCompositeMoveAndRenameDetachedKeyNode(void)
 static void testScenarioCompositeArrayObjectSyncWithForeachAndExpectedCompare(void)
 {
 	// 复杂链路：Parse -> DetachByIndex -> Change -> AddItem(Array/Object) -> ReplaceByIndex -> DeleteByIndex -> Insert -> ForEach -> Compare。
-	// 目标：验证“数组队列 + 对象索引”双视图在多步变更后仍保持同步语义。
+	// 目标：验证“Array 队列 + Object 索引”双视图在多步变更后仍保持同步语义。
 	const char *source =
 		"{\"queue\":[{\"id\":\"a\",\"prio\":1},{\"id\":\"b\",\"prio\":2},{\"id\":\"c\",\"prio\":3}],\"done\":[],\"map\":{}}";
 	const char *expectText =
@@ -182,12 +182,12 @@ static void testScenarioCompositeArrayObjectSyncWithForeachAndExpectedCompare(vo
 static void testScenarioCompositeFailedMutationThenReuseDetachedWithoutCorruption(void)
 {
 	// 复杂链路：
-	// Parse -> ReplaceByKey(失败) -> 复用失败 item 插入数组 -> 重复插入失败
+	// Parse -> ReplaceByKey(不存在 key, 失败) -> 复用失败 item 插入 Array -> 重复插入失败
 	// -> DetachByIndex -> AddItemToObject 迁移 -> Roundtrip。
 	// 目标：
-	// 1) 验证失败 API 不会错误消费 item；
-	// 2) 验证“失败后复用同一节点”不会引发结构连锁损坏；
-	// 3) 验证节点在 attached/detached 状态切换后，容器语义与 Compare 仍稳定。
+	// - 验证失败 API 不会错误消费 item；
+	// - 验证“失败后复用同一节点”不会引发结构连锁损坏；
+	// - 验证节点在 attached/detached 状态切换后，容器语义与 Compare 仍稳定。
 	const char *source = "{\"obj\":{\"x\":1,\"y\":2},\"arr\":[{\"id\":\"a\"},{\"id\":\"b\"}],\"flag\":true}";
 
 	RyanJson_t root = RyanJsonParse(source);
@@ -244,9 +244,9 @@ static void testScenarioCompositeBatchDetachByCollectedIndexes(void)
 	// Parse -> ArrayForEach(收集索引/ID) -> 按逆序 DetachByIndex 批量删除 -> AddStringToArray(doneIds)
 	// -> ArrayForEach 二次校验 -> Roundtrip。
 	// 目标：
-	// 1) 验证“先遍历收集、后批处理”可避免索引漂移引发的连锁错误；
-	// 2) 验证批量分离后再写入统计容器，结构与语义保持一致；
-	// 3) 验证复杂批处理链在不同编译配置下都稳定。
+	// - 验证“先遍历收集、后批处理”可避免索引漂移引发的连锁错误；
+	// - 验证批量分离后再写入统计容器，结构与语义保持一致；
+	// - 验证复杂批处理链在不同编译配置下都稳定。
 	const char *source = "{\"tasks\":[{\"id\":\"a\",\"state\":\"new\"},{\"id\":\"b\",\"state\":\"done\"},{\"id\":\"c\",\"state\":"
 			     "\"done\"}],\"doneIds\":[]}";
 	RyanJson_t root = RyanJsonParse(source);

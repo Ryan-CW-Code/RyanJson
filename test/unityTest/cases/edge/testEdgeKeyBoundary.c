@@ -130,7 +130,7 @@ static void testEdgeKeyBoundaryChangeKeyKeepsValue(void)
 static void testEdgeKeyRoundtripLongKey(void)
 {
 	// 复杂链路：
-	// Create(Object长 key) -> Print -> Parse -> Compare。
+	// Create(Object 长 key) -> Print -> Parse -> Compare。
 	// 目标：验证长 key 往返一致。
 	uint32_t longLen = RyanJsonInlineStringSize + 8U;
 	char *longKey = allocPatternString(longLen, 'k');
@@ -155,8 +155,8 @@ static void testEdgeKeyRoundtripLongKey(void)
 static void testEdgeKeyRoundtripNestedLongKey(void)
 {
 	// 复杂链路：
-	// Create(嵌套对象长 key) -> Print -> Parse -> Compare。
-	// 目标：验证长 key 在嵌套对象中的往返一致性。
+	// Create(嵌套 Object 长 key) -> Print -> Parse -> Compare。
+	// 目标：验证长 key 在嵌套 Object 中的往返一致性。
 	uint32_t longLen = RyanJsonInlineStringSize + 8U;
 	char *longKey = allocPatternString(longLen, 'k');
 	TEST_ASSERT_NOT_NULL(longKey);

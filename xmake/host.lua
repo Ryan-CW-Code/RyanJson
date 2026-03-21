@@ -24,11 +24,19 @@ local function setupRyanJsonTarget(isFuzz)
     local strictObjectKeyCheck = getBooleanEnvDefineValue("RYANJSON_STRICT_OBJECT_KEY_CHECK", "false")
     local defaultAddAtHead = getBooleanEnvDefineValue("RYANJSON_DEFAULT_ADD_AT_HEAD", "false")
     local snprintfSupportScientific = getBooleanEnvDefineValue("RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC", "false")
+    local unitOnlyMemory = getBooleanEnvDefineValue("RYANJSON_UNIT_ONLY_MEMORY", "false")
+    local unitOnlyRfc8259 = getBooleanEnvDefineValue("RYANJSON_UNIT_ONLY_RFC8259", "false")
 
     add_defines("RyanJsonStrictObjectKeyCheck=" .. strictObjectKeyCheck)
     add_defines("RyanJsonDefaultAddAtHead=" .. defaultAddAtHead)
     -- 声明 snprintf 支持科学计数法，影响 double 序列化策略
     add_defines("RyanJsonSnprintfSupportScientific=" .. snprintfSupportScientific)
+    if "true" == unitOnlyMemory then
+        add_defines("RyanJsonUnitOnlyMemory")
+    end
+    if "true" == unitOnlyRfc8259 then
+        add_defines("RyanJsonUnitOnlyRfc8259")
+    end
     -- 启用 Linux 测试环境分支（用于主机侧测试/兼容代码路径）
     add_defines("RyanJsonLinuxTestEnv")
     add_defines("RyanJsonTestPlatformLinuxFreeRtos")

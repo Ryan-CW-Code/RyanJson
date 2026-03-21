@@ -15,6 +15,7 @@ RyanJsonRealloc_t jsonRealloc = NULL;
  * @param userFree 用户自定义 free
  * @param userRealloc 用户自定义 realloc，可为 NULL
  * @return RyanJsonBool_e 初始化是否成功
+ * @note 除编译期配置外，其他 API 调用前必须先完成初始化。
  */
 RyanJsonBool_e RyanJsonInitHooks(RyanJsonMalloc_t userMalloc, RyanJsonFree_t userFree, RyanJsonRealloc_t userRealloc)
 {
@@ -30,6 +31,7 @@ RyanJsonBool_e RyanJsonInitHooks(RyanJsonMalloc_t userMalloc, RyanJsonFree_t use
  * @brief 释放 RyanJson 动态分配的内存块
  *
  * @param block 待释放内存
+ * @note 需已通过 RyanJsonInitHooks 注册内存钩子。
  */
 void RyanJsonFree(void *block)
 {
@@ -97,7 +99,7 @@ void RyanJsonDelete(RyanJson_t pJson)
 }
 
 /**
- * @brief 获取节点规模（标量为1，容器为子节点个数）
+ * @brief 获取节点规模（标量为 1，容器为子节点个数）
  *
  * @param pJson 待查询节点
  * @return uint32_t 元素数量；参数非法返回 0
@@ -135,7 +137,7 @@ static RyanJson_t RyanJsonDuplicateNode(RyanJson_t pJson)
 	switch (RyanJsonGetType(pJson))
 	{
 	case RyanJsonTypeNull: newItem = RyanJsonCreateNull(key); break;
-	case RyanJsonTypeBool: // 创建节点时已写入 bool 值
+	case RyanJsonTypeBool: // 创建节点时已写入 Bool 值
 		newItem = RyanJsonCreateBool(key, RyanJsonGetBoolValue(pJson));
 		break;
 
@@ -143,7 +145,7 @@ static RyanJson_t RyanJsonDuplicateNode(RyanJson_t pJson)
 		if (RyanJsonIsInt(pJson)) { newItem = RyanJsonCreateInt(key, RyanJsonGetIntValue(pJson)); }
 		else
 		{
-			// Number 节点除了 int32_t 只可能是 double
+			// Number 节点除 int32_t 外只可能是 Double
 			RyanJsonCheckAssert(RyanJsonIsDouble(pJson));
 			newItem = RyanJsonCreateDouble(key, RyanJsonGetDoubleValue(pJson));
 		}
@@ -249,12 +251,14 @@ error__:
 }
 
 /**
- * @brief 原地压缩 Json 字符串（移除空白与注释）
+ * @brief 原地压缩 Json 文本（移除空白与注释）
  *
  * @param text 可写缓冲区
  * @param textLen 缓冲区可写长度
  * @return uint32_t 压缩后字符数（不含终止符）
- * @note 仅当返回值小于 textLen 时写入 '\0'
+ * @note 支持移除 `//` 与 `/* ... * /` 形式的注释（非标准 JSON）。
+ * @note 仅当返回值小于 textLen 时写入 '\0'。
+ * @note 若缓冲区中存在 '\0'，会在该处提前停止处理。
  */
 uint32_t RyanJsonMinify(char *text, int32_t textLen)
 {
@@ -417,9 +421,9 @@ static RyanJsonBool_e RyanJsonInternalCompare(RyanJson_t leftJson, RyanJson_t ri
 
 		// 走到这里说明当前节点对已经比较完成，且若它们是容器，则其子树也已经比较完毕。
 		// 接下来要在“不使用递归栈”的前提下，找到 DFS 意义上的下一个待比较节点对：
-		// 1) 优先尝试同父层的下一个兄弟；
-		// 2) 当前层没有兄弟时，沿内部 parent 回链逐层回溯；
-		// 3) 一旦回溯到入口 root，说明整棵树已经完全比较结束。
+		// - 优先尝试同父层的下一个兄弟；
+		// - 当前层没有兄弟时，沿内部 parent 回链逐层回溯；
+		// - 回溯到入口 root 时，说明整棵树已经完全比较结束。
 		while (1)
 		{
 			// 进入本循环时，leftCurrent/rightCurrent 表示“刚完成比较的节点对”。
@@ -435,7 +439,7 @@ static RyanJsonBool_e RyanJsonInternalCompare(RyanJson_t leftJson, RyanJson_t ri
 				RyanJson_t rightNext = NULL;
 				if (RyanJsonFalse == RyanJsonIsKey(leftNext))
 				{
-					// 无 key 节点只会出现在数组路径上，数组比较是严格按顺序进行的，
+					// 无 key 节点只会出现在 Array 路径上，Array 比较是严格按顺序进行的，
 					// 因而右侧可以直接取当前节点的 next 兄弟，不需要额外查找。
 					rightNext = RyanJsonGetNext(rightCurrent);
 				}
@@ -445,7 +449,7 @@ static RyanJsonBool_e RyanJsonInternalCompare(RyanJson_t leftJson, RyanJson_t ri
 					const char *leftNextKey = RyanJsonGetKey(leftNext);
 					RyanJson_t rightParent = RyanJsonInternalGetParent(rightCurrent);
 
-					// 对象比较是“同层无序、同 key 对齐”语义，不能像数组那样直接依赖 rightCurrent->next：
+					// Object 比较是“同层无序、同 key 对齐”语义，不能像 Array 那样直接依赖 rightCurrent->next：
 					// - strict 模式下 key 唯一，按 key 找即可；
 					// - non-strict 模式下允许重复 key，必须继续保证“同 key 的第 N 次出现”彼此对齐，
 					//   否则会把后一个重复 key 错配到右侧第一个同名节点，导致 Compare/CompareOnlyKey 语义漂移。
@@ -510,8 +514,8 @@ static RyanJsonBool_e RyanJsonInternalCompare(RyanJson_t leftJson, RyanJson_t ri
 			leftCurrent = leftCurrent->next;
 
 			// leftCurrent 此时已经被抬回父节点，所以这里按“父节点类型”决定右侧如何回溯。
-			// - array：左右两边始终按相同 sibling 顺序推进，rightCurrent->next 正好也挂回父节点；
-			// - object：右侧当前节点可能是按 key/序号匹配得到的任意兄弟，未必处在链表尾部，
+			// - Array：左右两边始终按相同 sibling 顺序推进，rightCurrent->next 正好也挂回父节点；
+			// - Object：右侧当前节点可能是按 key/序号匹配得到的任意兄弟，未必处在链表尾部，
 			//   这时不能假设 rightCurrent->next 是父节点，只能显式调用 RyanJsonInternalGetParent。
 			if (RyanJsonIsArray(leftCurrent)) { rightCurrent = rightCurrent->next; }
 			else

@@ -26,8 +26,8 @@
 // #define UNITY_OUTPUT_COMPLETE()                        // 测试结束后回调
 // #define UNITY_PRINT_TEST_CONTEXT()                     // 失败时输出上下文
 
-/* 整数/指针宽度与头文件 */
-#define UNITY_SUPPORT_64    // 开启 64 位整数支持
+/* Int/指针宽度与头文件 */
+#define UNITY_SUPPORT_64    // 开启 64 位 Int 支持
 #define UNITY_INT_WIDTH  32 // int 位宽（手动指定时使用）
 #define UNITY_UINT_WIDTH 32 // uint 位宽（Unity 默认未使用，可保留）
 // #define UNITY_LONG_WIDTH 32          // long 位宽
@@ -92,6 +92,6 @@
 // #define UNITY_INTERNAL_PTR           // 内部指针类型
 
 /* 特殊行为 */
-// #define UNITY_COMPARE_PTRS_ON_ZERO_ARRAY // 允许对长度为 0 的数组做指针比较
+// #define UNITY_COMPARE_PTRS_ON_ZERO_ARRAY // 允许对长度为 0 的 Array 做指针比较
 
 #endif /* UNITY_CONFIG_H */

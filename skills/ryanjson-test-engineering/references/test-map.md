@@ -1,4 +1,4 @@
-#RyanJson 单元测试地图
+# RyanJson 单元测试地图
 
 用于标注各测试目录/文件职责，避免重复覆盖，并为后续补测提供定位参考。
 
@@ -17,8 +17,9 @@
 ## test/unityTest/cases
 
 ### RFC8259
-- `testRfc8259.c`：RFC 8259 标准用例集（有效/无效 JSON）。
-- `testRfc8259Util.c` / `testRfc8259Util.h`：RFC8259 数据集加载与对比辅助。
+- `testRfc8259.c`：RFC 8259 标准用例集（有效/无效 JSON），统一走内嵌数据集。
+- `rfc8259Embedded.c` / `rfc8259Embedded.h`：RFC8259 内嵌数据集（由脚本生成）。
+- `testRfc8259Util.c` / `testRfc8259Util.h`：RFC8259 语义对比辅助。
 
 ### core
 - `testChange.c`：ChangeKey/Change*Value 的成功/失败分支与边界；包含 strict/non-strict 重复 key 策略、同文本 key no-op、数字字符串 ID 保真，以及失败链路不污染文档的收敛契约。

@@ -213,11 +213,17 @@ static int32_t runAllUnitTests(void)
 {
 	UnityBegin(__FILE__);
 
+#if defined(RyanJsonUnitOnlyMemory)
+	testMemoryRunner();
+#elif defined(RyanJsonUnitOnlyRfc8259)
+	testRfc8259Runner();
+#else
 	RUN_TEST(testRyanJsonExample);
 
 #define UNITY_TEST_LIST_ENTRY(name) name();
 #include "test_list.inc"
 #undef UNITY_TEST_LIST_ENTRY
+#endif
 
 	return UnityEnd();
 }

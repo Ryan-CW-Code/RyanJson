@@ -43,7 +43,7 @@ static void testDeleteMassiveItemsStress(void)
 	}
 	TEST_ASSERT_EQUAL_INT(0, RyanJsonGetSize(arr));
 
-	// 空数组删除
+	// 空 Array 删除
 	TEST_ASSERT_FALSE(RyanJsonDeleteByIndex(arr, 0));
 	RyanJsonDelete(arr);
 
@@ -64,7 +64,7 @@ static void testDeleteMassiveItemsStress(void)
 	}
 	TEST_ASSERT_EQUAL_INT(0, RyanJsonGetSize(obj));
 
-	// 对象按 key 全量删除
+	// Object 按 key 全量删除
 	for (int32_t i = 0; i < 100; i++)
 	{
 		snprintf(key, sizeof(key), "%d", i);
@@ -182,9 +182,9 @@ static void testDeleteStandardOperations(void)
 	TEST_ASSERT_NOT_NULL_MESSAGE(json, "解析 Json 失败");
 
 	/**
-	 * @brief 删除对象中的节点（头、中、尾）
+	 * @brief 删除 Object 中的节点（头、中、尾）
 	 */
-	// 删除中间节点（double）
+	// 删除中间节点（Double）
 	RyanJsonDeleteByKey(json, "double");
 	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectToKey(json, "double"), "删除中间节点 double 失败");
 
@@ -198,46 +198,46 @@ static void testDeleteStandardOperations(void)
 	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectToKey(json, "string2222"), "删除尾部节点 string2222 失败");
 
 	/**
-	 * @brief 删除数组中的元素（arrayInt）
+	 * @brief 删除 Array 中的元素（arrayInt）
 	 */
 	RyanJson_t array = RyanJsonGetObjectToKey(json, "arrayInt");
 	TEST_ASSERT_NOT_NULL_MESSAGE(array, "获取 arrayInt 失败");
 
-	// 删除数组首位
+	// 删除 Array 首位
 	RyanJsonDeleteByIndex(array, 0);
-	TEST_ASSERT_EQUAL_INT_MESSAGE(4, RyanJsonGetSize(array), "删除数组首位后长度错误");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(4, RyanJsonGetSize(array), "删除 Array 首位后长度错误");
 
-	// 删除数组中间元素
+	// 删除 Array 中间元素
 	RyanJsonDeleteByIndex(array, 1);
-	TEST_ASSERT_EQUAL_INT_MESSAGE(3, RyanJsonGetSize(array), "删除数组中间元素后长度错误");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(3, RyanJsonGetSize(array), "删除 Array 中间元素后长度错误");
 
-	// 删除数组尾部元素
+	// 删除 Array 尾部元素
 	lastIndex = RyanJsonGetSize(array) - 1;
 	RyanJsonDeleteByIndex(array, lastIndex);
-	TEST_ASSERT_EQUAL_INT_MESSAGE(2, RyanJsonGetSize(array), "删除数组尾部元素后长度错误");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(2, RyanJsonGetSize(array), "删除 Array 尾部元素后长度错误");
 
 	/**
 	 * @brief 深层嵌套删除（item）
 	 */
 	RyanJsonDeleteByKey(json, "item");
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectToKey(json, "item"), "删除嵌套对象 item 失败");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectToKey(json, "item"), "删除嵌套 Object item 失败");
 
 	/**
-	 * @brief 数组对象元素删除（arrayItem）
+	 * @brief Array 中 Object 元素删除（arrayItem）
 	 */
 	RyanJson_t arrObj = RyanJsonGetObjectToKey(json, "arrayItem");
 	TEST_ASSERT_NOT_NULL_MESSAGE(arrObj, "获取 arrayItem 失败");
 
-	// 删除第一个对象
+	// 删除第一个 Object
 	RyanJsonDeleteByIndex(arrObj, 0);
-	TEST_ASSERT_EQUAL_INT_MESSAGE(1, RyanJsonGetSize(arrObj), "删除数组首个对象后长度错误");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(1, RyanJsonGetSize(arrObj), "删除 Array 首个 Object 后长度错误");
 
-	// 删除最后一个对象
+	// 删除最后一个 Object
 	RyanJsonDeleteByIndex(arrObj, 0);
-	TEST_ASSERT_EQUAL_INT_MESSAGE(0, RyanJsonGetSize(arrObj), "删除数组最后一个对象后长度错误");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(0, RyanJsonGetSize(arrObj), "删除 Array 最后一个 Object 后长度错误");
 
 	/**
-	 * @brief 特殊类型删除（null / bool）
+	 * @brief 特殊类型删除（Null / Bool）
 	 */
 	RyanJsonDeleteByKey(json, "null");
 	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectToKey(json, "null"), "删除 null 节点失败");
@@ -263,9 +263,9 @@ static void testDeleteFailureAtomicityAndRebuildChain(void)
 	// Parse -> Delete(失败) -> Compare(snapshot) -> Delete(成功)
 	// -> Insert/Change 重建 -> Compare(期望文档) -> Roundtrip。
 	// 目标：
-	// 1) 验证删除失败路径不会污染文档；
-	// 2) 验证对象/数组删除后可通过插入与修改完成稳定重建；
-	// 3) 验证重建后的语义可与期望文档一致。
+	// - 验证删除失败路径不会污染文档；
+	// - 验证 Object/Array 删除后可通过插入与修改完成稳定重建；
+	// - 验证重建后的语义可与期望文档一致。
 	const char *source = "{\"obj\":{\"a\":1,\"b\":2},\"arr\":[1,2,3],\"meta\":{\"ok\":true}}";
 	const char *expectText = "{\"obj\":{\"a\":1,\"c\":5},\"arr\":[1,9,3],\"meta\":{\"status\":\"done\"}}";
 

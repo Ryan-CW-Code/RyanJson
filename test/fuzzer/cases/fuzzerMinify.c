@@ -29,11 +29,11 @@ void RyanJsonFuzzerSelfTestMinifyCases(void)
  *
  * 测试 RyanJson 的 Minify 功能（去除空白字符）。
  * 覆盖场景：
- * Minify 功能：将原始 Json 字符串压缩，验证是否能成功压缩。
- * 再次解析：解析压缩后的字符串，验证压缩未破坏 Json 结构。
+ * Minify 功能：将原始 Json 文本压缩，验证是否能成功压缩。
+ * 再次解析：解析压缩后的 Json 文本，验证压缩未破坏 Json 结构。
  *
  * @param state Fuzzer 状态上下文
- * @param data 原始输入数据字符串
+ * @param data 原始输入数据文本
  * @param size 输入数据长度
  */
 RyanJsonBool_e RyanJsonFuzzerTestMinify(const char *data, uint32_t size)
@@ -53,14 +53,14 @@ RyanJsonBool_e RyanJsonFuzzerTestMinify(const char *data, uint32_t size)
 	assert(len <= size);
 
 	// 验证 Minify 后数据有效性
-	// 尝试解析压缩后的字符串，确认结构未被破坏
+	// 尝试解析压缩后的 Json 文本，确认结构未被破坏
 	// 注意：Minify 只是去空格，如果原串合法，Minify 后也应合法。
 	// 这里使用可选尾部模式（不强制 Null Terminator，虽然已补终止符）
 	RyanJson_t pJson = RyanJsonParseOptions(buf, len, size % 2 ? RyanJsonTrue : RyanJsonFalse, NULL);
 	free(buf);
 	if (NULL != pJson)
 	{
-		// 如果解析成功，尝试打印回来，确保对象结构完整
+		// 如果解析成功，尝试打印回来，确保 Object 结构完整
 		uint32_t lenPrint = 0;
 		char *jsonStr = RyanJsonPrint(pJson, 100, RyanJsonFalse, &lenPrint);
 

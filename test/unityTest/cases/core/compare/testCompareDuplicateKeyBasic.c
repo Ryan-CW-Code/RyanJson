@@ -3,8 +3,8 @@
 static void testCompareDuplicateKeyPolicyBasic(void)
 {
 	// 该用例在 strict/non-strict 两种编译模式都执行：
-	// 1) strict 模式：重复 key 应在解析阶段被拒绝；
-	// 2) non-strict 模式：重复 key 允许存在，Compare/CompareOnlyKey 需按“同 key 出现序号”一一对齐。
+	// - strict 模式：重复 key 应在解析阶段被拒绝；
+	// - non-strict 模式：重复 key 允许存在，Compare/CompareOnlyKey 需按“同 key 出现序号”一一对齐。
 	RyanJson_t dupLeft = RyanJsonParse("{\"a\":1,\"a\":1}");
 	RyanJson_t diffKeyRight = RyanJsonParse("{\"a\":1,\"b\":1}");
 
@@ -13,15 +13,15 @@ static void testCompareDuplicateKeyPolicyBasic(void)
 #if true == RyanJsonStrictObjectKeyCheck
 	TEST_ASSERT_NULL_MESSAGE(dupLeft, "strict 模式下重复 key 应解析失败");
 
-	// 控制组：普通对象乱序比较在 strict 模式下仍应正常。
+	// 控制组：普通 Object 乱序比较在 strict 模式下仍应正常。
 	{
 		RyanJson_t ordered = RyanJsonParse("{\"a\":1,\"b\":1}");
 		RyanJson_t unordered = RyanJsonParse("{\"b\":1,\"a\":1}");
 		TEST_ASSERT_NOT_NULL(ordered);
 		TEST_ASSERT_NOT_NULL(unordered);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(ordered, unordered), "strict 模式下普通对象乱序 Compare 应返回 True");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(ordered, unordered), "strict 模式下普通 Object 乱序 Compare 应返回 True");
 		TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(ordered, unordered),
-					 "strict 模式下普通对象乱序 CompareOnlyKey 应返回 True");
+					 "strict 模式下普通 Object 乱序 CompareOnlyKey 应返回 True");
 		RyanJsonDelete(ordered);
 		RyanJsonDelete(unordered);
 	}
@@ -30,7 +30,7 @@ static void testCompareDuplicateKeyPolicyBasic(void)
 	RyanJson_t sameLeft = RyanJsonParse("{\"a\":1,\"a\":2}");
 	RyanJson_t sameRight = RyanJsonParse("{\"a\":1,\"a\":2}");
 
-	// 第二次出现位置的类型不一致（string vs number）时，CompareOnlyKey 也必须失败。
+	// 第二次出现位置的类型不一致（String vs Number）时，CompareOnlyKey 也必须失败。
 	RyanJson_t typeLeft = RyanJsonParse("{\"a\":1,\"a\":\"2\"}");
 	RyanJson_t typeRight = RyanJsonParse("{\"a\":1,\"a\":2}");
 
@@ -128,7 +128,7 @@ static void testCompareDuplicateKeyNestedObject(void)
 	TEST_ASSERT_NULL_MESSAGE(rightValueMismatch, "strict 模式下嵌套重复 key 应解析失败");
 
 	TEST_ASSERT_NOT_NULL(rightKeyMismatch);
-	// 控制组：无重复 key 的嵌套对象可以正常比较。
+	// 控制组：无重复 key 的嵌套 Object 可以正常比较。
 	{
 		RyanJson_t normalLeft = RyanJsonParse("{\"outer\":{\"k\":1,\"m\":2},\"stable\":1}");
 		TEST_ASSERT_NOT_NULL(normalLeft);
@@ -175,13 +175,13 @@ static void testCompareDuplicateKeyArrayObject(void)
 	RyanJson_t rightInnerValueDiff = RyanJsonParse("[{\"a\":9,\"a\":8},{\"b\":1}]");
 
 #if true == RyanJsonStrictObjectKeyCheck
-	TEST_ASSERT_NULL_MESSAGE(left, "strict 模式下数组元素中的重复 key 应解析失败");
-	TEST_ASSERT_NULL_MESSAGE(rightSame, "strict 模式下数组元素中的重复 key 应解析失败");
-	TEST_ASSERT_NULL_MESSAGE(rightArraySwap, "strict 模式下数组元素中的重复 key 应解析失败");
-	TEST_ASSERT_NULL_MESSAGE(rightInnerValueDiff, "strict 模式下数组元素中的重复 key 应解析失败");
+	TEST_ASSERT_NULL_MESSAGE(left, "strict 模式下 Array 元素中的重复 key 应解析失败");
+	TEST_ASSERT_NULL_MESSAGE(rightSame, "strict 模式下 Array 元素中的重复 key 应解析失败");
+	TEST_ASSERT_NULL_MESSAGE(rightArraySwap, "strict 模式下 Array 元素中的重复 key 应解析失败");
+	TEST_ASSERT_NULL_MESSAGE(rightInnerValueDiff, "strict 模式下 Array 元素中的重复 key 应解析失败");
 
 	TEST_ASSERT_NOT_NULL(rightInnerMismatch);
-	// 控制组：无重复 key 的数组对象语义正常。
+	// 控制组：无重复 key 的 Array 中 Object 语义正常。
 	{
 		RyanJson_t normalLeft = RyanJsonParse("[{\"a\":1,\"b\":2},{\"b\":1}]");
 		TEST_ASSERT_NOT_NULL(normalLeft);
@@ -196,19 +196,19 @@ static void testCompareDuplicateKeyArrayObject(void)
 	TEST_ASSERT_NOT_NULL(rightInnerMismatch);
 	TEST_ASSERT_NOT_NULL(rightInnerValueDiff);
 
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(left, rightSame), "数组内重复 key 对象完全一致时 Compare 应返回 True");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(left, rightSame), "数组内重复 key 对象完全一致时 CompareOnlyKey 应返回 True");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(left, rightSame), "Array 内重复 key Object 完全一致时 Compare 应返回 True");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(left, rightSame), "Array 内重复 key Object 完全一致时 CompareOnlyKey 应返回 True");
 
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, rightArraySwap), "数组顺序改变后 Compare 应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(left, rightArraySwap), "数组顺序改变后 CompareOnlyKey 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, rightArraySwap), "Array 顺序改变后 Compare 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(left, rightArraySwap), "Array 顺序改变后 CompareOnlyKey 应返回 False");
 
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, rightInnerMismatch), "数组内重复 key 与普通 key 混合时 Compare 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, rightInnerMismatch), "Array 内重复 key 与普通 key 混合时 Compare 应返回 False");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(left, rightInnerMismatch),
-				  "数组内重复 key 与普通 key 混合时 CompareOnlyKey 应返回 False");
+				  "Array 内重复 key 与普通 key 混合时 CompareOnlyKey 应返回 False");
 
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, rightInnerValueDiff), "数组内重复 key 同序号值变化，Compare 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, rightInnerValueDiff), "Array 内重复 key 同序号值变化，Compare 应返回 False");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(left, rightInnerValueDiff),
-				 "数组内重复 key 同序号类型一致时 CompareOnlyKey 应返回 True");
+				 "Array 内重复 key 同序号类型一致时 CompareOnlyKey 应返回 True");
 #endif
 
 	RyanJsonDelete(left);
@@ -231,7 +231,7 @@ static void testCompareDuplicateKeyDeepOccurrenceAlign(void)
 	TEST_ASSERT_NULL_MESSAGE(rightSwap, "strict 模式下深层重复 key 应解析失败");
 	TEST_ASSERT_NULL_MESSAGE(rightTypeChanged, "strict 模式下深层重复 key 应解析失败");
 
-	// 控制组：无重复 key 的深层对象比较应正常。
+	// 控制组：无重复 key 的深层 Object 比较应正常。
 	{
 		RyanJson_t normalLeft = RyanJsonParse("{\"a1\":{\"v\":1},\"a2\":{\"v\":2}}");
 		RyanJson_t normalRight = RyanJsonParse("{\"a2\":{\"v\":2},\"a1\":{\"v\":1}}");

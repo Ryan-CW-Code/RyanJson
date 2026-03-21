@@ -172,7 +172,7 @@ static void testKeyEscapePrintRoundtripUnicodeControl(void)
 static void testStringValueEscapePrintRoundtrip(void)
 {
 	// 复杂链路：
-	// Parse(含 \\u0001 的字符串值) -> Print -> Parse -> Compare。
+	// Parse(含 \\u0001 的 String 值) -> Print -> Parse -> Compare。
 	// 目标：验证低位控制字符在 value 中的转义与往返一致性（避免与基础转义矩阵重复）。
 	RyanJson_t root = RyanJsonParse("{\"v\":\"\\u0001\"}");
 	TEST_ASSERT_NOT_NULL(root);
@@ -201,7 +201,7 @@ static void testKeyEscapePrintRoundtripUtf8(void)
 	char *out = RyanJsonPrint(root, 64, RyanJsonFalse, NULL);
 	TEST_ASSERT_NOT_NULL(out);
 
-	// 注意：C 字符串中 \\x 会吞掉后续十六进制字符，需拆分字面量。
+	// 注意：C String 中 \\x 会吞掉后续十六进制字符，需拆分字面量。
 	char expect[] = "{\"\xE4"
 			"\xB8"
 			"\xAD\":1}";

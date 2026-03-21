@@ -32,7 +32,7 @@ static void testReplaceEdgeCases(void)
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonReplaceByIndex(obj, 99, newItem), "ReplaceByIndex(越界) 应返回 False");
 	RyanJsonDelete(newItem);
 
-	// ReplaceByIndex 在对象上的重复 key 行为由严格模式控制
+	// ReplaceByIndex 在 Object 上的重复 key 行为由严格模式控制
 	RyanJsonAddIntToObject(obj, "b", 2);
 	newItem = RyanJsonCreateInt("a", 9);
 #if true == RyanJsonDefaultAddAtHead
@@ -58,7 +58,7 @@ static void testReplaceEdgeCases(void)
 	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByKey(obj, "b"), "非严格模式替换后 b 应被替换掉");
 #endif
 
-	// ReplaceByIndex 在对象上使用相同 key 替换应成功
+	// ReplaceByIndex 在 Object 上使用相同 key 替换应成功
 	// 该用例覆盖冲突检查中的 item == skipItem 分支（应跳过被替换节点本身）
 	newItem = RyanJsonCreateInt("b", 99);
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByIndex(obj, replaceIndex, newItem), "ReplaceByIndex(Object) 同 key 替换应成功");
@@ -81,7 +81,7 @@ static void testReplaceSelfCheck(void)
 	// 但 API 语义通常要求 newItem 是新建节点，且不属于任何树（或来自其他位置的 Detach）。
 	// 因此这里不直接传入“树内同一节点”，而是使用语义等价的替换场景做覆盖。
 
-	// 测试：替换为“较重”的新节点（大数组）
+	// 测试：替换为“较重”的新节点（大 Array）
 	RyanJson_t obj = RyanJsonCreateObject();
 	RyanJsonAddIntToObject(obj, "k", 1);
 
@@ -203,7 +203,7 @@ static void testReplaceKeyRewriteAndWrapPaths(void)
 	TEST_ASSERT_TRUE(RyanJsonAddIntToObject(obj, "a", 1));
 	TEST_ASSERT_TRUE(RyanJsonAddIntToObject(obj, "b", 2));
 
-	// 无 key 的容器替换对象字段：应自动包装成 key="a"
+	// 无 key 的容器替换 Object 字段：应自动包装成 key="a"
 	RyanJson_t noKeyContainer = RyanJsonCreateObject();
 	TEST_ASSERT_NOT_NULL(noKeyContainer);
 	TEST_ASSERT_TRUE(RyanJsonAddIntToObject(noKeyContainer, "x", 7));
@@ -214,13 +214,13 @@ static void testReplaceKeyRewriteAndWrapPaths(void)
 	TEST_ASSERT_TRUE(RyanJsonIsObject(aNode));
 	TEST_ASSERT_EQUAL_INT(7, RyanJsonGetIntValue(RyanJsonGetObjectByKey(aNode, "x")));
 
-	// 无 key 的标量替换对象字段：当前实现会包装为 key="a" 的 object，并把标量作为唯一子节点
+	// 无 key 的标量替换 Object 字段：当前实现会包装为 key="a" 的 Object，并把标量作为唯一子节点
 	RyanJson_t noKeyScalar = RyanJsonCreateInt(NULL, 123);
 	TEST_ASSERT_NOT_NULL(noKeyScalar);
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(obj, "a", noKeyScalar), "ReplaceByKey(无 key 标量) 应成功");
 	aNode = RyanJsonGetObjectByKey(obj, "a");
 	TEST_ASSERT_NOT_NULL(aNode);
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsObject(aNode), "无 key 标量替换后应包装为对象节点");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsObject(aNode), "无 key 标量替换后应包装为 Object 节点");
 	TEST_ASSERT_EQUAL_UINT32(1, RyanJsonGetSize(aNode));
 	TEST_ASSERT_EQUAL_INT(123, RyanJsonGetIntValue(RyanJsonGetObjectByIndex(aNode, 0)));
 
@@ -250,169 +250,169 @@ static void testReplaceStandardOperations(void)
 	RyanJson_t json = RyanJsonParse(jsonstr);
 	TEST_ASSERT_NOT_NULL_MESSAGE(json, "解析基础 Json 失败");
 
-	// 数组替换测试：arrayInt 头部
+	// Array 替换测试：arrayInt 头部
 	RyanJsonReplaceByIndex(RyanJsonGetObjectToKey(json, "arrayInt"), 0, RyanJsonCreateString(NULL, "arrayIntHead"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json, "arrayInt"), 0);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayInt[0] 不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayInt[0] 不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("arrayIntHead", RyanJsonGetStringValue(v), "替换后的 arrayInt[0] 值错误");
 	}
 
-	// 数组替换测试：arrayInt 尾部
+	// Array 替换测试：arrayInt 尾部
 	{
 		RyanJson_t arr = RyanJsonGetObjectToKey(json, "arrayInt");
 		uint32_t last = RyanJsonGetSize(arr) - 1;
 		RyanJsonReplaceByIndex(arr, last, RyanJsonCreateString(NULL, "arrayIntTail"));
 		RyanJson_t v = RyanJsonGetObjectToIndex(arr, last);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayInt 尾部不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayInt 尾部不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("arrayIntTail", RyanJsonGetStringValue(v), "替换后的 arrayInt 尾部值错误");
 	}
 
-	// 数组对象替换测试：arrayItem[0]
+	// Array 中 Object 替换测试：arrayItem[0]
 	RyanJsonReplaceByIndex(RyanJsonGetObjectToKey(json, "arrayItem"), 0, RyanJsonCreateString(NULL, "arrayItem0"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json, "arrayItem"), 0);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayItem[0] 不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayItem[0] 不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("arrayItem0", RyanJsonGetStringValue(v), "替换后的 arrayItem[0] 值错误");
 	}
 
-	// 对象字段替换：inter -> 999
+	// Object 字段替换：inter -> 999
 	RyanJsonReplaceByKey(json, "inter", RyanJsonCreateInt("inter", 999));
 	{
 		RyanJson_t v = RyanJsonGetObjectToKey(json, "inter");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsInt(v), "替换后的 inter 不是整数");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsInt(v), "替换后的 inter 不是 Int");
 		TEST_ASSERT_EQUAL_INT_MESSAGE(999, RyanJsonGetIntValue(v), "替换后的 inter 值错误");
 	}
 
-	// 对象字段替换：double -> 123.45
+	// Object 字段替换：Double -> 123.45
 	RyanJsonReplaceByKey(json, "double", RyanJsonCreateDouble("double", 123.45));
 	{
 		RyanJson_t v = RyanJsonGetObjectToKey(json, "double");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDouble(v), "替换后的 double 不是浮点数");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDouble(v), "替换后的 double 不是 Double");
 		TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareDouble(123.45, RyanJsonGetDoubleValue(v)), "替换后的 double 值错误");
 	}
 
-	// 对象字段替换：string -> "newString"
+	// Object 字段替换：String -> "newString"
 	RyanJsonReplaceByKey(json, "string", RyanJsonCreateString("string", "newString"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToKey(json, "string");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 string 不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 string 不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("newString", RyanJsonGetStringValue(v), "替换后的 string 值错误");
 	}
 
-	// 对象字段替换：boolFalse -> true
+	// Object 字段替换：boolFalse -> true
 	RyanJsonReplaceByKey(json, "boolFalse", RyanJsonCreateBool("boolFalse", RyanJsonTrue));
 	{
 		RyanJson_t v = RyanJsonGetObjectToKey(json, "boolFalse");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(v), "替换后的 boolFalse 不是布尔值");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(v), "替换后的 boolFalse 不是 Bool 值");
 		TEST_ASSERT_EQUAL_INT_MESSAGE(RyanJsonTrue, RyanJsonGetBoolValue(v), "替换后的 boolFalse 值错误");
 	}
 
-	// 数组替换：arrayString 中间元素 -> "headString"
+	// Array 替换：arrayString 中间元素 -> "headString"
 	RyanJsonReplaceByIndex(RyanJsonGetObjectToKey(json, "arrayString"), 1, RyanJsonCreateString(NULL, "headString"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json, "arrayString"), 1);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayString[1] 不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayString[1] 不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("headString", RyanJsonGetStringValue(v), "替换后的 arrayString[1] 值错误");
 	}
-	// 数组项替换测试：arrayString 尾部
+	// Array 项替换测试：arrayString 尾部
 	{
 		RyanJson_t arr = RyanJsonGetObjectToKey(json, "arrayString");
 		uint32_t last = RyanJsonGetSize(arr) - 1;
 		RyanJsonReplaceByIndex(arr, last, RyanJsonCreateString(NULL, "tailString"));
 		RyanJson_t v = RyanJsonGetObjectToIndex(arr, last);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayString 尾部不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayString 尾部不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("tailString", RyanJsonGetStringValue(v), "替换后的 arrayString 尾部值错误");
 	}
 
-	// 数组对象替换：arrayItem 尾部 -> "arrayItemTail"
+	// Array 中 Object 替换：arrayItem 尾部 -> "arrayItemTail"
 	{
 		RyanJson_t arr = RyanJsonGetObjectToKey(json, "arrayItem");
 		uint32_t last = RyanJsonGetSize(arr) - 1;
 		RyanJsonReplaceByIndex(arr, last, RyanJsonCreateString(NULL, "arrayItemTail"));
 		RyanJson_t v = RyanJsonGetObjectToIndex(arr, last);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayItem 尾部不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayItem 尾部不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("arrayItemTail", RyanJsonGetStringValue(v), "替换后的 arrayItem 尾部值错误");
 	}
 
-	// 嵌套对象替换：item.inter -> 111
+	// 嵌套 Object 替换：item.inter -> 111
 	RyanJsonReplaceByKey(RyanJsonGetObjectToKey(json, "item"), "inter", RyanJsonCreateInt("inter", 111));
 	{
 		RyanJson_t v = RyanJsonGetObjectToKey(RyanJsonGetObjectToKey(json, "item"), "inter");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsInt(v), "替换后的 item.inter 不是整数");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsInt(v), "替换后的 item.inter 不是 Int");
 		TEST_ASSERT_EQUAL_INT_MESSAGE(111, RyanJsonGetIntValue(v), "替换后的 item.inter 值错误");
 	}
 
-	// 嵌套对象替换：item.string -> "nestedReplace"
+	// 嵌套 Object 替换：item.string -> "nestedReplace"
 	RyanJsonReplaceByKey(RyanJsonGetObjectToKey(json, "item"), "string", RyanJsonCreateString("string", "nestedReplace"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToKey(RyanJsonGetObjectToKey(json, "item"), "string");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 item.string 不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 item.string 不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("nestedReplace", RyanJsonGetStringValue(v), "替换后的 item.string 值错误");
 	}
 
-	// 混合数组替换测试
+	// 混合 Array 替换测试
 	RyanJson_t mixArr = RyanJsonGetObjectToKey(json, "array");
 
-	// int32_t -> "intReplaced"
+	// Int -> "intReplaced"
 	RyanJsonReplaceByIndex(mixArr, 0, RyanJsonCreateString(NULL, "intReplaced"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToIndex(mixArr, 0);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 array[0] 不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 array[0] 不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("intReplaced", RyanJsonGetStringValue(v), "替换后的 array[0] 值错误");
 	}
 
-	// double -> "doubleReplaced"
+	// Double -> "doubleReplaced"
 	RyanJsonReplaceByIndex(mixArr, 1, RyanJsonCreateString(NULL, "doubleReplaced"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToIndex(mixArr, 1);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 array[1] 不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 array[1] 不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("doubleReplaced", RyanJsonGetStringValue(v), "替换后的 array[1] 值错误");
 	}
-	// string -> "stringReplaced"
+	// String -> "stringReplaced"
 	RyanJsonReplaceByIndex(mixArr, 2, RyanJsonCreateString(NULL, "stringReplaced"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToIndex(mixArr, 2);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 array[2] 不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 array[2] 不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("stringReplaced", RyanJsonGetStringValue(v), "替换后的 array[2] 值错误");
 	}
-	// bool -> "boolReplaced"
+	// Bool -> "boolReplaced"
 	RyanJsonReplaceByIndex(mixArr, 3, RyanJsonCreateString(NULL, "boolReplaced"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToIndex(mixArr, 3);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 array[3] 不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 array[3] 不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("boolReplaced", RyanJsonGetStringValue(v), "替换后的 array[3] 值错误");
 	}
 
-	// null -> "nullReplaced"
+	// Null -> "nullReplaced"
 	RyanJsonReplaceByIndex(mixArr, 5, RyanJsonCreateString(NULL, "nullReplaced"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToIndex(mixArr, 5);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 array[5] 不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 array[5] 不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("nullReplaced", RyanJsonGetStringValue(v), "替换后的 array[5] 值错误");
 	}
 
-	// 替换整个数组项：arrayString -> "arrayStringRenamed"
+	// 替换整个 Array 项：arrayString -> "arrayStringRenamed"
 	RyanJsonReplaceByKey(json, "arrayString", RyanJsonCreateString("arrayString", "arrayStringRenamed"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToKey(json, "arrayString");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayString 不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 arrayString 不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("arrayStringRenamed", RyanJsonGetStringValue(v), "替换后的 arrayString 值错误");
 	}
 
-	// 修改数组节点为对象节点：arrayDouble -> duplicate(item)
+	// 修改 Array 节点为 Object 节点：arrayDouble -> duplicate(item)
 	RyanJson_t duplicateJson = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "item"));
 	RyanJsonReplaceByKey(json, "arrayDouble", duplicateJson);
 	{
 		RyanJson_t v = RyanJsonGetObjectToKey(json, "arrayDouble");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsObject(v), "替换后的 arrayDouble 不是对象类型");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsObject(v), "替换后的 arrayDouble 不是 Object 类型");
 	}
 
-	// 替换字符串字段：string2222 -> "world"
+	// 替换 String 字段：string2222 -> "world"
 	RyanJsonReplaceByKey(json, "string2222", RyanJsonCreateString("string2222", "world"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToKey(json, "string2222");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 string2222 不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 string2222 不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("world", RyanJsonGetStringValue(v), "替换后的 string2222 值错误");
 	}
 
@@ -420,15 +420,15 @@ static void testReplaceStandardOperations(void)
 	RyanJsonReplaceByKey(json, "boolTrue", RyanJsonCreateBool("boolTrue", RyanJsonFalse));
 	{
 		RyanJson_t v = RyanJsonGetObjectToKey(json, "boolTrue");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(v), "替换后的 boolTrue 不是布尔值");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(v), "替换后的 boolTrue 不是 Bool 值");
 		TEST_ASSERT_EQUAL_INT_MESSAGE(RyanJsonFalse, RyanJsonGetBoolValue(v), "替换后的 boolTrue 值错误");
 	}
 
-	// 替换 null 为字符串
+	// 替换 Null 为 String
 	RyanJsonReplaceByKey(json, "null", RyanJsonCreateString("null", "notNull"));
 	{
 		RyanJson_t v = RyanJsonGetObjectToKey(json, "null");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 null 不是字符串");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(v), "替换后的 null 不是 String");
 		TEST_ASSERT_EQUAL_STRING_MESSAGE("notNull", RyanJsonGetStringValue(v), "替换后的 null 值错误");
 	}
 
@@ -452,11 +452,11 @@ static void testReplaceTypeSwitchingStress(void)
 	TEST_ASSERT_TRUE(RyanJsonReplaceByKey(root, "k", RyanJsonCreateArray()));
 	TEST_ASSERT_TRUE(RyanJsonIsArray(RyanJsonGetObjectByKey(root, "k")));
 
-	// 数组节点替换为对象节点
+	// Array 节点替换为 Object 节点
 	TEST_ASSERT_TRUE(RyanJsonReplaceByKey(root, "k", RyanJsonCreateObject()));
 	TEST_ASSERT_TRUE(RyanJsonIsObject(RyanJsonGetObjectByKey(root, "k")));
 
-	// 对象节点替换为布尔节点
+	// Object 节点替换为 Bool 节点
 	TEST_ASSERT_TRUE(RyanJsonReplaceByKey(root, "k", RyanJsonCreateBool("k", RyanJsonTrue)));
 	TEST_ASSERT_TRUE(RyanJsonIsBool(RyanJsonGetObjectByKey(root, "k")));
 
@@ -477,11 +477,11 @@ static void testReplaceFailureRecoveryChainWithExpectedDocument(void)
 {
 	// 复杂链路：
 	// Parse -> ReplaceByKey(失败) -> 复用失败 item 成功 ReplaceByKey
-	// -> ReplaceByIndex(成功/失败交错) -> ReplaceByKey(嵌套对象) -> Compare(期望文档)。
+	// -> ReplaceByIndex(成功/失败交错) -> ReplaceByKey(嵌套 Object) -> Compare(期望文档)。
 	// 目标：
-	// 1) 验证 Replace 失败不会错误消费 item；
-	// 2) 验证失败后复用同一 item 进行后续替换可稳定成功；
-	// 3) 验证对象替换与数组替换交错后语义仍可收敛到期望结果。
+	// - 验证 Replace 失败不会错误消费 item；
+	// - 验证失败后复用同一 item 进行后续替换可稳定成功；
+	// - 验证 Object 替换与 Array 替换交错后语义仍可收敛到期望结果。
 	const char *source = "{\"meta\":{\"v\":1},\"arr\":[{\"id\":\"a\"},{\"id\":\"b\"}],\"flag\":true}";
 	const char *expectText = "{\"meta\":{\"v\":2},\"arr\":[{\"id\":\"a\"},{\"id\":\"bb\",\"done\":true}],\"flag\":\"x\"}";
 
@@ -502,14 +502,14 @@ static void testReplaceFailureRecoveryChainWithExpectedDocument(void)
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(root, "flag", failThenReuse), "复用失败 item 替换 flag 应成功");
 	TEST_ASSERT_EQUAL_STRING("x", RyanJsonGetStringValue(RyanJsonGetObjectToKey(root, "flag")));
 
-	// 数组替换成功路径。
+	// Array 替换成功路径。
 	RyanJson_t arrReplace = RyanJsonCreateObject();
 	TEST_ASSERT_NOT_NULL(arrReplace);
 	TEST_ASSERT_TRUE(RyanJsonAddStringToObject(arrReplace, "id", "bb"));
 	TEST_ASSERT_TRUE(RyanJsonAddBoolToObject(arrReplace, "done", RyanJsonTrue));
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByIndex(arr, 1, arrReplace), "ReplaceByIndex(arr,1) 应成功");
 
-	// 数组越界失败路径：失败后 item 仍应由调用方释放。
+	// Array 越界失败路径：失败后 item 仍应由调用方释放。
 	RyanJson_t outRange = RyanJsonCreateInt(NULL, 7);
 	TEST_ASSERT_NOT_NULL(outRange);
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonReplaceByIndex(arr, 99, outRange), "ReplaceByIndex(arr,99) 应失败");
@@ -537,7 +537,7 @@ static void testReplaceFailureRecoveryChainWithExpectedDocument(void)
 static void testReplaceByIndexArrayWithDetachedItemFromOtherArray(void)
 {
 	// Parse(arr1/arr2) -> DetachByIndex(arr2) -> ReplaceByIndex(arr1) -> Compare。
-	// 目标：验证 ReplaceByIndex(Array) 可接收来自另一数组的游离节点。
+	// 目标：验证 ReplaceByIndex(Array) 可接收来自另一 Array 的游离节点。
 	RyanJson_t arr1 = RyanJsonParse("[1,2,3]");
 	RyanJson_t arr2 = RyanJsonParse("[4,5,6]");
 	TEST_ASSERT_NOT_NULL(arr1);
@@ -545,7 +545,7 @@ static void testReplaceByIndexArrayWithDetachedItemFromOtherArray(void)
 
 	RyanJson_t moved = RyanJsonDetachByIndex(arr2, 1);
 	TEST_ASSERT_NOT_NULL(moved);
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByIndex(arr1, 0, moved), "跨数组 ReplaceByIndex 应成功");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByIndex(arr1, 0, moved), "跨 Array ReplaceByIndex 应成功");
 
 	RyanJson_t expect1 = RyanJsonParse("[5,2,3]");
 	RyanJson_t expect2 = RyanJsonParse("[4,6]");
@@ -563,7 +563,7 @@ static void testReplaceByIndexArrayWithDetachedItemFromOtherArray(void)
 static void testReplaceByIndexObjectWithDetachedRenamedItem(void)
 {
 	// Parse(Object) -> DetachByKey -> ChangeKey -> ReplaceByIndex(Object)。
-	// 目标：验证按索引替换对象字段时会保留游离节点的新 key 与索引位置。
+	// 目标：验证按索引替换 Object 字段时会保留游离节点的新 key 与索引位置。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"b\":2,\"c\":3}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -587,7 +587,7 @@ static void testReplaceByIndexObjectWithDetachedRenamedItem(void)
 static void testReplaceByKeyReuseDetachedSiblingAfterRename(void)
 {
 	// Parse(Object) -> DetachByKey -> ChangeKey -> ReplaceByKey(同名目标)。
-	// 目标：验证来自同一对象的游离兄弟节点可直接复用为 ReplaceByKey 参数。
+	// 目标：验证来自同一 Object 的游离兄弟节点可直接复用为 ReplaceByKey 参数。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"b\":2}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -606,8 +606,8 @@ static void testReplaceByKeyReuseDetachedSiblingAfterRename(void)
 
 static void testReplaceNestedObjectThenDetachChildToParent(void)
 {
-	// Parse -> ReplaceByKey(新对象) -> DetachByKey(子节点) -> ChangeKey -> Insert(父对象)。
-	// 目标：验证 ReplaceByKey 引入的新对象仍可继续分离子节点并回插到父对象。
+	// Parse -> ReplaceByKey(新 Object) -> DetachByKey(子节点) -> ChangeKey -> Insert(父 Object)。
+	// 目标：验证 ReplaceByKey 引入的新 Object 仍可继续分离子节点并回插到父 Object。
 	RyanJson_t root = RyanJsonParse("{\"a\":{\"x\":1},\"b\":2}");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -622,7 +622,7 @@ static void testReplaceNestedObjectThenDetachChildToParent(void)
 	RyanJson_t detached = RyanJsonDetachByKey(aNode, "x");
 	TEST_ASSERT_NOT_NULL(detached);
 	TEST_ASSERT_TRUE(RyanJsonChangeKey(detached, "x2"));
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(root, UINT32_MAX, detached), "将分离子节点插回父对象应成功");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(root, UINT32_MAX, detached), "将分离子节点插回父 Object 应成功");
 
 	RyanJson_t expect = RyanJsonParse("{\"a\":{\"y\":2},\"b\":2,\"x2\":1}");
 	TEST_ASSERT_NOT_NULL(expect);

@@ -6,7 +6,7 @@ static void testDuplicateEdgeCases(void)
 	TEST_ASSERT_NULL_MESSAGE(RyanJsonDuplicate(NULL), "Duplicate(NULL) 应返回 NULL");
 
 	// 深拷贝验证
-	// 创建一个嵌套对象: root -> child -> val
+	// 创建一个嵌套 Object: root -> child -> val
 	RyanJson_t root = RyanJsonCreateObject();
 	RyanJson_t child = RyanJsonCreateObject();
 	RyanJsonAddIntToObject(child, "val", 100);
@@ -31,7 +31,7 @@ static void testDuplicateEdgeCases(void)
 
 static void testDuplicateEmptyAndSpecial(void)
 {
-	// 复制空对象和空数组
+	// 复制空 Object 和空 Array
 	RyanJson_t emptyObj = RyanJsonCreateObject();
 	RyanJson_t dupEmptyObj = RyanJsonDuplicate(emptyObj);
 	TEST_ASSERT_NOT_NULL(dupEmptyObj);
@@ -48,7 +48,7 @@ static void testDuplicateEmptyAndSpecial(void)
 	RyanJsonDelete(emptyArr);
 	RyanJsonDelete(dupEmptyArr);
 
-	// 复制包含特殊值的对象
+	// 复制包含特殊值的 Object
 	RyanJson_t specialObj = RyanJsonCreateObject();
 	RyanJsonAddNullToObject(specialObj, "null");
 	RyanJsonAddBoolToObject(specialObj, "true", RyanJsonTrue);
@@ -94,47 +94,47 @@ static void testDuplicateFullScenarios(void)
 	RyanJsonDelete(json);
 
 	/**
-	 * @brief 对象类型复制测试
+	 * @brief Object 类型复制测试
 	 */
 	json = RyanJsonParse(jsonstr);
 	TEST_ASSERT_NOT_NULL_MESSAGE(json, "重新解析 Json 失败");
 
 	dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "item"));
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(dupItem, RyanJsonGetObjectToKey(json, "item")), "对象类型复制后比较失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(dupItem, RyanJsonGetObjectToKey(json, "item")), "Object 类型复制后比较失败");
 	RyanJsonDelete(dupItem);
 
 	dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "item"));
 	RyanJsonAddItemToObject(json, "test", dupItem);
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(RyanJsonGetObjectToKey(json, "test"), RyanJsonGetObjectToKey(json, "item")),
-				 "对象类型复制并添加后比较失败");
+				 "Object 类型复制并添加后比较失败");
 	RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
 
 	dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "item"));
 	RyanJsonAddItemToObject(json, "test", dupItem);
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(RyanJsonGetObjectToKey(json, "test"), RyanJsonGetObjectToKey(json, "item")),
-				 "对象类型复制并添加后删除再添加比较失败");
+				 "Object 类型复制并添加后删除再添加比较失败");
 	RyanJsonDelete(json);
 
 	/**
-	 * @brief 数组类型复制测试
+	 * @brief Array 类型复制测试
 	 */
 	json = RyanJsonParse(jsonstr);
-	TEST_ASSERT_NOT_NULL_MESSAGE(json, "重新解析 Json 失败 (数组测试)");
+	TEST_ASSERT_NOT_NULL_MESSAGE(json, "重新解析 Json 失败 (Array 测试)");
 
 	dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "arrayItem"));
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(dupItem, RyanJsonGetObjectToKey(json, "arrayItem")), "数组类型复制后比较失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(dupItem, RyanJsonGetObjectToKey(json, "arrayItem")), "Array 类型复制后比较失败");
 	RyanJsonDelete(dupItem);
 
 	dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "arrayItem"));
 	RyanJsonAddItemToObject(json, "test", dupItem);
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(RyanJsonGetObjectToKey(json, "test"), RyanJsonGetObjectToKey(json, "arrayItem")),
-				 "数组类型复制并添加后比较失败");
+				 "Array 类型复制并添加后比较失败");
 	RyanJsonDelete(RyanJsonDetachByKey(json, "test"));
 
 	dupItem = RyanJsonDuplicate(RyanJsonGetObjectToKey(json, "arrayItem"));
 	RyanJsonAddItemToObject(json, "test", dupItem);
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(RyanJsonGetObjectToKey(json, "test"), RyanJsonGetObjectToKey(json, "arrayItem")),
-				 "数组类型复制并添加后删除再添加比较失败");
+				 "Array 类型复制并添加后删除再添加比较失败");
 	RyanJsonDelete(json);
 
 	/**
@@ -170,7 +170,7 @@ static void testDuplicateFullScenarios(void)
 
 static void testDuplicateMassiveStress(void)
 {
-	// 压力测试：大数组复制
+	// 压力测试：大 Array 复制
 	int32_t bigSize = 2000;
 	RyanJson_t bigArr = RyanJsonCreateArray();
 	for (int32_t i = 0; i < bigSize; i++)
@@ -194,9 +194,9 @@ static void testDuplicateCrossContainerMoveIsolationChain(void)
 	// Parse -> Duplicate(work) -> DetachByKey/DetachByIndex -> Change -> Insert/AddItemToObject
 	// -> ReplaceByKey -> Compare(期望文档) -> 校验 original 隔离性。
 	// 目标：
-	// 1) 验证副本上的跨容器迁移不会污染原树；
-	// 2) 验证“分离+改写+重挂载”后结构可稳定收敛到期望文档；
-	// 3) 验证复杂链路后依旧可 Print/Parse 往返。
+	// - 验证副本上的跨容器迁移不会污染原树；
+	// - 验证“分离+改写+重挂载”后结构可稳定收敛到期望文档；
+	// - 验证复杂链路后依旧可 Print/Parse 往返。
 	const char *source =
 		"{\"left\":{\"node\":{\"v\":1},\"keep\":2},\"right\":[{\"id\":\"a\"},{\"id\":\"b\"}],\"map\":{},\"meta\":{\"ver\":1}}";
 	const char *expectText = "{\"left\":{\"keep\":\"k\",\"fromRight\":{\"id\":\"b\"}},\"right\":[{\"id\":\"a\"}],\"map\":{\"node2\":{"
@@ -225,7 +225,7 @@ static void testDuplicateCrossContainerMoveIsolationChain(void)
 
 	RyanJson_t movedRight = RyanJsonDetachByIndex(right, 1);
 	TEST_ASSERT_NOT_NULL_MESSAGE(movedRight, "分离 right[1] 失败");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddItemToObject(left, "fromRight", movedRight), "将分离数组对象挂载到 left.fromRight 失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddItemToObject(left, "fromRight", movedRight), "将分离 ArrayObject 挂载到 left.fromRight 失败");
 
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(left, "keep", RyanJsonCreateString("keep", "k")), "替换 left.keep 失败");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(meta, "ver", RyanJsonCreateInt("ver", 2)), "替换 meta.ver 失败");
@@ -261,9 +261,9 @@ static void testDuplicateDetachedNodeDualAttachWithoutAlias(void)
 	// Parse -> DetachByKey -> Duplicate(detached) -> Change 两份副本不同值/不同 key
 	// -> Insert(Object) 双挂载 -> Compare(期望文档)。
 	// 目标：
-	// 1) 验证 detached 节点可被 Duplicate；
-	// 2) 验证 duplicate 后两份节点无别名，可独立修改；
-	// 3) 验证双挂载后的结构和值符合预期。
+	// - 验证 detached 节点可被 Duplicate；
+	// - 验证 duplicate 后两份节点无别名，可独立修改；
+	// - 验证双挂载后的结构和值符合预期。
 	const char *source = "{\"obj\":{\"a\":{\"v\":1}},\"meta\":0}";
 	const char *expectText = "{\"obj\":{\"a2\":{\"v\":2},\"a3\":{\"v\":3}},\"meta\":0}";
 
@@ -313,9 +313,9 @@ static void testDuplicateOomRecoveryAndSourceImmutability(void)
 	// Parse -> Duplicate(OOM失败) -> 恢复 hooks -> Duplicate(成功) -> 修改副本
 	// -> 校验原树不变。
 	// 目标：
-	// 1) 验证 Duplicate 失败不会破坏源树；
-	// 2) 验证 OOM 恢复后 Duplicate 能继续成功；
-	// 3) 验证副本修改与原树隔离。
+	// - 验证 Duplicate 失败不会破坏源树；
+	// - 验证 OOM 恢复后 Duplicate 能继续成功；
+	// - 验证副本修改与原树隔离。
 	const char *source = "{\"cfg\":{\"mode\":\"a\",\"retry\":1},\"arr\":[1,2]}";
 	RyanJson_t root = RyanJsonParse(source);
 	TEST_ASSERT_NOT_NULL_MESSAGE(root, "OOM duplicate 样本解析失败");

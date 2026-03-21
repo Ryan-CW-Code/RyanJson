@@ -35,7 +35,7 @@ static void testEdgeParsePrintRequireTerminatorAcceptWhitespace(void)
 static void testEdgeParsePrintParseEndPtrSequentialObjectArray(void)
 {
 	// 复杂链路：
-	// ParseOptions(对象) -> parseEndPtr -> ParseOptions(数组)。
+	// ParseOptions(Object) -> parseEndPtr -> ParseOptions(Array)。
 	// 目标：验证 end 指针可驱动顺序解析。
 	const char *text = " {\"a\":1} [2,3]";
 	const uint32_t len = (uint32_t)strlen(text);
@@ -58,7 +58,7 @@ static void testEdgeParsePrintParseEndPtrSequentialObjectArray(void)
 static void testEdgeParsePrintParseEndPtrSequentialScalarObject(void)
 {
 	// 复杂链路：
-	// ParseOptions(标量) -> parseEndPtr -> ParseOptions(对象)。
+	// ParseOptions(标量) -> parseEndPtr -> ParseOptions(Object)。
 	// 目标：验证标量后续解析可继续推进。
 	const char *text = "true{\"b\":2}";
 	const uint32_t len = (uint32_t)strlen(text);
@@ -80,8 +80,8 @@ static void testEdgeParsePrintParseEndPtrSequentialScalarObject(void)
 static void testEdgeParsePrintParseEndPtrStringWithBracesThenObject(void)
 {
 	// 复杂链路：
-	// ParseOptions(字符串含 '}'/'{'/转义引号) -> parseEndPtr -> ParseOptions(对象)。
-	// 目标：验证字符串内容不会干扰 end 指针定位。
+	// ParseOptions(String 含 '}'/'{'/转义引号) -> parseEndPtr -> ParseOptions(Object)。
+	// 目标：验证 String 内容不会干扰 end 指针定位。
 	const char *text = "\"a}b{\\\"c\\\"\"{\"k\":1}";
 	const uint32_t len = (uint32_t)strlen(text);
 	const char *end = NULL;
@@ -105,7 +105,7 @@ static void testEdgeParsePrintParseEndPtrStringWithBracesThenObject(void)
 static void testEdgeParsePrintParseEndPtrStringWithEscapesThenArray(void)
 {
 	// 复杂链路：
-	// ParseOptions(含 \\\" 与 \\\\ 的字符串) -> parseEndPtr -> ParseOptions(数组)。
+	// ParseOptions(含 \\\" 与 \\\\ 的 String) -> parseEndPtr -> ParseOptions(Array)。
 	// 目标：验证转义序列不会干扰 end 指针定位。
 	const char *text = "\"a\\\"b\\\\c\"[1,2]";
 	const uint32_t len = (uint32_t)strlen(text);
@@ -131,7 +131,7 @@ static void testEdgeParsePrintParseEndPtrStringWithEscapesThenArray(void)
 static void testEdgeParsePrintParseEndPtrStringWithUnicodeEscapeThenObject(void)
 {
 	// 复杂链路：
-	// ParseOptions(含 \\uXXXX 字符串) -> parseEndPtr -> ParseOptions(对象)。
+	// ParseOptions(含 \\uXXXX String) -> parseEndPtr -> ParseOptions(Object)。
 	// 目标：验证 Unicode 转义解码不影响 end 指针。
 	const char *text = "\"\\u4E2D\"{\"k\":1}";
 	const uint32_t len = (uint32_t)strlen(text);
@@ -156,7 +156,7 @@ static void testEdgeParsePrintParseEndPtrStringWithUnicodeEscapeThenObject(void)
 static void testEdgeParsePrintParseEndPtrStringWithSurrogateEscapeThenBool(void)
 {
 	// 复杂链路：
-	// ParseOptions(含代理对字符串) -> parseEndPtr -> ParseOptions(布尔)。
+	// ParseOptions(含代理对 String) -> parseEndPtr -> ParseOptions(Bool)。
 	// 目标：验证代理对解码不影响 end 指针。
 	const char *text = "\"\\uD83D\\uDE03\" true";
 	const uint32_t len = (uint32_t)strlen(text);
@@ -192,8 +192,8 @@ static void testEdgeParsePrintMinifyStripComments(void)
 static void testEdgeParsePrintMinifyPreserveSlashInString(void)
 {
 	// 复杂链路：
-	// Minify(字符串含注释样式) -> 结果校验。
-	// 目标：验证字符串内的 // 与 /* */ 不被误删。
+	// Minify(String 含注释样式) -> 结果校验。
+	// 目标：验证 String 内的 // 与 /* */ 不被误删。
 	char buf[] = "{\"pat\":\"a//b\",\"block\":\"x/*y*/z\"}";
 	uint32_t len = RyanJsonMinify(buf, (int32_t)(sizeof(buf) - 1U));
 	buf[len] = '\0';
@@ -214,7 +214,7 @@ static void testEdgeParsePrintMinifyPreserveEscapedQuote(void)
 static void testEdgeParsePrintMinifyPreserveEscapedCommentMarkers(void)
 {
 	// 复杂链路：
-	// Minify(字符串含 \\// 与 \\/* */) -> 结果校验。
+	// Minify(String 含 \\// 与 \\/* */) -> 结果校验。
 	// 目标：验证转义反斜杠 + 注释标记组合不会被误删。
 	char buf[] = "/*h*/{\"s\":\"x\\\\//y\",\"t\":\"u\\\\/*v*/w\",\"q\":\"\\\\\\\"/*\"}//t\n";
 	uint32_t len = RyanJsonMinify(buf, (int32_t)(sizeof(buf) - 1U));
@@ -251,13 +251,13 @@ static void testEdgeParsePrintParseOptionsTruncatedScalar(void)
 static void testEdgeParsePrintParseOptionsTruncatedStringBySize(void)
 {
 	// 复杂链路：
-	// ParseOptions(被截断的字符串) -> 失败 -> end 指针不应被污染。
+	// ParseOptions(被截断的 String) -> 失败 -> end 指针不应被污染。
 	const char *text = "\"ok\"";
 	const char *sentinel = "sentinel";
 	const char *end = sentinel;
 
 	RyanJson_t json = RyanJsonParseOptions(text, 3, RyanJsonFalse, &end); // "\"ok"
-	TEST_ASSERT_NULL_MESSAGE(json, "ParseOptions(截断字符串) 应失败");
+	TEST_ASSERT_NULL_MESSAGE(json, "ParseOptions(截断 String) 应失败");
 	TEST_ASSERT_EQUAL_PTR_MESSAGE(sentinel, end, "ParseOptions 失败时不应修改 end 指针");
 }
 
@@ -277,8 +277,8 @@ static void testEdgeParsePrintParseOptionsTruncatedUnicodeBySize(void)
 static void testEdgeParsePrintParseOptionsTruncatedArray(void)
 {
 	// 复杂链路：
-	// ParseOptions(截断数组) -> 失败 -> end 指针不变。
-	// 目标：验证截断数组被拒绝。
+	// ParseOptions(截断 Array) -> 失败 -> end 指针不变。
+	// 目标：验证截断 Array 被拒绝。
 	const char *text = "[1,2";
 	const char *sentinel = "sentinel";
 	const char *end = sentinel;
@@ -344,7 +344,7 @@ static void testEdgeParsePrintMinifyEmbeddedTabs(void)
 static void testEdgeParsePrintParseOptionsGarbageAfterArray(void)
 {
 	// 复杂链路：
-	// ParseOptions(数组) -> end 指向垃圾 -> 续读校验。
+	// ParseOptions(Array) -> end 指向垃圾 -> 续读校验。
 	// 目标：验证垃圾段不被误解析。
 	const char *text = "[1,2]x{\"b\":1}";
 	const uint32_t len = (uint32_t)strlen(text);

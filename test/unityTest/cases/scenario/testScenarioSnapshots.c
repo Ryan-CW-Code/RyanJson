@@ -44,9 +44,9 @@ static void testScenarioSnapshotRollbackThenBranchMutationKeepsIsolation(void)
 	// Parse -> Duplicate(snapshot) -> 多次修改 -> 按快照回滚
 	// -> Detach/Change/Insert + ReplaceByKey 再分叉 -> 双文档 Roundtrip。
 	// 目标：
-	// 1) 验证回滚后的 live 文档还能继续安全变更；
-	// 2) 验证后续分叉变更不会反向污染 snapshot；
-	// 3) 验证 rollback 后再 branch 的文档与 snapshot 仍各自可稳定 roundtrip。
+	// - 验证回滚后的 live 文档还能继续安全变更；
+	// - 验证后续分叉变更不会反向污染 snapshot；
+	// - 验证 rollback 后再 branch 的文档与 snapshot 仍各自可稳定 roundtrip。
 	const char *source = "{\"cfg\":{\"mode\":\"a\",\"retry\":3},\"list\":[{\"id\":\"a\",\"tags\":[\"x\"]},{\"id\":\"b\",\"tags\":[]}],"
 			     "\"meta\":{\"ver\":1},\"flag\":true}";
 	const char *branchText =
@@ -59,7 +59,7 @@ static void testScenarioSnapshotRollbackThenBranchMutationKeepsIsolation(void)
 	TEST_ASSERT_NOT_NULL_MESSAGE(snapshot, "snapshot 分叉样本快照失败");
 
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(root, "cfg", RyanJsonCreateString("cfg", "flat")), "将 cfg 替换为标量失败");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(root, "list", RyanJsonCreateArray()), "将 list 替换为空数组失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(root, "list", RyanJsonCreateArray()), "将 list 替换为空 Array 失败");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(RyanJsonGetObjectToKey(root, "list"), 9), "向临时 list 写入 9 失败");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(RyanJsonGetObjectToKey(root, "meta"), "ver", RyanJsonCreateInt("ver", 9)),
 				 "修改 meta.ver=9 失败");

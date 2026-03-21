@@ -1,9 +1,9 @@
 #include "RyanJsonInternal.h"
 
 /**
- * @brief 在对象节点中按 key 查找子节点
+ * @brief 在 Object 节点中按 key 查找子节点
  *
- * @param pJson 对象节点
+ * @param pJson Object 节点
  * @param key 目标 key
  * @param prevOut 输出前驱节点，可为 NULL
  * @return RyanJson_t 命中节点，未命中返回 NULL
@@ -18,7 +18,7 @@ static RyanJson_t RyanJsonFindNodeByKey(RyanJson_t pJson, const char *key, RyanJ
 
 	while (nextItem)
 	{
-		// 对象子节点按约定必须带 key，异常场景下直接返回，避免继续访问无效数据
+		// Object 子节点按约定必须带 key，异常场景下直接返回，避免继续访问无效数据
 		RyanJsonCheckAssert(RyanJsonIsKey(nextItem));
 		if (RyanJsonTrue == RyanJsonInternalStrEq(RyanJsonGetKey(nextItem), key))
 		{
@@ -65,9 +65,9 @@ static RyanJsonBool_e RyanJsonReplaceNode(RyanJson_t prev, RyanJson_t oldItem, R
 
 #if true == RyanJsonStrictObjectKeyCheck
 /**
- * @brief 检查对象中是否存在重复 key（可忽略指定节点）
+ * @brief 检查 Object 中是否存在重复 key（可忽略指定节点）
  *
- * @param pJson 对象节点
+ * @param pJson Object 节点
  * @param key 目标 key
  * @param skipItem 需跳过的节点
  * @return RyanJsonBool_e 是否存在冲突
@@ -79,7 +79,7 @@ static RyanJsonBool_e RyanJsonObjectHasKeyConflict(RyanJson_t pJson, const char 
 	{
 		if (item != skipItem)
 		{
-			// 对象节点理论上必须带 key，容错处理避免 release 下异常访问
+			// Object 节点理论上必须带 key，容错处理避免 Release 模式下异常访问
 			RyanJsonCheckAssert(RyanJsonTrue == RyanJsonIsKey(item));
 			if (RyanJsonTrue == RyanJsonInternalStrEq(RyanJsonGetKey(item), key)) { return RyanJsonTrue; }
 		}
@@ -144,7 +144,7 @@ static RyanJson_t RyanJsonCreateItem(const char *key, RyanJson_t item)
  * @brief 基础创建接口（语义直观，统一说明）
  *
  * 约定：
- * - key 可为 NULL，表示无 key 节点（如数组元素）
+ * - key 可为 NULL，表示无 key 节点（如 Array 元素）
  * - 返回值为新建节点，失败返回 NULL
  */
 RyanJson_t RyanJsonCreateNull(const char *key)
@@ -264,6 +264,7 @@ RyanJsonBool_e RyanJsonIsDetachedItem(RyanJson_t item)
  *
  * @param pJson 目标节点
  * @return char* key 字符串，失败返回 NULL
+ * @note 返回内部存储指针，节点修改/释放后即失效。
  */
 char *RyanJsonGetKey(RyanJson_t pJson)
 {
@@ -284,6 +285,7 @@ char *RyanJsonGetKey(RyanJson_t pJson)
  * 约定：
  * - 调用前需保证 pJson 非 NULL 且类型匹配（先用 RyanJsonIsXXXX 判断）
  * - 非匹配类型场景不保证返回值语义
+ * - String/key 返回内部存储指针，节点修改/释放后即失效
  */
 char *RyanJsonGetStringValue(RyanJson_t pJson)
 {
@@ -344,8 +346,8 @@ RyanJson_t RyanJsonGetArrayValue(RyanJson_t pJson)
  *
  * 约定：
  * - 公共 Change 接口会做基础参数/类型校验，失败返回 RyanJsonFalse
- * - 数值/布尔修改为原位写入
- * - key/string 修改会触发字符串存储布局更新
+ * - Number/Bool 修改为原位写入
+ * - key/String 修改会触发字符串存储布局更新
  */
 RyanJsonBool_e RyanJsonChangeKey(RyanJson_t pJson, const char *key)
 {
@@ -368,9 +370,9 @@ RyanJsonBool_e RyanJsonChangeKey(RyanJson_t pJson, const char *key)
 }
 
 /**
- * @brief 修改字符串节点的 value
+ * @brief 修改 String 节点的 value
  *
- * @param pJson 字符串节点
+ * @param pJson String 节点
  * @param strValue 新 strValue
  * @return RyanJsonBool_e 修改是否成功
  */
@@ -418,12 +420,15 @@ RyanJsonInternalApi RyanJsonBool_e RyanJsonInternalChangeObjectValue(RyanJson_t 
 }
 
 /**
- * @brief 向对象追加容器节点（array/object）
+ * @brief 向 Object 添加容器节点（Array/Object）
  *
- * @param pJson 对象节点
+ * @param pJson Object 节点
  * @param key 新子节点 key
- * @param item 待追加节点（要求游离）
+ * @param item 待添加节点（要求游离）
  * @return RyanJsonBool_e 添加是否成功
+ * @note 插入位置遵循 RyanJsonAddPosition（头插/尾插取决于配置）。
+ * @note 当 item 为容器时，会创建包装节点并释放原 item 指针，调用方不可继续使用原 item。
+ * @note 若 item 不是容器类型，将释放 item 并返回失败。
  */
 RyanJsonBool_e RyanJsonAddItemToObject(RyanJson_t pJson, const char *key, RyanJson_t item)
 {
@@ -449,10 +454,12 @@ RyanJsonBool_e RyanJsonAddItemToObject(RyanJson_t pJson, const char *key, RyanJs
 /**
  * @brief 按索引替换子节点
  *
- * @param pJson 父节点（数组或对象）
- * @param index 目标索引
+ * @param pJson 父节点（Array 或 Object）
+ * @param index 目标索引（Object 场景为插入顺序）
  * @param item 新节点（要求游离）
  * @return RyanJsonBool_e 替换是否成功
+ * @note Object 场景要求 item 携带 key，严格模式下会拒绝重复 key。
+ * @note 成功后旧节点会被释放；失败不会释放 item。
  */
 RyanJsonBool_e RyanJsonReplaceByIndex(RyanJson_t pJson, uint32_t index, RyanJson_t item)
 {
@@ -491,12 +498,14 @@ RyanJsonBool_e RyanJsonReplaceByIndex(RyanJson_t pJson, uint32_t index, RyanJson
 }
 
 /**
- * @brief 按 key 替换对象子节点
+ * @brief 按 key 替换 Object 子节点
  *
- * @param pJson 对象节点
+ * @param pJson Object 节点
  * @param key 目标 key
  * @param item 新节点（要求游离）
  * @return RyanJsonBool_e 替换是否成功
+ * @note 成功后旧节点会被释放；失败不会释放 item。
+ * @note 若 item 无 key，会创建包装节点；此时若 item 为容器会释放原 item 指针。
  */
 RyanJsonBool_e RyanJsonReplaceByKey(RyanJson_t pJson, const char *key, RyanJson_t item)
 {
@@ -532,9 +541,10 @@ RyanJsonBool_e RyanJsonReplaceByKey(RyanJson_t pJson, const char *key, RyanJson_
 /**
  * @brief 按索引获取子节点
  *
- * @param pJson 父节点（数组或对象）
- * @param index 子节点索引
+ * @param pJson 父节点（Array 或 Object）
+ * @param index 子节点索引（Object 场景为插入顺序）
  * @return RyanJson_t 命中节点，失败返回 NULL
+ * @note 越界或空容器返回 NULL。
  */
 RyanJson_t RyanJsonGetObjectByIndex(RyanJson_t pJson, uint32_t index)
 {
@@ -555,9 +565,9 @@ RyanJson_t RyanJsonGetObjectByIndex(RyanJson_t pJson, uint32_t index)
 }
 
 /**
- * @brief 按 key 获取对象子节点
+ * @brief 按 key 获取 Object 子节点
  *
- * @param pJson 对象节点
+ * @param pJson Object 节点
  * @param key 目标 key
  * @return RyanJson_t 命中节点，失败返回 NULL
  */
@@ -570,9 +580,10 @@ RyanJson_t RyanJsonGetObjectByKey(RyanJson_t pJson, const char *key)
 /**
  * @brief 按索引分离子节点（不释放）
  *
- * @param pJson 父节点（数组或对象）
- * @param index 子节点索引
+ * @param pJson 父节点（Array 或 Object）
+ * @param index 子节点索引（Object 场景为插入顺序）
  * @return RyanJson_t 被分离节点，失败返回 NULL
+ * @note 返回的节点已成为游离节点，需由调用方负责释放。
  */
 RyanJson_t RyanJsonDetachByIndex(RyanJson_t pJson, uint32_t index)
 {
@@ -618,11 +629,12 @@ RyanJson_t RyanJsonDetachByIndex(RyanJson_t pJson, uint32_t index)
 }
 
 /**
- * @brief 按 key 分离对象子节点（不释放）
+ * @brief 按 key 分离 Object 子节点（不释放）
  *
- * @param pJson 对象节点
+ * @param pJson Object 节点
  * @param key 目标 key
  * @return RyanJson_t 被分离节点，失败返回 NULL
+ * @note 返回的节点已成为游离节点，需由调用方负责释放。
  */
 RyanJson_t RyanJsonDetachByKey(RyanJson_t pJson, const char *key)
 {
@@ -660,8 +672,8 @@ RyanJson_t RyanJsonDetachByKey(RyanJson_t pJson, const char *key)
 /**
  * @brief 按索引删除子节点
  *
- * @param pJson 父节点（数组或对象）
- * @param index 子节点索引
+ * @param pJson 父节点（Array 或 Object）
+ * @param index 子节点索引（Object 场景为插入顺序）
  * @return RyanJsonBool_e 删除是否成功
  */
 RyanJsonBool_e RyanJsonDeleteByIndex(RyanJson_t pJson, uint32_t index)
@@ -676,9 +688,9 @@ RyanJsonBool_e RyanJsonDeleteByIndex(RyanJson_t pJson, uint32_t index)
 }
 
 /**
- * @brief 按 key 删除对象子节点
+ * @brief 按 key 删除 Object 子节点
  *
- * @param pJson 对象节点
+ * @param pJson Object 节点
  * @param key 目标 key
  * @return RyanJsonBool_e 删除是否成功
  */
@@ -696,10 +708,12 @@ RyanJsonBool_e RyanJsonDeleteByKey(RyanJson_t pJson, const char *key)
 /**
  * @brief 向容器按索引插入子节点
  *
- * @param pJson 父节点（数组或对象）
+ * @param pJson 父节点（Array 或 Object）
  * @param index 插入位置，超范围等价尾插
  * @param item 待插入节点（要求游离）
  * @return RyanJsonBool_e 插入是否成功
+ * @note Object 场景要求 item 携带 key，严格模式下会拒绝重复 key。
+ * @note 进入 error__ 分支时会释放 item；若 item 为 NULL 或非游离节点，将直接失败且不释放 item。
  */
 RyanJsonBool_e RyanJsonInsert(RyanJson_t pJson, uint32_t index, RyanJson_t item)
 {

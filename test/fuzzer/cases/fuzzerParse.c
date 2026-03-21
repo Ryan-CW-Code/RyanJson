@@ -2,14 +2,14 @@
 #include "RyanJsonFuzzer.h"
 
 /**
- * @brief 补齐超长数字导致的解析溢出分支
+ * @brief 补齐超长 Number 导致的解析溢出分支
  *
  * 运行期 parse harness 对大输入会提前返回，且 FUZZ_MAX_LEN/调度概率下
  * 很难稳定命中 `isfinite(number)` 的失败路径，这里保留最小确定性补齐。
  */
 static void RyanJsonFuzzerSelfTestParseHugeNumberOverflowCases(void)
 {
-	// 这些长度远小于 FUZZ_MAX_LEN=8192，但已足够把 number 推到非有限值。
+	// 这些长度远小于 FUZZ_MAX_LEN=8192，但已足够把 Number 推到非有限值。
 	// 这样可以只补最小分支，不必恢复整包 parse 手动覆盖。
 	char hugeIntText[640];
 	char hugeFracText[1024];
@@ -89,7 +89,7 @@ void RyanJsonFuzzerSelfTestParseCases(void)
 		assert(NULL == RyanJsonParse(NULL));
 	}
 
-	// 第四组：非有限 double 的打印降级语义。
+	// 第四组：非有限 Double 的打印降级语义。
 	// 这里不依赖随机故障注入，直接验证库承诺的稳定输出格式。
 	{
 		RyanJson_t specialObj = RyanJsonCreateObject();
@@ -123,8 +123,8 @@ void RyanJsonFuzzerSelfTestParseCases(void)
  * 预分配缓冲区打印测试：验证 PrintPreallocated 在不同容量下的行为。
  *
  * @param state Fuzzer 状态上下文
- * @param pJson 解析输入数据得到的初始 Json 对象
- * @param data 原始输入数据字符串
+ * @param pJson 解析输入数据得到的初始 Json Object
+ * @param data 原始输入数据文本
  * @param size 输入数据长度
  */
 RyanJsonBool_e RyanJsonFuzzerTestParse(RyanJson_t pJson, const char *data, uint32_t size)
@@ -175,7 +175,7 @@ RyanJsonBool_e RyanJsonFuzzerTestParse(RyanJson_t pJson, const char *data, uint3
 	memcpy(buf, data, (size_t)size);
 	buf[size] = 0;
 
-	// 原始输入不保证自带 '\0'，这里补终止符后再走按字符串解析的公共入口。
+	// 原始输入不保证自带 '\0'，这里补终止符后再走按 C 字符串解析的公共入口。
 	RyanJson_t jsonRoot = RyanJsonParse(buf);
 	RyanJsonCheckCode(NULL != jsonRoot, {
 		free(buf);

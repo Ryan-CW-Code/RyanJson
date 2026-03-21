@@ -1,7 +1,7 @@
 #include "testBase.h"
 
 /**
- * @brief 简单字符串样例（X-macro）
+ * @brief 简单 String 样例（X-macro）
  */
 #define SimpleStringList                                                                                                                   \
 	X("")                                                                                                                              \
@@ -53,11 +53,11 @@ static const char *SimpleStringJsonTable[] = {
 };
 
 /**
- * @brief 转义字符串样例（Json 文本与期望值分离）
+ * @brief 转义 String 样例（Json 文本与期望值分离）
  */
 typedef struct
 {
-	const char *json;     // Json 字符串（带转义）
+	const char *json;     // Json 文本（带转义）
 	const char *expected; // 期望的 C strValue
 } EscapeTestCase;
 
@@ -94,7 +94,7 @@ static const EscapeTestCase EscapeTestCases[] = {
 };
 
 /**
- * @brief 字符串类型边界与类型一致性测试
+ * @brief String 类型边界与类型一致性测试
  */
 void testEqualityStringEdgeCases(void)
 {
@@ -128,7 +128,7 @@ void testEqualityStringEdgeCases(void)
 }
 
 /**
- * @brief 简单字符串解析与往返测试
+ * @brief 简单 String 解析与往返测试
  */
 static void testEqualityStringSimple(void)
 {
@@ -136,8 +136,8 @@ static void testEqualityStringSimple(void)
 	{
 		const char *jsonStrInput = SimpleStringJsonTable[i];
 		RyanJson_t jsonRoot = RyanJsonParse(jsonStrInput);
-		TEST_ASSERT_NOT_NULL_MESSAGE(jsonRoot, "简单字符串解析失败");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(RyanJsonGetObjectToKey(jsonRoot, "str")), "字段 'str' 不是字符串类型");
+		TEST_ASSERT_NOT_NULL_MESSAGE(jsonRoot, "简单 String 解析失败");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(RyanJsonGetObjectToKey(jsonRoot, "str")), "字段 'str' 不是 String 类型");
 
 		const char *strValue = RyanJsonGetStringValue(RyanJsonGetObjectToKey(jsonRoot, "str"));
 		TEST_ASSERT_EQUAL_STRING_MESSAGE(SimpleStringValueTable[i], strValue, jsonStrInput);
@@ -148,17 +148,17 @@ static void testEqualityStringSimple(void)
 
 		RyanJson_t roundtripJson = RyanJsonParse(serializedStr);
 		RyanJsonFree(serializedStr);
-		TEST_ASSERT_NOT_NULL_MESSAGE(roundtripJson, "简单字符串往返测试：重新解析失败");
+		TEST_ASSERT_NOT_NULL_MESSAGE(roundtripJson, "简单 String 往返测试：重新解析失败");
 
 		const char *roundtripValue = RyanJsonGetStringValue(RyanJsonGetObjectToKey(roundtripJson, "str"));
-		TEST_ASSERT_EQUAL_STRING_MESSAGE(SimpleStringValueTable[i], roundtripValue, "简单字符串往返测试不匹配");
+		TEST_ASSERT_EQUAL_STRING_MESSAGE(SimpleStringValueTable[i], roundtripValue, "简单 String 往返测试不匹配");
 
 		RyanJsonDelete(roundtripJson);
 	}
 }
 
 /**
- * @brief 转义字符串解析与往返测试
+ * @brief 转义 String 解析与往返测试
  */
 static void testEqualityStringEscape(void)
 {
@@ -178,10 +178,10 @@ static void testEqualityStringEscape(void)
 
 		RyanJson_t roundtripJson = RyanJsonParse(serializedStr);
 		RyanJsonFree(serializedStr);
-		TEST_ASSERT_NOT_NULL_MESSAGE(roundtripJson, "转义字符串往返测试：重新解析失败");
+		TEST_ASSERT_NOT_NULL_MESSAGE(roundtripJson, "转义 String 往返测试：重新解析失败");
 
 		const char *roundtripValue = RyanJsonGetStringValue(RyanJsonGetObjectToKey(roundtripJson, "str"));
-		TEST_ASSERT_EQUAL_STRING_MESSAGE(tc->expected, roundtripValue, "转义字符串往返测试不匹配");
+		TEST_ASSERT_EQUAL_STRING_MESSAGE(tc->expected, roundtripValue, "转义 String 往返测试不匹配");
 
 		RyanJsonDelete(roundtripJson);
 	}

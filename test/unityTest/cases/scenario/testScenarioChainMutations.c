@@ -5,7 +5,7 @@ static void testChainScenarioDeepMoveReplaceAndRoundtrip(void)
 	// 复杂链路：
 	// Parse -> Detach/Change/Insert(嵌套) -> ReplaceByIndex -> AddItemToObject ->
 	// ReplaceByKey(meta) -> Print/Parse。
-	// 目标：覆盖嵌套数组/对象的多步变更与往返稳定性。
+	// 目标：覆盖嵌套 Array/Object 的多步变更与往返稳定性。
 	RyanJson_t root = RyanJsonParse(
 		"{\"cfg\":{\"mode\":\"a\",\"limit\":3},\"items\":[{\"id\":1,\"tags\":[\"x\",\"y\"]},{\"id\":2,\"tags\":[\"z\"]}],"
 		"\"meta\":{\"ver\":1}}");
@@ -58,9 +58,9 @@ static void testChainScenarioDeepMoveReplaceAndRoundtrip(void)
 static void testChainScenarioSwapArrayObjectNodesWithMetaReplace(void)
 {
 	// 复杂链路：
-	// Parse -> DetachByIndex(数组对象) -> ChangeKey -> Insert(对象) ->
-	// DetachByKey(对象) -> ChangeKey -> Insert(数组) -> ReplaceByKey(meta)。
-	// 目标：覆盖数组对象与对象字段互换、以及 meta 容器替换的组合路径。
+	// Parse -> DetachByIndex(Array Object) -> ChangeKey -> Insert(Object) ->
+	// DetachByKey(Object) -> ChangeKey -> Insert(Array) -> ReplaceByKey(meta)。
+	// 目标：覆盖 Array 中 Object 与 Object 字段互换、以及 meta 容器替换的组合路径。
 	RyanJson_t root = RyanJsonParse("{\"obj\":{\"x\":1,\"y\":{\"id\":1}},\"arr\":[{\"id\":2},3],\"meta\":{\"flag\":true}}");
 	TEST_ASSERT_NOT_NULL(root);
 

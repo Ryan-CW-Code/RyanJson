@@ -18,7 +18,7 @@ static void assertUsageRoundtripDocument(const char *jsonText)
 }
 
 // usage 层只保留真实文档结构的 roundtrip 契约；
-// 字符串转义、Unicode、空容器基础值矩阵等已由 standard/equality 承接。
+// String 转义、Unicode、空容器基础值矩阵等已由 standard/equality 承接。
 #define USAGE_ROUNDTRIP_STRUCTURAL_CASES                                                                                                   \
 	X(testUsageRoundtripRootArrayRecords, "[{\"id\":1,\"v\":true},{\"id\":2,\"v\":false}]")                                            \
 	X(testUsageRoundtripMixedLiteralArrayInObject, "{\"mix\":[1,\"2\",null,true,false,{\"x\":1}],\"end\":0}")                          \

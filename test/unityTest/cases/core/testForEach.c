@@ -4,7 +4,7 @@ static void testForEachEdgeCases(void)
 {
 	RyanJson_t item = NULL;
 
-	// 遍历 NULL 对象 (应该安全跳过循环)
+	// 遍历 NULL Object (应该安全跳过循环)
 	int32_t count = 0;
 	RyanJsonArrayForEach(NULL, item)
 	{
@@ -19,7 +19,7 @@ static void testForEachEdgeCases(void)
 	}
 	TEST_ASSERT_EQUAL_INT_MESSAGE(0, count, "遍历 NULL Object 应不执行循环");
 
-	// 遍历非容器对象 (应该同上)
+	// 遍历非容器 Object (应该同上)
 	RyanJson_t num = RyanJsonCreateInt("num", 1);
 	count = 0;
 	RyanJsonArrayForEach(num, item)
@@ -72,24 +72,24 @@ static void testForEachIterativeTraversals(void)
 
 	RyanJson_t item = NULL;
 
-	// 遍历 arrayDouble 数组测试
+	// 遍历 arrayDouble Array 测试
 	RyanJsonArrayForEach(RyanJsonGetObjectToKey(json, "arrayDouble"), item)
 	{
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDouble(item), "数组元素不是浮点数类型");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareDouble(16.89, RyanJsonGetDoubleValue(item)), "数组元素值不正确");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDouble(item), "Array 元素不是 Double 类型");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareDouble(16.89, RyanJsonGetDoubleValue(item)), "Array 元素值不正确");
 	}
 
-	// 遍历 arrayInt 数组测试
+	// 遍历 arrayInt Array 测试
 	RyanJsonArrayForEach(RyanJsonGetObjectToKey(json, "arrayInt"), item)
 	{
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsInt(item), "数组元素不是整数类型");
-		TEST_ASSERT_EQUAL_INT_MESSAGE(16, RyanJsonGetIntValue(item), "数组元素值不正确");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsInt(item), "Array 元素不是 Int 类型");
+		TEST_ASSERT_EQUAL_INT_MESSAGE(16, RyanJsonGetIntValue(item), "Array 元素值不正确");
 	}
 
-	// 遍历 item 对象测试
+	// 遍历 item Object 测试
 	RyanJsonObjectForEach(RyanJsonGetObjectToKey(json, "item"), item)
 	{
-		TEST_ASSERT_NOT_NULL_MESSAGE(RyanJsonGetKey(item), "对象键值为空");
+		TEST_ASSERT_NOT_NULL_MESSAGE(RyanJsonGetKey(item), "Object 键值为空");
 		char *str = RyanJsonPrint(item, 128, RyanJsonTrue, NULL);
 		TEST_ASSERT_NOT_NULL_MESSAGE(str, "遍历项打印失败");
 		RyanJsonFree(str);
@@ -104,9 +104,9 @@ static void testForEachComplexSummaryWithMixedArrayMacros(void)
 	// Create(root/events/summary) -> Add*ToArray(混合类型) -> ArrayForEach(统计+改写)
 	// -> ObjectForEach(汇总校验) -> Print/Parse Roundtrip。
 	// 目标：
-	// 1) 覆盖 AddNull/Bool/Double/StringToArray 与 AddItemToArray 的协同路径；
-	// 2) 覆盖遍历过程中“按类型分支修改节点”是否会引发连锁结构破坏；
-	// 3) 覆盖 ObjectForEach 在汇总对象上的稳定遍历语义。
+	// - 覆盖 AddNull/Bool/Double/StringToArray 与 AddItemToArray 的协同路径；
+	// - 覆盖遍历过程中“按类型分支修改节点”是否会引发连锁结构破坏；
+	// - 覆盖 ObjectForEach 在汇总 Object 上的稳定遍历语义。
 	RyanJson_t root = RyanJsonCreateObject();
 	RyanJson_t events = RyanJsonCreateArray();
 	RyanJson_t summary = RyanJsonCreateObject();
@@ -114,7 +114,7 @@ static void testForEachComplexSummaryWithMixedArrayMacros(void)
 	TEST_ASSERT_NOT_NULL(events);
 	TEST_ASSERT_NOT_NULL(summary);
 
-	// 构造混合类型数组：null / bool / double / string / object
+	// 构造混合类型 Array：Null / Bool / Double / String / Object
 	TEST_ASSERT_TRUE(RyanJsonAddNullToArray(events));
 	TEST_ASSERT_TRUE(RyanJsonAddBoolToArray(events, RyanJsonTrue));
 	TEST_ASSERT_TRUE(RyanJsonAddDoubleToArray(events, 12.5));
@@ -215,7 +215,7 @@ static void testForEachComplexSummaryWithMixedArrayMacros(void)
 			else if (strcmp(s, "null->string") == 0) { hitNullToString++; }
 			else
 			{
-				TEST_FAIL_MESSAGE("events 中字符串值不在预期集合");
+				TEST_FAIL_MESSAGE("events 中 String 值不在预期集合");
 			}
 		}
 		else if (RyanJsonIsObject(item))
@@ -260,9 +260,9 @@ static void testForEachObjectTraversalWithCrossContainerMove(void)
 	// Parse(wait/done) -> ObjectForEach(wait) 收集条件 -> 复制挂载到 done
 	// -> 按收集 key 回删 wait -> ArrayForEach(done) 二次校验。
 	// 目标：
-	// 1) 验证对象遍历驱动的“条件迁移”不会造成容器链表损坏；
-	// 2) 验证迁移后再删除源节点，目标容器数据保持稳定；
-	// 3) 验证复杂链路下 key/index 查询语义一致。
+	// - 验证 Object 遍历驱动的“条件迁移”不会造成容器链表损坏；
+	// - 验证迁移后再删除源节点，目标容器数据保持稳定；
+	// - 验证复杂链路下 key/index 查询语义一致。
 	const char *source = "{\"wait\":{\"a\":{\"done\":false},\"b\":{\"done\":true},\"c\":{\"done\":true}},\"done\":[]}";
 	RyanJson_t root = RyanJsonParse(source);
 	TEST_ASSERT_NOT_NULL(root);

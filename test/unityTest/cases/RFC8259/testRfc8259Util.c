@@ -249,8 +249,8 @@ int32_t RyanJsonExtractSingleArrayElement(const char *s, uint32_t len, const cha
 
 int32_t RyanJsonValueSemanticEqual(const char *a, uint32_t aLen, const char *b, uint32_t bLen)
 {
-	// 尝试将两个字符串解析为 Json 对象进行语义比较
-	// 这可以处理对象和数组的递归比较
+	// 尝试将两个 Json 文本解析为 Json 值进行语义比较
+	// 这可以处理 Object/Array 的递归比较
 	RyanJson_t jsonA = RyanJsonParseOptions(a, aLen, RyanJsonFalse, NULL);
 	RyanJson_t jsonB = RyanJsonParseOptions(b, bLen, RyanJsonFalse, NULL);
 
@@ -267,7 +267,7 @@ int32_t RyanJsonValueSemanticEqual(const char *a, uint32_t aLen, const char *b, 
 	if (NULL != jsonA) { (void)RyanJsonDelete(jsonA); }
 	if (NULL != jsonB) { (void)RyanJsonDelete(jsonB); }
 
-	// 回退：单元素数组提取比较
+	// 回退：单元素 Array 提取比较
 	const char *ae = NULL, *be = NULL;
 	uint32_t ale = 0, ble = 0;
 	if (RyanJsonExtractSingleArrayElement(a, aLen, &ae, &ale) && RyanJsonExtractSingleArrayElement(b, bLen, &be, &ble))

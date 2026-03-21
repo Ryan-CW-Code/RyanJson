@@ -53,7 +53,7 @@ static RyanJsonBool_e RyanJsonPrintBufAppend(RyanJsonPrintBuffer *printfBuf, uin
 }
 
 /**
- * @brief 规范化浮点数输出：删除尾部无效的0（非科学计数法时）
+ * @brief 规范化 Double 输出：删除尾部无效的 0（非科学计数法时）
  */
 static int32_t RyanJsonTrimDoubleTrailingZeros(RyanJsonPrintBuffer *printfBuf, int32_t len)
 {
@@ -94,7 +94,7 @@ static int32_t RyanJsonTrimDoubleTrailingZeros(RyanJsonPrintBuffer *printfBuf, i
 	if (RyanJsonFalse == isScientificNotation)
 	{
 		// 删除小数部分中无效的 0
-		// 最小也要为"0.0"
+		// 最小也要为 "0.0"
 		while (len > 3)
 		{
 			if ('0' != printBufCurrentPtr(printfBuf)[len - 1]) { break; }
@@ -108,7 +108,7 @@ static int32_t RyanJsonTrimDoubleTrailingZeros(RyanJsonPrintBuffer *printfBuf, i
 }
 
 /**
- * @brief 打印数字节点
+ * @brief 打印 Number 节点
  */
 static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer *printfBuf)
 {
@@ -131,11 +131,11 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
 		return RyanJsonTrue;
 	}
 
-	// Number 节点按 double 存储
+	// Number 节点按 Double 值存储
 	RyanJsonCheckReturnFalse(RyanJsonPrintBufAppend(printfBuf, RyanJsonDoubleBufferSize));
 	double doubleValue = RyanJsonGetDoubleValue(pJson);
 
-	// 处理特殊值：无穷大和 NaN 输出为 null（RFC 8259 不支持 Infinity/NaN）
+	// 处理特殊值：无穷大和 NaN 输出为 Null（RFC 8259 不支持 Infinity/NaN）
 	if (isinf(doubleValue) || isnan(doubleValue))
 	{
 		RyanJsonPrintBufPutString(printfBuf, (uint8_t *)"null", 4);
@@ -144,8 +144,8 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
 
 	double absDoubleValue = fabs(doubleValue);
 
-	// 判断是否可按整数样式输出，并保留一位小数（例如 5.0、0.0）
-	// 仅对“真实 0”或 [1e-6, 1e15) 区间内的整数样式启用，避免极小非零值被打印成 0.0
+	// 判断是否可按 Int 样式输出，并保留一位小数（例如 5.0 或 0.0）
+	// 仅对“真实 0”或 [1e-6, 1e15) 区间内的 Int 样式启用，避免极小非零值被打印成 0.0
 	if (((doubleValue == 0.0) || (absDoubleValue < 1.0e15 && absDoubleValue >= 1.0e-6)) &&
 	    fabs(floor(doubleValue) - doubleValue) <= DBL_EPSILON)
 	{
@@ -163,15 +163,15 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
 		// Linux 测试环境：在两种格式间切换，覆盖去零与回读校验分支
 #ifdef RyanJsonLinuxTestEnv
 #undef RyanJsonSnprintfSupportScientific
-		// 基于 double 值本身选择格式（确定性），保证同一个值总是用相同格式
-		// %lf 在 [1e-6, 1e6] 范围内输出安全
-		// 极端值（>1e6 或 <1e-6）必须使用科学记数法，否则可能超出缓冲区
+		// 基于 Double 值本身选择格式（确定性），保证同一个值总是用相同格式。
+		// Linux 测试环境下用简单阈值切换分支，只用于覆盖率，不代表真实阈值策略。
 		RyanJsonBool_e RyanJsonSnprintfSupportScientific = doubleValue > 1.0 ? RyanJsonTrue : RyanJsonFalse;
 
 #endif
 
-		// 极大/极小数或普通浮点数
-		// 不使用 %.15g 是因为很多嵌入式平台上 %.15g 与 %.17g 效果接近
+		// 极大/极小数或普通 Double
+		// 若启用科学计数法则用 %.15g，否则使用 %lf。
+		// 不使用 %.15g 的固定格式是因为很多嵌入式平台上 %.15g 与 %.17g 效果接近
 		// 可能出现 0.2 -> 0.200000003000000，即便去掉尾部 0 仍不美观
 		// 使用 %lf 存在缓冲区压力，但在当前嵌入式目标上可接受
 		len = RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf), printBufRemainBytes(printfBuf),
@@ -182,7 +182,7 @@ static RyanJsonBool_e RyanJsonPrintNumber(RyanJson_t pJson, RyanJsonPrintBuffer 
 #endif
 		RyanJsonCheckReturnFalse(len > 0 && len < (int32_t)printBufRemainBytes(printfBuf));
 
-		// 往返检查：在去0之前进行，确保原始精度足够
+		// 往返检查：在去 0 之前进行，确保原始精度足够
 		// 如果精度不够，改用 %.17g
 		double number = 0;
 		RyanJsonCheckReturnFalse(RyanJsonTrue ==
@@ -272,7 +272,7 @@ static RyanJsonBool_e RyanJsonPrintStringBuffer(const uint8_t *strValue, RyanJso
 		case '\t': RyanJsonPrintBufPutChar(printfBuf, 't'); break;
 
 		default: {
-			// 这里无需额外校验输入字节有效性，RyanJson 已保证转义序列合法
+			// 这里按字节转义，不做 UTF-8 合法性校验
 			RyanJsonCheckReturnFalse(5 == RyanJsonSnprintf((char *)printBufCurrentPtr(printfBuf),
 								       printBufRemainBytes(printfBuf), "u%04X", *strCurrentPtr));
 			printfBuf->cursor += 5; // uXXXX 四位十六进制编码
@@ -290,7 +290,7 @@ static RyanJsonBool_e RyanJsonPrintStringBuffer(const uint8_t *strValue, RyanJso
 /**
  * @brief 打印节点中的 strValue
  *
- * @param pJson 字符串节点
+ * @param pJson String 节点
  * @param printfBuf 打印缓冲区
  * @return RyanJsonBool_e 打印是否成功
  */
@@ -343,7 +343,7 @@ static RyanJsonBool_e RyanJsonPrintValue(RyanJson_t pJson, RyanJsonPrintBuffer *
 		}
 		else if (curr != pJson && style->format)
 		{
-			// 数组元素缩进（没有 key）
+			// Array 元素缩进（没有 key）
 			uint32_t needed = depth * style->indentLen;
 			RyanJsonCheckReturnFalse(RyanJsonPrintBufAppend(printfBuf, needed));
 			for (uint32_t i = 0; i < depth; i++)

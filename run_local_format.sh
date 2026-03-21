@@ -42,7 +42,7 @@ ryanjson_collect_format_files() {
 			continue
 		fi
 		case "${f}" in
-		test/externalModule/* | build/* | coverage/* | .xmake/* | test/fuzzer/corpus/*)
+		test/externalModule/* | build/* | coverage/* | localLogs/* | .xmake/* | test/fuzzer/corpus/*)
 			continue
 			;;
 		esac

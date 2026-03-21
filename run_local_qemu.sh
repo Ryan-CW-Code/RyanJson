@@ -27,11 +27,13 @@ qemuTimeoutSec="${QEMU_TIMEOUT_SEC:-120}"
 qemuTarget="${QEMU_TARGET:-RyanJsonQemu}"
 qemuForceClean="${QEMU_FORCE_CONFIG_CLEAN:-0}"
 qemuStopOnFail="${QEMU_STOP_ON_FAIL:-1}"
-qemuLogRoot="${QEMU_LOG_ROOT:-coverage/qemu}"
+qemuLogRoot="${QEMU_LOG_ROOT:-localLogs/qemu}"
 qemuMemory="${QEMU_MEMORY:-64M}"
 qemuConsoleLog="${QEMU_CONSOLE_LOG:-1}"
 qemuSaveLog="${QEMU_SAVE_LOG:-0}"
 qemuMaxCases="${QEMU_MAX_CASES:-0}"
+qemuSingleCase="${QEMU_SINGLE_CASE:-}"
+qemuStripAnsiLog="${QEMU_STRIP_ANSI_LOG:-0}"
 qemuSemihostingMode="legacy"
 
 # 关键日志标记：既要有 unit 全量通过，也要能看到对齐异常的预期现场。
@@ -62,6 +64,49 @@ detectQemuSemihostingMode() {
 machine_supported() {
 	local machineName="$1"
 	qemu-system-arm -machine help | awk '{print $1}' | grep -Fxq "${machineName}"
+}
+
+ryanjson_normalize_bool() {
+	# 统一布尔值归一化（true/false）
+	local name="$1"
+	local value="$2"
+	local lower=""
+
+	lower="$(printf '%s' "${value}" | tr '[:upper:]' '[:lower:]')"
+	case "${lower}" in
+		true|1|on|yes)
+			printf 'true\n'
+			return 0
+			;;
+		false|0|off|no)
+			printf 'false\n'
+			return 0
+			;;
+		*)
+			ryanjson_log_error "${name} 仅支持 true/false/1/0/on/off/yes/no，当前值：${value}"
+			return 1
+			;;
+	esac
+}
+
+ryanjson_parse_single_case() {
+	local raw="$1"
+	local strictKey=""
+	local addAtHead=""
+	local scientific=""
+	local extra=""
+
+	read -r strictKey addAtHead scientific extra <<< "${raw}"
+	if [[ -z "${strictKey}" || -z "${addAtHead}" || -z "${scientific}" || -n "${extra}" ]]; then
+		ryanjson_log_error "QEMU_SINGLE_CASE 格式错误，应为：\"<strict> <head> <sci>\""
+		return 1
+	fi
+
+	strictKey="$(ryanjson_normalize_bool "QEMU_SINGLE_CASE.strict" "${strictKey}")" || return 1
+	addAtHead="$(ryanjson_normalize_bool "QEMU_SINGLE_CASE.head" "${addAtHead}")" || return 1
+	scientific="$(ryanjson_normalize_bool "QEMU_SINGLE_CASE.sci" "${scientific}")" || return 1
+
+	printf '%s %s %s\n' "${strictKey}" "${addAtHead}" "${scientific}"
 }
 
 # 根据 QEMU 版本能力与用户输入修正 machine/cpu/target
@@ -120,7 +165,8 @@ qemu_build_target() {
 	local caseName="$1"
 	local buildLogPath=""
 
-	buildLogPath="$(mktemp "/tmp/${caseName}.build.XXXX.log")"
+	buildLogPath="${qemuLogRoot}/_tmp/${caseName}.build.$$.log"
+	: > "${buildLogPath}"
 	if ! xmake -b "${qemuTarget}" 2>&1 | tee "${buildLogPath}"; then
 		ryanjson_log_error "xmake 构建失败，已终止本用例并跳过 QEMU 运行。"
 		tail -n 120 "${buildLogPath}" || true
@@ -146,10 +192,18 @@ qemu_find_elf() {
 prepareQemuCaseList() {
 	local caseText=""
 
-	if ! caseText="$(ryanjson_emit_semantic_cases "${qemuMode}" "QEMU_MODE")"; then
-		return 1
+	if [[ -n "${qemuSingleCase}" ]]; then
+		local normalizedCase=""
+		if ! normalizedCase="$(ryanjson_parse_single_case "${qemuSingleCase}")"; then
+			return 1
+		fi
+		caseList=("${normalizedCase}")
+	else
+		if ! caseText="$(ryanjson_emit_semantic_cases "${qemuMode}" "QEMU_MODE")"; then
+			return 1
+		fi
+		mapfile -t caseList <<< "${caseText}"
 	fi
-	mapfile -t caseList <<< "${caseText}"
 
 	if ! ryanjson_require_nonneg_int "QEMU_MAX_CASES" "${qemuMaxCases}"; then
 		return 1
@@ -162,6 +216,9 @@ prepareQemuCaseList() {
 	if ! ryanjson_require_01 "QEMU_CONSOLE_LOG" "${qemuConsoleLog}"; then
 		return 1
 	fi
+	if ! ryanjson_require_01 "QEMU_STRIP_ANSI_LOG" "${qemuStripAnsiLog}"; then
+		return 1
+	fi
 
 	if [[ "${qemuConsoleLog}" == "0" && "${qemuSaveLog}" == "0" ]]; then
 		ryanjson_log_info "QEMU_CONSOLE_LOG=0 且 QEMU_SAVE_LOG=0 无可见输出，自动切换 QEMU_CONSOLE_LOG=1。"
@@ -171,6 +228,7 @@ prepareQemuCaseList() {
 	if [[ "${qemuSaveLog}" == "1" ]]; then
 		mkdir -p "${qemuLogRoot}"
 	fi
+	mkdir -p "${qemuLogRoot}/_tmp"
 
 	if ((qemuMaxCases > 0)) && ((qemuMaxCases < ${#caseList[@]})); then
 		caseList=("${caseList[@]:0:qemuMaxCases}")
@@ -189,8 +247,10 @@ printQemuBanner() {
 	ryanjson_print_banner_kv "MEMORY" "${qemuMemory}"
 	ryanjson_print_banner_kv "CONSOLE_LOG" "${qemuConsoleLog}"
 	ryanjson_print_banner_kv "SAVE_LOG" "${qemuSaveLog}"
+	ryanjson_print_banner_kv "STRIP_ANSI_LOG" "${qemuStripAnsiLog}"
 	ryanjson_print_banner_kv "SEMIHOSTING" "${qemuSemihostingMode}"
 	ryanjson_print_banner_kv "MAX_CASES" "${qemuMaxCases}"
+	ryanjson_print_banner_kv_optional "SINGLE_CASE" "${qemuSingleCase}"
 	ryanjson_print_banner_end
 }
 
@@ -199,9 +259,17 @@ cleanQemuStream() {
 	if command -v perl >/dev/null 2>&1; then
 		# 规范化 UART 输出：保留 ANSI 颜色，去掉 CR 和无意义控制字符，
 		# 这样后面的 marker 检查可以稳定使用 ^...$。
-		perl -ne 's/\r//g; s/[\x00-\x08\x0B\x0C\x0E-\x1A\x1C-\x1F\x7F]//g; next if length($_) > 4096; print;'
+		if [[ "${qemuStripAnsiLog}" == "1" ]]; then
+			perl -ne 's/\r//g; s/\x1b\[[0-9;]*[A-Za-z]//g; s/[\x00-\x08\x0B\x0C\x0E-\x1A\x1C-\x1F\x7F]//g; next if length($_) > 4096; print;'
+		else
+			perl -ne 's/\r//g; s/[\x00-\x08\x0B\x0C\x0E-\x1A\x1C-\x1F\x7F]//g; next if length($_) > 4096; print;'
+		fi
 	else
-		tr -d '\000\r'
+		if [[ "${qemuStripAnsiLog}" == "1" ]]; then
+			tr -d '\000\r' | sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g'
+		else
+			tr -d '\000\r'
+		fi
 	fi
 }
 
@@ -347,7 +415,7 @@ run_case() {
 		caseLogPath="${qemuLogRoot}/${caseName}.log"
 		keepCaseLog="1"
 	else
-		caseLogPath="$(mktemp "/tmp/${caseName}.XXXX.log")"
+		caseLogPath="${qemuLogRoot}/_tmp/${caseName}.log"
 		keepCaseLog="0"
 	fi
 
@@ -355,7 +423,7 @@ run_case() {
 	if [[ "${qemuSaveLog}" == "1" ]]; then
 		ryanjson_log_phase "启动 QEMU 并抓取日志 -> ${caseLogPath}"
 	else
-		ryanjson_log_phase "启动 QEMU（终端实时输出，日志不落盘）"
+		ryanjson_log_phase "启动 QEMU（终端实时输出，日志临时写入）"
 	fi
 
 	qemuArgs=(
@@ -373,7 +441,7 @@ run_case() {
 		qemuArgs+=(-m "${qemuMemory}")
 	fi
 
-	: > "${caseLogPath}"
+	ryanjson_init_utf8_log "${caseLogPath}"
 	deadlineSec=$((SECONDS + qemuTimeoutSec))
 
 	set +e
@@ -473,7 +541,7 @@ runQemuMatrix() {
 	if [[ "${qemuSaveLog}" == "1" ]]; then
 		ryanjson_log_info "日志目录: ${qemuLogRoot}"
 	else
-		ryanjson_log_info "日志输出: 终端实时输出（不落盘）"
+		ryanjson_log_info "日志目录: ${qemuLogRoot}/_tmp（用例结束后自动清理）"
 	fi
 
 	if [[ "${failedCases}" -gt 0 ]]; then

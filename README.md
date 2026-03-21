@@ -1,199 +1,244 @@
 # RyanJson
-### *希望有兴趣的大佬多试试，找找bug、提提意见*
+### *欢迎试用并反馈问题与建议*
 
-📢 **使用过程中遇到问题？欢迎提交 Issue 或在 [RT-Thread 社区](https://club.rt-thread.org/index.html) 提问，感谢支持！**
+📢 **使用中遇到问题，欢迎提交 Issue 或在 [RT-Thread 社区](https://club.rt-thread.org/index.html) 提问。**
 
-***一个针对资源受限的嵌入式设备优化的Json库，内存占用极小的通用Json库，简洁高效！***
-
-***示例代码请参考`example`文件夹！***
+**一句话简介：**面向资源受限设备的嵌入式 JSON 组件库，强调极小内存占用与高可靠性。  
+**快速入口：**`example/`、`./run_local_base.sh`、`AGENTS.md`
 
 ### 1、介绍
 
-**RyanJson** 是一个针对嵌入式平台深度优化的 C 语言 JSON 解析器。它在保持代码健壮性的同时，实现了极致的内存控制，旨在解决 cJSON 等传统库在复杂场景下内存占用过高的问题。
-
-*初衷：项目重构后 JSON 结构复杂度提升，cJSON 内存占用过高，无法满足嵌入式场景需求。*
+- **定位：**面向嵌入式平台深度优化的 C 语言 JSON 解析器。
+- **目标：**在保证高可靠与高可控的前提下，持续压缩内存占用。
+- **动机：**项目重构后 JSON 结构复杂度提升，cJSON 内存占用过高，难以满足嵌入式场景需求。
 
 #### ✅ 特性亮点
 
-- 💡 **极致内存优化：** 通过动态内存扩展与紧凑结构设计，相比 cJSON 减少 **50% 左右的内存占用**。
-- 🔍 **模糊测试保障：** 基于[LLVM Fuzzer](https://llvm.org/docs/LibFuzzer.html) 生成上亿级测试用例，**分支覆盖率 100%**，确保非法输入和极端场景下依旧安全。**[点击在线查看覆盖率信息](https://ryan-cw-code.github.io/RyanJson/)** 
-- 🧪 **9 大类专项测试用例：** 覆盖广泛场景，全链路内存泄漏检测，强化稳定性与可靠性
-- 🛡️ **运行时安全分析验证：** 使用 **[Sanitizer](https://clang.llvm.org/docs/index.html#sanitizers)** 系列工具，捕获内存越界、Use-after-free、数据竞争、未定义行为、内存泄漏等问题，提升代码健壮性与安全性
-- 📐**高质量代码保障：**  引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 与 **[Cppcheck](https://cppcheck.sourceforge.io/)** 进行静态分析，代码质量接近语法级的"**零缺陷**"
-- 🤖  **AI 辅助开发与审查：** 结合  **[Gemini Code Assist](https://codeassist.google/)** 、**[coderabbitai](https://www.coderabbit.ai)** 、 **[Copilot](https://github.com/features/copilot)** ，在编码与代码审查阶段持续优化代码质量，构建多层安全防线
+- 💡 **极致内存优化：** 通过动态内存扩展与紧凑布局（兼容未对齐访问），相较 cJSON 内存占用约降低 **50%**（详见 [内存占用对比报告](memoryUsageCompareQemu.md)）。
+- 💡 **适配 malloc 头部与对齐策略：** 通过配置匹配不同平台的分配器特性，平衡内联阈值与内存占用。
+- 💡 **零递归栈依赖：** 关键路径采用线索化链表 + 迭代 DFS，避免递归栈依赖，深层嵌套时栈占用可控。
+- 🔍 **模糊测试护城河：** 基于 [LLVM LibFuzzer](https://llvm.org/docs/LibFuzzer.html) 进行高强度随机用例生成与回归，覆盖率以在线报告为准（见下文链接）。
+- 🧪 **单元测试矩阵与 QEMU 语义验证一体化：** 覆盖 double、重复 key、深层嵌套、链表稳定性等路径，并在 Cortex-M 语义下校验未对齐访问与 HardFault，核心语义宏组合覆盖。
+- 🛡️ **运行时安全分析验证：** 使用 **[Sanitizer](https://clang.llvm.org/docs/index.html#sanitizers)** 系列工具，捕获内存越界、Use-after-free、数据竞争、未定义行为、内存泄漏等问题，提升代码健壮性与安全性。
+- 📐 **高质量代码保障：** 引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 与 **[Cppcheck](https://cppcheck.sourceforge.io/)** 进行静态分析，目标是接近语法级“零缺陷”。
+- 🤖 **AI 辅助开发与审查：** 结合 **[Codex](https://openai.com/codex)**、**[Gemini Code Assist](https://codeassist.google/)**、**[coderabbitai](https://www.coderabbit.ai)**、**[Copilot](https://github.com/features/copilot)**，用于编码与代码审查，持续优化代码质量。
 - 👩‍💻 **开发者友好：** 类 cJSON 接口设计，迁移成本低
-- 📜 **严格但不严苛：** 符合  **[RFC 8259](https://github.com/nst/JSONTestSuite)** 绝大部分标准，支持无限嵌套（受限于栈空间），支持注释与尾随逗号（可配置）
+- 📜 **严格但不严苛：** 默认配置通过 **[RFC 8259](https://github.com/nst/JSONTestSuite)** 测试集；支持深层嵌套（受限于内存与平台栈配置），支持注释与尾随逗号（可配置）
 
 ### 2、设计
 
-**RyanJson设计时借鉴了 [json](https://api.gitee.com/Lamdonn/json) 和 [cJSON](https://github.com/DaveGamble/cJSON) !**  
+**设计参考与语法背景**
+- **借鉴：**[json](https://api.gitee.com/Lamdonn/json) 和 [cJSON](https://github.com/DaveGamble/cJSON)
+- **语法参考：**[JSON 规范](https://www.json.org/json-en.html)、[Parsing JSON is a Minefield](https://seriot.ch/projects/parsing_json.html)
 
-Json语法是**JavaScript**对象语法的子集，可通过下面两个连接学习json语法。
-
-[JSON规范](https://www.json.org/json-en.html)
-
-[Parsing JSON is a Minefield 建议看看](https://seriot.ch/projects/parsing_json.html)
-
-RyanJson 的核心在于对内存布局的精细控制，**结构体表示最小存储单元（键值对）**，通过单链表组织数据，结构如下：
+RyanJson 的核心竞争力在于对内存布局的精细控制，**结构体表示最小存储单元（键值对）**，通过单链表组织数据，结构如下：
 
 ```c
-// Json 的最基础节点，所有 Json 元素都由该节点表示。
-// 结构体中仅包含固定的 next 指针，用于单向链表串联。
-// 其余数据（flag、key、stringValue、numberValue、doubleValue 等）均通过动态内存分配管理。
+
+// Json 最基础节点，所有 Json 元素都由该节点表示。
+// 结构体仅包含固定的 next 指针，用于单向链表串联。
+// 其余数据（如 flag/key/strValue/intValue/doubleValue/objValue 等）均通过动态内存分配管理。
 struct RyanJsonNode
 {
-	// 理论上next的低2位也是可以利用起来的
+	// 理论上 next 的低 2 位也可复用
 	struct RyanJsonNode *next; // 单链表节点指针
 
 	/**
-	 * @brief RyanJson 节点结构体
-	 * 每个节点由链表连接，包含元数据标识 (Flag) 与动态载荷存储区。
+	 * @brief RyanJson 节点结构与载荷布局说明（面向使用者的实现约定）。
+	 * @details
+	 * `struct RyanJsonNode` 本体仅保存 `next` 指针，所有元数据与真实载荷都放在结构体后面的
+	 * 动态区域（payload）。该 payload 的第一个字节就是 flag，紧跟其后的区域根据 flag 语义切分。
+	 * 这种布局能缩小节点本体，并让 key/strValue 的存储策略可切换。
 	 *
-	 * 内存布局：
-	 * [ next指针 | flag(1字节) | padding/指针空间 | 动态载荷区 ]
+	 * Layout（逻辑示意）:
+	 * [ next | flag(1B) | keyLenField(0/1/2/4B) | inline/ptr payload ... | value ]
 	 *
-	 * @brief 节点元数据标识 (Flag)
-	 * 紧跟 next 指针后，利用 1 字节位域描述节点类型及存储状态。
+	 * Flag Bits（bit7..bit0）:
+	 * - bit0-2: Type（Null/Bool/Number/String/Array/Object）
+	 * - bit3  : Bool/Number 扩展位（Bool: true/false；Number: Int/Double）
+	 * - bit4-5: keyLenField 编码（0/1/2/4 字节）
+	 * - bit6  : strMode（inline/ptr）
+	 * - bit7  : IsLast（1 表示 next 指向 Parent 线索）
 	 *
-	 * flag 位分布定义：
-	 * bit7   bit6   bit5   bit4   bit3   bit2   bit1   bit0
-	 * -----------------------------------------------------
-	 * strMode KeyLen KeyLen HasKey NumExt Type2  Type1  Type0
+	 * keyLenField（key 长度字段）:
+	 * - 位于 flag 之后，长度由 bit4-5 编码决定。
+	 * - 记录 key 的字节长度（不含 '\\0'），按低字节在前写入。
+	 * - 编码值 3 表示字段宽度 4 字节（不是 3 字节）。
+	 *   这是为了用 2 bit 表达 0/1/2/4 四种宽度，详见 RyanJsonInternalDecodeKeyLenField。
 	 *
-	 * 各位含义：
-	 * - bit0-2 : 节点类型
-	 *            000=Unknown, 001=Null, 010=Bool, 011=Number,
-	 *            100=String, 101=Array, 110=Object, 111=Reserved
+	 * Payload（key/strValue 存储策略）:
+	 * - 固定字符串区（仅当节点有 key 或类型为 String 时存在）：
+	 *   位置：flag 后固定长度 `RyanJsonInlineStringSize`。
+	 *   起点：先写 keyLenField（宽度由 flag 编码 0/1/2/4 字节）。
 	 *
-	 * - bit3   : 扩展位
-	 *            Bool 类型：0=false, 1=true
-	 *            Number 类型：0=int32_t(4字节), 1=double(8字节)
+	 * - inline 模式：
+	 *   内容：keyLenField 后顺序写 key\\0 与 strValue\\0。
+	 *   变体：String 节点有 strValue；key 为空则仅 strValue\\0；非 String 节点仅 key\\0。
 	 *
-	 * - bit4-5 : Key 长度字段字节数
-	 *            00:无key
-	 *            01:keyLen=1字节 (≤UINT8_MAX)
-	 *            10:keyLen=2字节 (≤UINT16_MAX)
-	 *            11:keyLen=4字节 (≤UINT32_MAX)
+	 * - ptr 模式：
+	 *   指针槽：固定在 flag + RyanJsonKeyFeidLenMaxSize，不随 keyLenField 宽度变化。
+	 *   说明：读写指针用 memcpy，规避潜在非对齐访问。
+	 *   堆区：有 key 则 [key\\0]；String 节点再追加 [strValue\\0]；无 key 则仅 [strValue\\0]。
 	 *
-	 * - bit6   : 表示key / strValue 存储模式
-	 *            0:inline 模式, 1:ptr 模式
+	 * - 内联判定：
+	 *   条件：key/strValue 字节总和 + keyLenField 宽度 <= `RyanJsonInlineStringSize`。
+	 *   说明：无 key 时 keyLenField 宽度为 0。
 	 *
-	 * - bit7   : 表示是否为当前链表的最后一位，是的话nexe指针会指向Parent(线索化链表)
-	 *            0:next 指向兄弟节点, 1:next 指向Parent节点
+	 * Value 存储位置（与 key 是否存在相关）:
+	 * - Number/Array/Object 的 value 位于 payload 中固定偏移处。
+	 * - String 的 value 存在于 key/strValue 区域，不使用 value 偏移。
+	 * - 如果节点带 key，则 value 放在 flag + RyanJsonInlineStringSize 之后；
+	 *   这样无论 inline/ptr 模式，value 偏移都稳定。
+	 * - 若节点无 key，则 value 紧跟 flag。
+	 * - Null/Bool 仅使用 flag 位表达，无额外 payload。
+	 * - 实际偏移以 RyanJsonInternalGetValue 的计算为准。
 	 *
-	 * @brief 动态载荷存储区
-     * 目的：
-     * - 在保持 API 易用性和稳定性的同时，最大限度减少 malloc 调用次数。
-     * - 尤其在嵌入式平台，malloc 代价高昂：不仅有堆头部空间浪费，还会产生内存碎片。
-     * - 通过利用结构体内的对齐填充 (Padding) 和指针空间，形成一个灵活的缓冲区。
-     *
-     * 存储策略：
-     * 利用结构体内存对齐产生的 Padding（如 Flag 后的空隙）以及原本用于存储指针的空间，形成一个缓冲区
-     * 若节点包含 key / strValue，则可能有两种方案：
-     * inline 模式 (小数据优化)
-     *    - 当 (KeyLen + Key + Value) 的总长度 ≤ 阈值时，直接存储在结构体内部。
-     *    - 阈值计算公式：
-     *        阈值 = Padding + sizeof(void*) + (malloc头部空间的一半)，再向上对齐到字节边界。
-     *      举例：
-     *        - 内存对齐：4字节
-     *        - malloc头部空间：8字节
-     *        - 可用空间 = 3 (flag后padding) + 4 (指针空间) + 4 (malloc头部一半)
-     *        - 向上对齐后得到阈值12字节
-     *    - 存储布局：
-     *        [ KeyLen | Key | Value ]
-     *      起始地址即为 flag 之后，数据紧凑排列，无需额外 malloc。
-     *
-     * ptr 模式 (大数据)
-     *    - 当数据长度 > 阈值时，结构体存储一个指针，指向独立的堆区。
-     *    - 存储布局：
-     *        [ KeyLen | *ptr | Padding ] -> (ptr指向) [ Key | Value ]
-     *    - KeyLen 的大小由 flag 中的长度字段决定 (最多 4 字节)。
-     *    - 这样保证大数据不会撑爆结构体，同时保持 API 一致性。
-
-     * 其他类型的存储：
-	 * - null / bool : 由 flag 位直接表示，无需额外空间。
-	 * - number      : 根据 flag 扩展位决定存储 int32_t(4字节) 或 double(8字节)。
-	 * - object      : 动态分配空间存储子节点，采用链表结构。
-     *
-     * 设计考量：
-     * - malloc 在嵌入式平台的开销：
-     *    * RTT 最小内存管理算法中，malloc 头部约 12 字节(可以考虑tlsf算法头部空间仅4字节，内存碎片也控制的很好，适合物联网应用)。
-     *    * 一个 RyanJson 节点本身可能只有个位数字节，头部空间就让内存占用翻倍。
-     * - 因此：
-     *    * 小数据尽量 inline 存储，避免二次 malloc。
-     *    * 大数据 fallback 到 ptr 模式，保证灵活性。
-     * - 修改场景：
-     *    * 理想情况：节点结构体后面直接跟 key/strValue，修改时释放并重新申请节点。
-     *    * 但这样 changKey/changStrValue 接口改动太大，用户层需要修改指针，代价高。
-     *    * 实际策略：提供就地修改接口。
-     *        - 若新值长度 ≤ 原有 inline 缓冲区，直接覆盖。
-     *        - 若超过阈值，自动切换到 ptr 模式，用户层无需关心。
+	 * inline / ptr 简化示意（payload 仅示意，不含 value 区）:
+	 * - inline 示例:
+	 *   key + strValue: [ flag | keyLenField | key\\0 | strValue\\0 | ... ]
+	 *   key only (非 String): [ flag | keyLenField | key\\0 | ... ]
+	 *   strValue only (key 为空): [ flag | keyLenField | strValue\\0 | ... ]
+	 * - ptr 示例:
+	 *   key + strValue: [ flag | keyLenField | (pad) | ptr | ... ]  ptr -> [ key\\0 | strValue\\0 ]
+	 *   key only (非 String): [ flag | keyLenField | (pad) | ptr | ... ]  ptr -> [ key\\0 ]
+	 *   strValue only (key 为空): [ flag | keyLenField | (pad) | ptr | ... ]  ptr -> [ strValue\\0 ]
+	 *   padding 表示内联区未使用的剩余空间或对齐填充。
 	 *
-     * 链表结构示例：
-     *   {
-     *       "name": "RyanJson",
-     *   next (
-     *       "version": "xxx",
-     *   next (
-     *       "repository": "https://github.com/Ryan-CW-Code/RyanJson",
-     *   next (
-     *       "keywords": [
-     *           "json",
-     *       next (
-     *           "streamlined",
-     *       next (
-     *           "parser"
-     *       ))
-     *       ],
-     *   next (
-     *       "others": { ... }
-     *   }
+	 * Threaded List（线索化链表）:
+	 * - 同层兄弟节点通过 `next` 串联。
+	 * - 最后一个兄弟节点的 `next` 指向父节点，并设置 IsLast=1。
+	 * - 对外遍历必须使用 `RyanJsonGetNext`，它会屏蔽父节点线索。
+	 * - 因此 `next` 不是“永远指向兄弟”，IsLast=1 时它是父节点线索。
+	 *
+	 * Example（Object 子节点链表示意）:
+	 *   root(Object)
+	 *     |
+	 *     +-- "a":1  -> "b":2  -> (IsLast=1, next=root)
+	 *   RyanJsonGetNext("b") == NULL
+	 *
+	 * Array/Object 子节点与父节点线索示意:
+	 *   parent(Object)
+	 *     |
+	 *     +-- child0 -> child1(Last, next=parent)
+	 *            |
+	 *            +-- grandChild0 -> grandChild1(Last, next=child1)
+	 *
+	 * Offset 快速对照（从 payload 起点算起，用于理解访问宏偏移）:
+	 * - flag: 0
+	 * - keyLenField: 1
+	 * - inline/ptr payload: 1 + keyLenField 宽度
+	 * - value（无 key）: 1
+	 * - value（有 key）: 1 + RyanJsonInlineStringSize
+	 *
+	 * 修改影响范围提示:
+	 * - 改动 flag 位语义或 keyLenField 编码时，需同步 RyanJsonGetKey/RyanJsonGetStringValue。
+	 * - 改动 payload 布局或内联阈值时，需同步 RyanJsonInternalGetValue 与相关测试。
+	 *
+	 * @note 该布局依赖 flag 位语义与 keyLenField 编码规则。
+	 * @note 常见误解提示:
+	 * - IsLast=1 的节点其 next 不是兄弟，而是父节点线索。
+	 * - 遍历同层必须使用 RyanJsonGetNext，不能直接读 next。
+	 * - value 偏移与是否有 key 强相关，不能用固定结构体偏移理解。
+	 * @note 修改内联阈值或 payload 布局时需同步更新注释与测试。
 	 */
 };
 
 typedef struct RyanJsonNode *RyanJson_t;
 ```
 
+#### ✅ 核心源码与模块入口
+- `RyanJson/RyanJson.h`：公开 API 与节点结构体定义
+- `RyanJson/RyanJsonParse.c`：解析主流程与输入校验
+- `RyanJson/RyanJsonPrint.c`：序列化输出与格式化策略
+- `RyanJson/RyanJsonItem.c`：节点创建、插入、替换、分离等操作
+- `RyanJson/RyanJsonUtils.c`：链表与内部工具实现
+- `RyanJson/RyanJsonConfig.h`：宏配置与平台差异
+- `xmake.lua`、`xmake/`：构建配置
+- `run_local_*.sh`：本地脚本入口
+- `skills/shared/architecture.md`：架构与内部实现说明（AI 入口）
+
+#### ✅ 目录结构速查
+| 目录 | 说明 |
+| --- | --- |
+| `RyanJson/` | 核心库源码与头文件 |
+| `test/` | Unity 测试、fuzz 用例、第三方依赖 |
+| `example/` | 使用示例 |
+| `skills/` | AI 技能与知识库入口 |
+| `scripts/` | 辅助脚本与工具 |
+| `xmake/` | 构建脚本 |
+| `build/` | 构建输出 |
+| `localLogs/` | 覆盖率与脚本日志输出 |
+
 ### 3、测试与质量保障
 
-#### 🧪 专项基础功能测试
+**测试体系概览**
+- **组成：**单元测试矩阵 + 模糊测试 + QEMU 语义验证
+- **目标：**将稳定性验证前置到研发阶段
 
-| 测试类别                 | 测试目标                                                |
-| ------------------------ | ------------------------------------------------------- |
-| **修改 Json 节点测试**   | 验证字段动态更新及存储模式（Inline/Ptr）的自动切换逻辑  |
-| **比较 Json 节点测试**   | 验证节点及其属性的递归深度一致性比较与逻辑等价性        |
-| **创建 Json 节点树测试** | 验证全类型节点的构造初始化及深层嵌套结构的正确性        |
-| **删除 Json 节点测试**   | 验证节点及其子项的递归内存回收机制，防止内存泄漏        |
-| **分离 Json 节点测试**   | 验证节点的分离操作、所属权转移及引用关系的生命周期管理  |
-| **复制 Json 节点测试**   | 验证对象深拷贝 (Deep Copy) 的数据完整性与拓扑结构一致性 |
-| **Json 循环测试**        | 验证数组/对象迭代器在不同数据规模下的稳定性与边界行为   |
-| **文本解析 Json 测试**   | 验证复杂 JSON 文本解析的健壮性及内存映射的准确性        |
-| **替换 Json 节点测试**   | 验证成员节点就地替换时的内存复用策略与逻辑一致性        |
+#### ✅ 本地测试入口（脚本）
+| 脚本 | 说明 |
+| --- | --- |
+| `./run_local_base.sh` | 单元测试矩阵（Unity） |
+| `./run_local_fuzz.sh` | LibFuzzer 模糊测试 |
+| `./run_local_ci.sh` | 本地 CI（单元 + quick fuzz） |
+| `./run_local_qemu.sh` | QEMU 语义验证（嵌入式路径） |
+| `./run_local_format.sh --check` | 格式检查 |
+| `./run_local_skills.sh` | skills 同步与校验 |
 
-#### 🔍**LLVM Fuzzer 模糊测试**（核心亮点）
+#### ✅ 覆盖率与日志说明
+- unit 覆盖率目录：`localLogs/unitMatrix`
+- fuzz 覆盖率目录：`test/fuzzer/coverage`
+- fuzz 运行日志：默认覆盖写入 `./fuzz.log`
 
-LLVM Fuzzing 模糊测试是 RyanJson 的 **核心稳定性保障**。
+#### 🧪 专项基础功能测试（单元测试分层与覆盖域）
+
+单元测试以“语义正确 + 资源安全 + 场景一致性”为主线，按目录分层组织覆盖范围与职责（见 `test/unityTest/cases`）。
+
+| 分组目录 | 说明 |
+| --- | --- |
+| `core` | 核心 API 语义与主路径（创建、插入、替换、删除、遍历等） |
+| `edge` | 极限/异常输入与边界约束，强调失败语义与资源回收（含解析/打印边界） |
+| `equality` | double 精度、科学计数法、往返一致性、Compare/CompareOnlyKey 与重复 key 语义 |
+| `performance` | 深层嵌套/递归栈压力与性能回归基线（默认深度 10000，object/array/mixed 模式） |
+| `scenario` | 跨 API 的业务场景组合与流程一致性 |
+| `stability` | 链表迁移/遍历稳定性与长路径回归 |
+| `usage` | 使用方式与集成约定的示例型单元测试 |
+| `utils` | 工具函数与辅助路径的正确性验证 |
+| `RFC8259` | RFC8259 标准样例与一致性检验 |
+
+fuzz 目标覆盖 `parse/create/modify/replace/detach/delete/duplicate/minify` 等路径（见 `test/fuzzer/cases`），用于补充随机与异常输入下的鲁棒性与崩溃防御验证。
+
+#### 🛰️ QEMU 语义验证（嵌入式硬件语义）
+- 通过 QEMU 模拟 Cortex-M 语义路径，覆盖未对齐访问与 HardFault 处理等硬件级关键行为（`UNALIGN_TRP=1` 强制触发未对齐异常）。
+- 面向嵌入式场景的“语义级一致性”保障，不仅是“能跑通”，更是“语义正确”。
+- 脚本入口：`./run_local_qemu.sh`
+
+#### 🔍 **LLVM LibFuzzer 模糊测试**（核心亮点）
+
+LLVM LibFuzzer 模糊测试是 RyanJson 的 **稳定性护城河**，用于持续验证异常输入与极端边界。
 
 **[点击在线查看覆盖率信息](https://ryan-cw-code.github.io/RyanJson/)** 
 
-- **上亿级测试样本**：[LLVM Fuzzer](https://llvm.org/docs/LibFuzzer.html)  自动生成并执行上亿级随机与非法 JSON 输入
-- **覆盖率极高**：**分支覆盖率 100%**（希望以后也能保持），无崩溃、无泄漏
+- **上亿级测试样本**：[LLVM LibFuzzer](https://llvm.org/docs/LibFuzzer.html) 自动生成并执行上亿级随机与非法 JSON 输入
+- **覆盖率极高**：覆盖率以在线报告为准，期望长期保持高覆盖、无崩溃、无泄漏
 - **鲁棒性验证**：内存申请失败、扩容失败、非法转义字符、尾随逗号、嵌套过深、随机类型切换
 - **内存安全验证**：结合 **[Sanitizer](https://clang.llvm.org/docs/index.html#sanitizers)** 工具链，确保无泄漏、无悬空指针、无越界
 
 | 测试类别                   | 测试目标                                                  |
 | -------------------------- | --------------------------------------------------------- |
-| **内存故障模拟测试**       | 验证在堆内存耗尽 (OOM) 场景下的异常回滚及系统稳定性       |
-| **随机解析鲁棒性测试**     | 验证对非法语法、畸形字符及极端输入的容错与边界防御能力    |
-| **循环遍历删除安全性测试** | 验证链表迭代过程中动态删除节点的双向一致性与指针安全性    |
-| **循环遍历分离安全性测试** | 验证在高频率迭代中分离节点后的拓扑重构与内存权属逻辑      |
-| **转义序列极致压缩测试**   | 验证复杂及异常转义字符在高效压缩过程中的解析完整性        |
-| **序列化回环一致性测试**   | 验证 JSON 对象经过“解析-打印-解析”链路后数据的不失真性    |
-| **高频迭代值读取测试**     | 验证在不同层级结构下随机访问 Value 字段的寻址效率与稳定性 |
-| **随机压力复制安全测试**   | 验证大规模深拷贝过程中内存池的利用效率与拓扑结构安全性    |
-| **动态类型切换压力测试**   | 验证节点在运行期进行类型强制转换与动态扩展时的内存安全性  |
+| **内存故障模拟测试**       | 覆盖 OOM 场景下的异常回滚与系统稳定性                     |
+| **随机解析鲁棒性测试**     | 覆盖非法语法、畸形字符、极端输入的容错与边界防御           |
+| **循环遍历删除安全性测试** | 覆盖迭代中删除节点的链表一致性与指针安全                  |
+| **循环遍历分离安全性测试** | 覆盖高频分离后的拓扑重构与内存权属逻辑                    |
+| **转义序列压缩测试**       | 覆盖复杂/异常转义字符在压缩路径中的解析完整性            |
+| **序列化回环一致性测试**   | 覆盖“解析-打印-解析”链路的数据一致性                     |
+| **高频迭代值读取测试**     | 覆盖多层结构下 Value 访问的稳定性与寻址效率              |
+| **随机压力复制安全测试**   | 覆盖大规模深拷贝的内存池利用效率与拓扑安全               |
+| **动态类型切换压力测试**   | 覆盖运行期类型切换与动态扩展的内存安全                   |
 
 #### 🛡️ 工具链全面集成
+
+运行时、静态分析与格式化三位一体，形成持续质量防线。
 
 | 工具                                                         | 用途                                                         |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -201,172 +246,126 @@ LLVM Fuzzing 模糊测试是 RyanJson 的 **核心稳定性保障**。
 | **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** | 静态分析潜在缺陷（空指针、资源泄漏等）                       |
 | **[Cppcheck](https://cppcheck.sourceforge.io/)**             | 深度扫描内存与资源问题                                       |
 | **[ClangFormat](https://clang.llvm.org/docs/ClangFormat.html)** | 统一代码风格                                                 |
-| AI 审查                                                      | **[Gemini Code Assist](https://codeassist.google/)** 、**[coderabbitai](https://www.coderabbit.ai)** 、 **[Copilot](https://github.com/features/copilot)** 辅助优化逻辑，构建多层安全防线 |
+| AI 代码审查                                                  | **[Codex](https://openai.com/codex)**、**[Gemini Code Assist](https://codeassist.google/)**、**[coderabbitai](https://www.coderabbit.ai)**、**[Copilot](https://github.com/features/copilot)** 辅助优化逻辑，构建多层安全防线 |
 | **编译器警告**                                               | `-Wall -Wextra`（默认）、`-Weffc++`/`-Weverything`（Clang 可选，CI 强化时开启） |
+
+#### ✅ 当前主机侧单测基线（脚本默认）
+- 默认构建目标：`RyanJson`
+- 默认工具链：`clang + linux x86`（当前主要验证环境，见 `xmake/host.lua`）
+- 默认启用：Sanitizer 与链接期安全硬化（见 `xmake/host.lua`）
 
 ### 4、基准测试
 
-*测试代码和示例代码可在本项目根目录 `test` 和 `RyanJsonExample` 文件夹查看。*
+*测试与示例代码见本项目根目录 `test/` 和 `example/` 文件夹。*
 
 #### 性能测试
-
-**请移步文末的 RyanDocs 文档中心查看，是基于 [yyjson_benchmark](https://github.com/ibireme/yyjson_benchmark) 的测试结果**。（已经过时，仅供参考）
+**性能测试结果见 RyanDocs 文档中心（基于 [yyjson_benchmark](https://github.com/ibireme/yyjson_benchmark)，已过时，仅供参考）。**
 
 
 #### 内存占用测试
-(20251222 **malloc头部空间4字节，内存对齐4字节**)测试代码可在本项目根目录`RyanJsonExample`文件夹查看。
+RyanJson 支持按平台配置 `malloc` 头部空间与对齐粒度（见 `RyanJson/RyanJsonConfig.h`），内存对比结果已独立输出为 Markdown 文档，避免 README 过长。
 
-```
-*****************************************************************************
-*************************** RyanJson / cJSON / yyjson 内存对比程序 **************************
-*****************************************************************************
-┌── [TEST 1 | test/RyanJsonMemoryFootprintTest.c:294] 开始执行: testMixedJsonMemory()
-json原始文本长度为 2265, 序列化后RyanJson内存占用: 4912, cJSON内存占用: 11336, yyjson内存占用: 8784
-比cJSON节省: 56.67% 内存占用, 比yyjson节省: 44.08% 内存占用
-└── [TEST 1 | test/RyanJsonMemoryFootprintTest.c:294] 结束执行: 结果 ✅ | 耗时: 0 ms
+- Host 报告：[memoryUsageCompareHost.md](memoryUsageCompareHost.md)
+- QEMU 报告：[memoryUsageCompareQemu.md](memoryUsageCompareQemu.md)
 
-┌── [TEST 2 | test/RyanJsonMemoryFootprintTest.c:295] 开始执行: testObjectJsonMemory()
-json原始文本长度为 3991, 序列化后RyanJson内存占用: 7944, cJSON内存占用: 16020, yyjson内存占用: 12884
-比cJSON节省: 50.41% 内存占用, 比yyjson节省: 38.34% 内存占用
-└── [TEST 2 | test/RyanJsonMemoryFootprintTest.c:295] 结束执行: 结果 ✅ | 耗时: 1 ms
+生成方式（默认同时生成 host + qemu）：
 
-┌── [TEST 3 | test/RyanJsonMemoryFootprintTest.c:296] 开始执行: testArrayJsonMemory()
-json原始文本长度为 1205, 序列化后RyanJson内存占用: 3696, cJSON内存占用: 8680, yyjson内存占用: 5068
-比cJSON节省: 57.42% 内存占用, 比yyjson节省: 27.07% 内存占用
-└── [TEST 3 | test/RyanJsonMemoryFootprintTest.c:296] 结束执行: 结果 ✅ | 耗时: 0 ms
-
-┌── [TEST 4 | test/RyanJsonMemoryFootprintTest.c:297] 开始执行: testSmallMixedJsonMemory()
-json原始文本长度为 90, 序列化后RyanJson内存占用: 168, cJSON内存占用: 392, yyjson内存占用: 648
-比cJSON节省: 57.14% 内存占用, 比yyjson节省: 74.07% 内存占用
-└── [TEST 4 | test/RyanJsonMemoryFootprintTest.c:297] 结束执行: 结果 ✅ | 耗时: 0 ms
-
-┌── [TEST 5 | test/RyanJsonMemoryFootprintTest.c:298] 开始执行: testSmallStringJsonMemory()
-json原始文本长度为 100, 序列化后RyanJson内存占用: 216, cJSON内存占用: 472, yyjson内存占用: 648
-比cJSON节省: 54.24% 内存占用, 比yyjson节省: 66.67% 内存占用
-└── [TEST 5 | test/RyanJsonMemoryFootprintTest.c:298] 结束执行: 结果 ✅ | 耗时: 0 ms
-
-┌── [TEST 6 | test/RyanJsonMemoryFootprintTest.c:299] 开始执行: testCompressedBusinessJsonMemory()
-json原始文本长度为 551, 序列化后RyanJson内存占用: 1184, cJSON内存占用: 3788, yyjson内存占用: 3020
-比cJSON节省: 68.74% 内存占用, 比yyjson节省: 60.79% 内存占用
-└── [TEST 6 | test/RyanJsonMemoryFootprintTest.c:299] 结束执行: 结果 ✅ | 耗时: 0 ms
+```bash
+bash run_local_memory.sh
 ```
 
-RT-Thread平台使用最小内存算法默认 **malloc头部空间12字节，内存对齐8字节**测试代码可在本项目根目录`RyanJsonExample`文件夹查看
+如需仅主机侧结果：
 
+```bash
+MEM_PLATFORM=host bash run_local_memory.sh
 ```
-*****************************************************************************
-*************************** RyanJson / cJSON / yyjson 内存对比程序 **************************
-*****************************************************************************
-┌── [TEST 1 | test/RyanJsonMemoryFootprintTest.c:294] 开始执行: testMixedJsonMemory()
-json原始文本长度为 2265, 序列化后RyanJson内存占用: 7292, cJSON内存占用: 14948, yyjson内存占用: 8852
-比cJSON节省: 51.22% 内存占用, 比yyjson节省: 17.62% 内存占用
-└── [TEST 1 | test/RyanJsonMemoryFootprintTest.c:294] 结束执行: 结果 ✅ | 耗时: 0 ms
 
-┌── [TEST 2 | test/RyanJsonMemoryFootprintTest.c:295] 开始执行: testObjectJsonMemory()
-json原始文本长度为 3991, 序列化后RyanJson内存占用: 11308, cJSON内存占用: 21068, yyjson内存占用: 13016
-比cJSON节省: 46.33% 内存占用, 比yyjson节省: 13.12% 内存占用
-└── [TEST 2 | test/RyanJsonMemoryFootprintTest.c:295] 结束执行: 结果 ✅ | 耗时: 0 ms
+如需仅 QEMU 结果：
 
-┌── [TEST 3 | test/RyanJsonMemoryFootprintTest.c:296] 开始执行: testArrayJsonMemory()
-json原始文本长度为 1205, 序列化后RyanJson内存占用: 5644, cJSON内存占用: 11284, yyjson内存占用: 5104
-比cJSON节省: 49.98% 内存占用, 比yyjson节省: -10.58% 内存占用
-└── [TEST 3 | test/RyanJsonMemoryFootprintTest.c:296] 结束执行: 结果 ✅ | 耗时: 0 ms
-
-┌── [TEST 4 | test/RyanJsonMemoryFootprintTest.c:297] 开始执行: testSmallMixedJsonMemory()
-json原始文本长度为 90, 序列化后RyanJson内存占用: 252, cJSON内存占用: 520, yyjson内存占用: 676
-比cJSON节省: 51.54% 内存占用, 比yyjson节省: 62.72% 内存占用
-└── [TEST 4 | test/RyanJsonMemoryFootprintTest.c:297] 结束执行: 结果 ✅ | 耗时: 0 ms
-
-┌── [TEST 5 | test/RyanJsonMemoryFootprintTest.c:298] 开始执行: testSmallStringJsonMemory()
-json原始文本长度为 100, 序列化后RyanJson内存占用: 272, cJSON内存占用: 620, yyjson内存占用: 676
-比cJSON节省: 56.13% 内存占用, 比yyjson节省: 59.76% 内存占用
-└── [TEST 5 | test/RyanJsonMemoryFootprintTest.c:298] 结束执行: 结果 ✅ | 耗时: 0 ms
-
-┌── [TEST 6 | test/RyanJsonMemoryFootprintTest.c:299] 开始执行: testCompressedBusinessJsonMemory()
-json原始文本长度为 551, 序列化后RyanJson内存占用: 2032, cJSON内存占用: 4872, yyjson内存占用: 3056
-比cJSON节省: 58.29% 内存占用, 比yyjson节省: 33.51% 内存占用
-└── [TEST 6 | test/RyanJsonMemoryFootprintTest.c:299] 结束执行: 结果 ✅ | 耗时: 0 ms
+```bash
+MEM_PLATFORM=qemu bash run_local_memory.sh
 ```
+
+测试用例代码：`test/unityTest/cases/performance/testMemory.c`。示例数据参考 `example/`。
 
 
 
 #### [RFC 8259](https://github.com/nst/JSONTestSuite) 标准符合性测试
+RFC8259 测试结果已独立输出为 Markdown 文档，避免 README 过长。
 
-**RyanJson使用Double存储浮点数，超大数字会丢失精度**
+- Host 报告：[rfc8259ReportHost.md](rfc8259ReportHost.md)
+- QEMU 报告：[rfc8259ReportQemu.md](rfc8259ReportQemu.md)
 
-***如果项目需要完全兼容Unicode字符集，可以考虑yyjson / json-c***
+生成方式（默认同时生成 host + qemu）：
 
+```bash
+bash run_local_rfc8259.sh
 ```
-*****************************************************************************
-*************************** RyanJson / cJSON / yyjson RFC8259标准测试 **************************
-*****************************************************************************
-┌── [TEST 1 | test/RFC8259Test/RyanJsonRFC8259JsonTest.c:282] 开始执行: testRFC8259RyanJson()
-1 数据不完全一致 -- 原始: [-1e+9999] -- 序列化: [null]
-2 数据不完全一致 -- 原始: [123123e100000] -- 序列化: [null]
-3 数据不完全一致 -- 原始: [-123123e100000] -- 序列化: [null]
-4 数据不完全一致 -- 原始: [0.4e00669999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999969999999006] -- 序列化: [null]
-5 数据不完全一致 -- 原始: [1.5e+9999] -- 序列化: [null]
-RFC 8259 JSON: (322/322)
-└── [TEST 1 | test/RFC8259Test/RyanJsonRFC8259JsonTest.c:282] 结束执行: 结果 ✅ | 耗时: 69 ms
 
-┌── [TEST 2 | test/RFC8259Test/RyanJsonRFC8259JsonTest.c:283] 开始执行: testRFC8259yyjson()
-RFC 8259 JSON: (322/322)
-└── [TEST 2 | test/RFC8259Test/RyanJsonRFC8259JsonTest.c:283] 结束执行: 结果 ✅ | 耗时: 8 ms
+如需仅主机侧结果：
 
-┌── [TEST 3 | test/RFC8259Test/RyanJsonRFC8259JsonTest.c:284] 开始执行: testRFC8259cJSON()
-应该失败，但是成功: [012], len: 5
-应该失败，但是成功: [2.e+3], len: 7
-1 数据不完全一致 -- 原始: [0e1] -- 序列化: [0]
-应该失败，但是成功: 123, len: 4
-应该失败，但是成功: [0.e1], len: 6
-2 数据不完全一致 -- 原始: [-1e+9999] -- 序列化: [null]
-3 数据不完全一致 -- 原始: [123123e100000] -- 序列化: [null]
-4 数据不完全一致 -- 原始: [ -- 序列化: [""]
-应该失败，但是成功: ["new
-line"], len: 12
-5 数据不完全一致 -- 原始: [-123123e100000] -- 序列化: [null]
-6 数据不完全一致 -- 原始: [1E+2] -- 序列化: [100]
-应该失败，但是成功: [1.], len: 4
-7 数据不完全一致 -- 原始: [0e+1] -- 序列化: [0]
-8 数据不完全一致 -- 原始: ["a -- 序列化: ["a"]
-应该失败，但是成功: ["a, len: 7
-应该失败，但是成功: [-012], len: 6
-9 数据不完全一致 -- 原始: [0.4e00669999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999969999999006] -- 序列化: [null]
-10 数据不完全一致 -- 原始: ["\uqqqq"] -- 序列化: [""]
-应该失败，但是成功: ["\uqqqq"], len: 10
-11 数据不完全一致 -- 原始: [
-                            ] -- 序列化: []
-应该失败，但是成功: [
-                     ], len: 3
-12 数据不完全一致 -- 原始: [ -- 序列化: []
-应该失败，但是成功: [, len: 3
-13 数据不完全一致 -- 原始: [1.5e+9999] -- 序列化: [null]
-14 数据不完全一致 -- 原始:  -- 序列化: [""]
-应该失败，但是成功: [2.e-3], len: 7
-应该失败，但是成功: [2.e3], len: 6
-应该失败，但是成功: ["  "], len: 5
-15 数据不完全一致 -- 原始: [1e+2] -- 序列化: [100]
-应该失败，但是成功: [-01], len: 5
-应该失败，但是成功: [-.123], len: 7
-16 数据不完全一致 -- 原始: {} -- 序列化: {}
-17 数据不完全一致 -- 原始: [20e1] -- 序列化: [200]
-18 数据不完全一致 -- 原始: [123.456e-789] -- 序列化: [0]
-19 数据不完全一致 -- 原始: [123e-10000000] -- 序列化: [0]
-应该失败，但是成功: [-2.], len: 5
-RFC 8259 JSON: (305/322)
-└── [TEST 3 | test/RFC8259Test/RyanJsonRFC8259JsonTest.c:284] 结束执行: 结果 ✅ | 耗时: 7 ms
+```bash
+RFC_PLATFORM=host bash run_local_rfc8259.sh
 ```
+
+如需仅 QEMU 结果：
+
+```bash
+RFC_PLATFORM=qemu bash run_local_rfc8259.sh
+```
+
+测试代码入口：`test/unityTest/cases/RFC8259/testRfc8259.c`。
 
 ### 5、局限性与注意事项
 
-- **数值精度**：内部使用 `int` / `double` 存储 Number。对于超过 double 精度的 64 位整数或高精度浮点数，double内部使用 snprintf 打印，如果你的平台不支持科学计数法，建议使用 String 类型存储以避免精度丢失。
-- **重复 Key**：RyanJson 允许对象中存在重复 Key（解析时不报错），但在查找时只会返回链表中第一个匹配项。
+- **数值精度**：内部使用 `int` / `double` 存储 Number。对于超过 double 精度的 64 位整数或高精度浮点数，内部使用 snprintf 打印；如果平台不支持科学计数法，建议使用 String 类型存储以避免精度丢失。
+- **重复 Key**：严格模式下解析阶段拒绝重复 key；非严格模式允许重复 key，`GetObjectByKey`/`DetachByKey` 命中首个重复项，`DeleteByKey` 每次删除一个，`Compare` 在非严格模式按同 key 的出现序号对齐比较。
 
 ### 6、文档
+- 📂 示例代码：`example/` 文件夹
+- 📖 文档中心：RyanDocs
+- 📧 联系与支持：如有任何疑问或商业合作需求，请联系：`1831931681@qq.com`
 
-📂 示例代码：`RyanJsonExample` 文件夹
+### 7、快速开始（集成视角）
 
-📖 文档中心：RyanDocs
+#### ✅ 编译工具链需要加入的文件
+- `RyanJson/*.c`（核心源码）
+- `RyanJson/RyanJson.h`（公开 API）
+- `RyanJson/RyanJsonConfig.h`（宏配置与平台差异）
+- 头文件搜索路径加入 `RyanJson/`
 
-📧 联系与支持：如有任何疑问或商业合作需求，请联系：`1831931681@qq.com`
+#### ✅ 最小初始化要求
+- 在任何 JSON API 前调用 `RyanJsonInitHooks(malloc, free, realloc)`
+- 业务代码包含 `#include "RyanJson.h"`
+- 如需调整宏（例如 `RyanJsonStrictObjectKeyCheck`），在包含头文件前定义或在 `RyanJsonConfig.h` 中配置
 
+#### ✅ 示例入口
+- 参考 `example/` 目录的最小示例
+
+### 8、AI 与知识库入口
+- 使用方式：先阅读 `AGENTS.md`，按问题类型进入对应技能文档，即可快速获得可落地方案。
+- 提问建议：说明平台、宏前提、目标场景与是否需要代码示例，AI 会据此给出最短路径与稳妥的失败语义说明。
+- 总入口与路由：`AGENTS.md`
+- 架构与数据结构：`skills/shared/architecture.md`
+- API 使用与所有权：`skills/ryanjson-api-usage/SKILL.md`
+- 内部优化与语义边界：`skills/ryanjson-optimization/SKILL.md`
+- 单元测试工程：`skills/ryanjson-test-engineering/SKILL.md`
+
+### 9、贡献与验证
+
+#### ✅ xmake 构建快速开始（主机侧）
+- xmake 官网：https://xmake.io
+- 默认验证环境：linux x86
+- `xmake f`
+- `xmake -b RyanJson`
+
+#### ✅ 场景与脚本建议
+按变更场景选脚本，确保修改可验证、可复现、可回归。
+| 变更场景 | 推荐脚本 |
+| --- | --- |
+| 仅修改单元测试用例 | `./run_local_base.sh` |
+| 解析/打印/内存路径改动 | `./run_local_base.sh` + `./run_local_fuzz.sh` |
+| 涉及嵌入式语义路径或对齐相关 | `./run_local_qemu.sh` |
+| 提交前对齐 CI | `./run_local_ci.sh` |
+| 格式或风格调整 | `./run_local_format.sh --check` |
+| 更新 skills/agent 文档 | `./run_local_skills.sh` |

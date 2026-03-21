@@ -134,7 +134,7 @@ static void testKeyDuplicateDeleteByKeyReducesTraversalCount(void)
 	// 复杂链路：
 	// Parse(重复 key) -> 统计 key 次数 -> DeleteByKey -> 再统计 -> Compare。
 	// 目标：验证 DeleteByKey 在非严格模式下只删除一个重复 key，
-	//       且删除后对象仍可继续稳定使用。
+	//       且删除后 Object 仍可继续稳定使用。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"a\":2,\"b\":3}");
 	if (NULL == obj)
 	{
@@ -158,7 +158,7 @@ static void testKeyDuplicateDeleteByKeyReducesTraversalCount(void)
 	TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, aCount, "重复 key 计数应为 2");
 
 	TEST_ASSERT_TRUE(RyanJsonDeleteByKey(obj, "a"));
-	TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, RyanJsonGetSize(obj), "DeleteByKey 后对象 size 应减少 1");
+	TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, RyanJsonGetSize(obj), "DeleteByKey 后 Object size 应减少 1");
 
 	aCount = 0;
 	item = RyanJsonGetObjectValue(obj);
@@ -175,7 +175,7 @@ static void testKeyDuplicateDeleteByKeyReducesTraversalCount(void)
 	RyanJson_t expect = RyanJsonParse("{\"a\":9,\"b\":3}");
 	TEST_ASSERT_NOT_NULL(expect);
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(obj, expect), "DeleteByKey 后值不应被固定假设");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(obj, expect), "DeleteByKey 后结构应与期望对象一致");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(obj, expect), "DeleteByKey 后结构应与期望 Object 一致");
 
 	RyanJsonDelete(expect);
 	RyanJsonDelete(obj);

@@ -4,7 +4,7 @@
 	/* 零值测试 */                                                                                                                     \
 	X(0.0)                                                                                                                             \
 	X(-0.0)                                                                                                                            \
-	/* 正负整数边界 */                                                                                                                 \
+	/* 正负 Int 边界 */                                                                                                                 \
 	X(1.0)                                                                                                                             \
 	X(-1.0)                                                                                                                            \
 	X(2.0)                                                                                                                             \
@@ -84,7 +84,7 @@
 	X(0.7)                                                                                                                             \
 	X(0.9)                                                                                                                             \
 	X(0.123456)                                                                                                                        \
-	/* 整数边界值 */                                                                                                                   \
+	/* Int 边界值 */                                                                                                                   \
 	X(2147483647.0)                                                                                                                    \
 	X(-2147483648.0)                                                                                                                   \
 	X(4294967295.0)                                                                                                                    \
@@ -107,7 +107,7 @@
 	X(0.9999999999999)                                                                                                                 \
 	X(1.23456789012345)                                                                                                                \
 	X(9.87654321098765)                                                                                                                \
-	/* 重复数字模式 */                                                                                                                 \
+	/* 重复 Number 模式 */                                                                                                                 \
 	X(1.1111111111111)                                                                                                                 \
 	X(2.2222222222222)                                                                                                                 \
 	X(9.9999999999999)                                                                                                                 \
@@ -181,7 +181,7 @@ void testEqualityDoubleEdgeCases(void)
 
 static void testEqualityDoubleTypeIdentity(void)
 {
-	// 指数形式即使数值是整数，也应保持 double 类型
+	// 指数形式即使数值是 Int，也应保持 Double 类型
 	RyanJson_t expNode = RyanJsonParse("1e0");
 	TEST_ASSERT_NOT_NULL(expNode);
 	TEST_ASSERT_TRUE(RyanJsonIsDouble(expNode));
@@ -197,14 +197,14 @@ static void testEqualityDoubleTypeIdentity(void)
 	RyanJsonDelete(expRoundtrip);
 	RyanJsonDelete(expNode);
 
-	// 小数形式应保持 double
+	// 小数形式应保持 Double
 	RyanJson_t fracNode = RyanJsonParse("-2.5000");
 	TEST_ASSERT_NOT_NULL(fracNode);
 	TEST_ASSERT_TRUE(RyanJsonIsDouble(fracNode));
 	TEST_ASSERT_TRUE(RyanJsonCompareDouble(-2.5, RyanJsonGetDoubleValue(fracNode)));
 	RyanJsonDelete(fracNode);
 
-	// 超出 int32_t 范围的纯数字，应归类为 double
+	// 超出 int32_t 范围的纯 Number，应归类为 Double
 	RyanJson_t overInt = RyanJsonParse("2147483648");
 	TEST_ASSERT_NOT_NULL(overInt);
 	TEST_ASSERT_TRUE(RyanJsonIsDouble(overInt));

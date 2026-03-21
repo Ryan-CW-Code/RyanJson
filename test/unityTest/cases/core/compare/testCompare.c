@@ -2,8 +2,8 @@
 #include <float.h>
 static void testCompareEdgeCases(void)
 {
-	// 测试对象键值对顺序对比较的影响
-	// RyanJson 的对象比较是无序的：键值对顺序不同也应视为相同
+	// 测试 Object 键值对顺序对比较的影响
+	// RyanJson 的 Object 比较是无序的：键值对顺序不同也应视为相同
 
 	RyanJson_t json1 = RyanJsonCreateObject();
 	RyanJsonAddIntToObject(json1, "a", 1);
@@ -13,7 +13,7 @@ static void testCompareEdgeCases(void)
 	RyanJsonAddIntToObject(json2, "b", 2);
 	RyanJsonAddIntToObject(json2, "a", 1); // 顺序不同
 
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(json1, json2), "顺序不同的对象比较应返回 True (RyanJson 是无序比较)");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(json1, json2), "顺序不同的 Object 比较应返回 True (RyanJson 是无序比较)");
 
 	RyanJsonDelete(json1);
 	RyanJsonDelete(json2);
@@ -28,7 +28,7 @@ static void testCompareObjectOrderPaths(void)
 	TEST_ASSERT_NOT_NULL(rightOrdered);
 	TEST_ASSERT_NOT_NULL(rightUnordered);
 
-	// 同序构造：覆盖对象比较同序快路径
+	// 同序构造：覆盖 Object 比较同序快路径
 	for (int32_t i = 0; i < 64; i++)
 	{
 		char key[16];
@@ -37,7 +37,7 @@ static void testCompareObjectOrderPaths(void)
 		TEST_ASSERT_TRUE(RyanJsonAddIntToObject(rightOrdered, key, i));
 	}
 
-	// 逆序构造：覆盖对象比较按 key 回退查找路径
+	// 逆序构造：覆盖 Object 比较按 key 回退查找路径
 	for (int32_t i = 63; i >= 0; i--)
 	{
 		char key[16];
@@ -45,8 +45,8 @@ static void testCompareObjectOrderPaths(void)
 		TEST_ASSERT_TRUE(RyanJsonAddIntToObject(rightUnordered, key, i));
 	}
 
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(left, rightOrdered), "同序对象比较应返回 True");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(left, rightUnordered), "乱序对象比较应返回 True");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(left, rightOrdered), "同序 Object 比较应返回 True");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(left, rightUnordered), "乱序 Object 比较应返回 True");
 
 	RyanJsonDelete(left);
 	RyanJsonDelete(rightOrdered);
@@ -130,12 +130,12 @@ static void testCompareNumberSubtypeInContainers(void)
 	TEST_ASSERT_NOT_NULL(right);
 	TEST_ASSERT_NOT_NULL(rightTypeMismatch);
 
-	// 全量比较要求数值子类型一致；仅比较 key 时允许 int/double 混用
+	// 全量比较要求数值子类型一致；仅比较 key 时允许 Int/Double 混用
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, right), "容器中 int/double 子类型不同，Compare 应返回 False");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(left, right),
 				 "容器中 int/double 子类型不同，但结构一致时 CompareOnlyKey 应返回 True");
 
-	// 数值与字符串类型不同，即使在 CompareOnlyKey 下也必须失败
+	// 数值与 String 类型不同，即使在 CompareOnlyKey 下也必须失败
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, rightTypeMismatch), "number/string 类型不同，Compare 应返回 False");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(left, rightTypeMismatch), "number/string 类型不同，CompareOnlyKey 也应返回 False");
 
@@ -146,7 +146,7 @@ static void testCompareNumberSubtypeInContainers(void)
 
 static void testCompareZeroSignSemantics(void)
 {
-	// -0 与 0 应视为数值相等（同为 int 类型）
+	// -0 与 0 应视为数值相等（同为 Int 类型）
 	RyanJson_t negZero = RyanJsonParse("-0");
 	RyanJson_t posZero = RyanJsonParse("0");
 	TEST_ASSERT_NOT_NULL(negZero);
@@ -160,8 +160,8 @@ static void testCompareZeroSignSemantics(void)
 	RyanJson_t objPos = RyanJsonParse("{\"n\":0}");
 	TEST_ASSERT_NOT_NULL(objNeg);
 	TEST_ASSERT_NOT_NULL(objPos);
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(objNeg, objPos), "对象内 -0 与 0 应相等");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(objNeg, objPos), "对象内 -0 与 0 CompareOnlyKey 应相等");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(objNeg, objPos), "Object 内 -0 与 0 应相等");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(objNeg, objPos), "Object 内 -0 与 0 CompareOnlyKey 应相等");
 
 	RyanJsonDelete(objPos);
 	RyanJsonDelete(objNeg);
@@ -180,13 +180,13 @@ static void testCompareEmptyContainerAndTypeMismatch(void)
 	TEST_ASSERT_NOT_NULL(emptyArrA);
 	TEST_ASSERT_NOT_NULL(emptyArrB);
 
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(emptyObjA, emptyObjB), "空对象之间应相等");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(emptyObjA, emptyObjB), "空对象 CompareOnlyKey 应相等");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(emptyArrA, emptyArrB), "空数组之间应相等");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(emptyArrA, emptyArrB), "空数组 CompareOnlyKey 应相等");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(emptyObjA, emptyObjB), "空 Object 之间应相等");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(emptyObjA, emptyObjB), "空 Object CompareOnlyKey 应相等");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(emptyArrA, emptyArrB), "空 Array 之间应相等");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(emptyArrA, emptyArrB), "空 Array CompareOnlyKey 应相等");
 
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(emptyObjA, emptyArrA), "对象与数组类型不同应不相等");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(emptyObjA, emptyArrA), "对象与数组 CompareOnlyKey 也应不相等");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(emptyObjA, emptyArrA), "Object 与 Array 类型不同应不相等");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(emptyObjA, emptyArrA), "Object 与 Array CompareOnlyKey 也应不相等");
 
 	RyanJsonDelete(emptyObjA);
 	RyanJsonDelete(emptyObjB);
@@ -233,15 +233,15 @@ static void testCompareArraySemantics(void)
 	TEST_ASSERT_TRUE(RyanJsonAddIntToArray(arrShort, 1));
 	TEST_ASSERT_TRUE(RyanJsonAddIntToArray(arrShort, 2));
 
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(arrIntA, arrIntB), "相同数组 Compare 应返回 True");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(arrIntA, arrIntReverse), "数组顺序不同 Compare 应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(arrIntA, arrIntReverse), "数组顺序不同但类型一致，CompareOnlyKey 应返回 True");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(arrIntA, arrIntB), "相同 Array Compare 应返回 True");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(arrIntA, arrIntReverse), "Array 顺序不同 Compare 应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(arrIntA, arrIntReverse), "Array 顺序不同但类型一致，CompareOnlyKey 应返回 True");
 
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(arrMixedA, arrMixedB), "数组元素类型顺序不同 Compare 应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(arrMixedA, arrMixedB), "数组元素类型顺序不同 CompareOnlyKey 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(arrMixedA, arrMixedB), "Array 元素类型顺序不同 Compare 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(arrMixedA, arrMixedB), "Array 元素类型顺序不同 CompareOnlyKey 应返回 False");
 
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(arrIntA, arrShort), "数组长度不同 Compare 应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(arrIntA, arrShort), "数组长度不同 CompareOnlyKey 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(arrIntA, arrShort), "Array 长度不同 Compare 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(arrIntA, arrShort), "Array 长度不同 CompareOnlyKey 应返回 False");
 
 	RyanJsonDelete(arrIntA);
 	RyanJsonDelete(arrIntB);
@@ -277,18 +277,18 @@ static void testCompareNestedObjectScenarios(void)
 	TEST_ASSERT_NOT_NULL(rightTailMatch);
 	TEST_ASSERT_NOT_NULL(rightTailMismatch);
 
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(left, rightOrderedDiff), "嵌套对象乱序但值一致应返回 True");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(left, rightOrderedDiff), "嵌套对象乱序 CompareOnlyKey 应返回 True");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(left, rightOrderedDiff), "嵌套 Object 乱序但值一致应返回 True");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(left, rightOrderedDiff), "嵌套 Object 乱序 CompareOnlyKey 应返回 True");
 
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, rightValueDiff), "嵌套对象值不同 Compare 应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(left, rightValueDiff), "嵌套对象值不同 CompareOnlyKey 应返回 True");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, rightValueDiff), "嵌套 Object 值不同 Compare 应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(left, rightValueDiff), "嵌套 Object 值不同 CompareOnlyKey 应返回 True");
 
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, rightMissingKey), "嵌套对象 key 不匹配 Compare 应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(left, rightMissingKey), "嵌套对象 key 不匹配 CompareOnlyKey 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, rightMissingKey), "嵌套 Object key 不匹配 Compare 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(left, rightMissingKey), "嵌套 Object key 不匹配 CompareOnlyKey 应返回 False");
 
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(leftSingleKey, rightSingleKey), "同尺寸对象但 key 不同 Compare 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(leftSingleKey, rightSingleKey), "同尺寸 Object 但 key 不同 Compare 应返回 False");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(leftSingleKey, rightSingleKey),
-				  "同尺寸对象但 key 不同 CompareOnlyKey 应返回 False");
+				  "同尺寸 Object 但 key 不同 CompareOnlyKey 应返回 False");
 
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(leftPrefixMatch, rightPrefixMismatch),
 				  "前缀 key 相同但后续 key 不同 Compare 应返回 False");
@@ -329,14 +329,14 @@ static void testCompareArrayWithObjects(void)
 	TEST_ASSERT_NOT_NULL(arrOrderSwapped);
 	TEST_ASSERT_NOT_NULL(arrValueDiff);
 
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(arrLeft, arrObjectUnordered), "数组内对象乱序键应比较为 True");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(arrLeft, arrObjectUnordered), "数组内对象乱序键 CompareOnlyKey 应返回 True");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(arrLeft, arrObjectUnordered), "Array 内 Object 乱序键应比较为 True");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(arrLeft, arrObjectUnordered), "Array 内 Object 乱序键 CompareOnlyKey 应返回 True");
 
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(arrLeft, arrOrderSwapped), "数组元素顺序变化 Compare 应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(arrLeft, arrOrderSwapped), "数组元素顺序变化 CompareOnlyKey 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(arrLeft, arrOrderSwapped), "Array 元素顺序变化 Compare 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(arrLeft, arrOrderSwapped), "Array 元素顺序变化 CompareOnlyKey 应返回 False");
 
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(arrLeft, arrValueDiff), "数组内对象值变化 Compare 应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(arrLeft, arrValueDiff), "数组内对象值变化但键结构一致 CompareOnlyKey 应返回 True");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(arrLeft, arrValueDiff), "Array 内 Object 值变化 Compare 应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(arrLeft, arrValueDiff), "Array 内 Object 值变化但键结构一致 CompareOnlyKey 应返回 True");
 
 	RyanJsonDelete(arrLeft);
 	RyanJsonDelete(arrObjectUnordered);
@@ -387,7 +387,7 @@ static void testCompareDeepNestAndLargeArray(void)
 	RyanJsonDelete(root1);
 	RyanJsonDelete(root2);
 
-	// 大数组比较
+	// 大 Array 比较
 	int32_t count = 2000;
 	RyanJson_t arr1 = RyanJsonCreateArray();
 	RyanJson_t arr2 = RyanJsonCreateArray();
@@ -431,79 +431,79 @@ static void testCompareEqualityAndStructuralDiff(void)
 
 	// 边界情况测试
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, NULL), "与 NULL 比较应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(NULL, json2), "NULL 与对象比较应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(NULL, json2), "NULL 与 Object 比较应返回 False");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(NULL, NULL), "NULL 与 NULL 比较应返回 False");
 
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, NULL), "仅比较 Key：与 NULL 比较应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(NULL, json2), "仅比较 Key：NULL 与对象比较应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(NULL, json2), "仅比较 Key：NULL 与 Object 比较应返回 False");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(NULL, NULL), "仅比较 Key：NULL 与 NULL 比较应返回 False");
 
-	// 完整对象比较
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(json, json2), "两个相同内容的对象比较应返回 True");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(json, json), "对象与自身比较应返回 True");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "仅比较 Key：两个相同内容的对象比较应返回 True");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json), "仅比较 Key：对象与自身比较应返回 True");
+	// 完整 Object 比较
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(json, json2), "两个相同内容的 Object 比较应返回 True");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(json, json), "Object 与自身比较应返回 True");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "仅比较 Key：两个相同内容的 Object 比较应返回 True");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json), "仅比较 Key：Object 与自身比较应返回 True");
 
-	// 修改对象 2 并比较
-	// 添加字符串
+	// 修改 Object 2 并比较
+	// 添加 String
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonAddStringToObject(json2, "test", "hello");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "多出一个字段后比较应返回 False");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "多出一个字段后仅比较 Key 应返回 False");
 
-	// 添加整数
+	// 添加 Int
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonAddIntToObject(json2, "test", 1);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "多出一个整数后比较应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "多出一个整数后仅比较 Key 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "多出一个 Int 后比较应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "多出一个 Int 后仅比较 Key 应返回 False");
 
-	// 添加浮点数
+	// 添加 Double
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonAddDoubleToObject(json2, "test", 2.0);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "多出一个浮点数后比较应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "多出一个浮点数后仅比较 Key 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "多出一个 Double 后比较应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "多出一个 Double 后仅比较 Key 应返回 False");
 
 	// 添加 boolValue
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonAddBoolToObject(json2, "test", RyanJsonTrue);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "多出一个布尔值后比较应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "多出一个布尔值后仅比较 Key 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "多出一个 Bool 值后比较应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "多出一个 Bool 值后仅比较 Key 应返回 False");
 
-	// 添加 null
+	// 添加 Null
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonAddNullToObject(json2, "test");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "多出一个 Null 后比较应返回 False");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "多出一个 Null 后仅比较 Key 应返回 False");
 
-	// 数组修改测试
+	// Array 修改测试
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonAddIntToArray(RyanJsonGetObjectToKey(json2, "arrayInt"), 2);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "数组长度变化后比较应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "数组长度变化后仅比较 Key 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "Array 长度变化后比较应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "Array 长度变化后仅比较 Key 应返回 False");
 
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonAddDoubleToArray(RyanJsonGetObjectToKey(json2, "arrayDouble"), 2.0);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "数组长度变化(浮点)后比较应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "数组长度变化(浮点)后仅比较 Key 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "Array 长度变化(浮点)后比较应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "Array 长度变化(浮点)后仅比较 Key 应返回 False");
 
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonAddStringToArray(RyanJsonGetObjectToKey(json2, "arrayString"), "hello");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "数组长度变化(字符串)后比较应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "数组长度变化(字符串)后仅比较 Key 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "Array 长度变化(String)后比较应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "Array 长度变化(String)后仅比较 Key 应返回 False");
 
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonAddStringToArray(RyanJsonGetObjectToKey(json2, "arrayItem"), "hello");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "数组长度变化(项)后比较应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "数组长度变化(项)后仅比较 Key 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "Array 长度变化(项)后比较应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "Array 长度变化(项)后仅比较 Key 应返回 False");
 
 	// 修改 key 名称
 	RyanJsonDelete(json2);
@@ -525,11 +525,11 @@ static void testCompareEqualityAndStructuralDiff(void)
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "浮点 Value 修改但 Key 相同，仅比较 Key 应返回 True");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "浮点 Value 修改后比较应返回 False");
 
-	// 类型修改测试（从 double 改为 int32_t）
+	// 类型修改测试（从 Double 改为 int32_t）
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonDeleteByKey(json2, "double");
-	RyanJsonAddIntToObject(json2, "double", 20); // 改为 int
+	RyanJsonAddIntToObject(json2, "double", 20); // 改为 Int
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "类型修改后比较应返回 False");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "类型修改但 Key 相同，仅比较 Key 应返回 True");
 
@@ -537,57 +537,57 @@ static void testCompareEqualityAndStructuralDiff(void)
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonChangeStringValue(RyanJsonGetObjectToKey(json2, "string"), "49");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "字符串 Value 修改后比较应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "字符串 Value 修改但 Key 相同，仅比较 Key 应返回 True");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "String Value 修改后比较应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "String Value 修改但 Key 相同，仅比较 Key 应返回 True");
 
-	// 修改对象 1 的 boolValue
+	// 修改 Object 1 的 boolValue
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonChangeBoolValue(RyanJsonGetObjectToKey(json2, "boolTrue"), RyanJsonFalse);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "布尔 Value 修改后比较应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "布尔 Value 修改但 Key 相同，仅比较 Key 应返回 True");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "Bool Value 修改后比较应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "Bool Value 修改但 Key 相同，仅比较 Key 应返回 True");
 
-	// 修改嵌套对象的 boolValue
+	// 修改嵌套 Object 的 boolValue
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonChangeBoolValue(RyanJsonGetObjectToKey(json2, "item", "boolTrue"), RyanJsonFalse);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "嵌套布尔 Value 修改后比较应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "嵌套布尔 Value 修改但结构相同，仅比较 Key 应返回 True");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "嵌套 Bool Value 修改后比较应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "嵌套 Bool Value 修改但结构相同，仅比较 Key 应返回 True");
 
-	// 修改数组中的整数
+	// 修改 Array 中的 Int
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonChangeIntValue(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json2, "arrayInt"), 0), 17);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "数组元素修改后比较应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "数组元素修改但长度相同，仅比较 Key 应返回 True");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "Array 元素修改后比较应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "Array 元素修改但长度相同，仅比较 Key 应返回 True");
 
-	// 修改数组中的浮点数
+	// 修改 Array 中的 Double
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonChangeDoubleValue(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json2, "arrayDouble"), 0), 20.89);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "数组浮点元素修改后比较应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "Array 浮点元素修改后比较应返回 False");
 
-	// 修改数组中的字符串
+	// 修改 Array 中的 String
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonChangeStringValue(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json2, "arrayString"), 0), "20.89");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "数组字符串元素修改后比较应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "数组字符串元素修改但长度相同，仅比较 Key 应返回 True");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "ArrayString 元素修改后比较应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "ArrayString 元素修改但长度相同，仅比较 Key 应返回 True");
 
-	// 修改混合数组
+	// 修改混合 Array
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonChangeIntValue(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json2, "array"), 0), 17);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "混合数组修改后比较应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "混合数组修改但长度相同，仅比较 Key 应返回 True");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "混合 Array 修改后比较应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "混合 Array 修改但长度相同，仅比较 Key 应返回 True");
 
-	// 修改数组项中的对象
+	// 修改 Array 项中的 Object
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonChangeIntValue(RyanJsonGetObjectToKey(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(json2, "arrayItem"), 0), "inter"),
 			       17);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "数组项对象修改后比较应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "数组项对象修改但结构相同，仅比较 Key 应返回 True");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "Array 项 Object 修改后比较应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "Array 项 Object 修改但结构相同，仅比较 Key 应返回 True");
 
 	// 删除整个 key 节点
 	RyanJsonDelete(json2);
@@ -596,19 +596,19 @@ static void testCompareEqualityAndStructuralDiff(void)
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "删除 Key 后比较应返回 False");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "删除 Key 后仅比较 Key 应返回 False");
 
-	// 删除数组索引项
+	// 删除 Array 索引项
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonDeleteByIndex(RyanJsonGetObjectToKey(json2, "arrayInt"), 2);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "删除数组索引后比较应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "删除数组索引后仅比较 Key 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "删除 Array 索引后比较应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "删除 Array 索引后仅比较 Key 应返回 False");
 
-	// 删除数组项中的对象项
+	// 删除 Array 项中的 Object 项
 	RyanJsonDelete(json2);
 	json2 = RyanJsonParse(jsonstr);
 	RyanJsonDeleteByIndex(RyanJsonGetObjectToKey(json2, "arrayItem"), 0);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "删除数组对象项后比较应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "删除数组对象项后仅比较 Key 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(json, json2), "删除 ArrayObject 项后比较应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(json, json2), "删除 ArrayObject 项后仅比较 Key 应返回 False");
 
 	RyanJsonDelete(json);
 	RyanJsonDelete(json2);
@@ -634,8 +634,8 @@ void testCompareRunner(void)
 static void testRootScalarStringChangeCompareRoundtrip(void)
 {
 	// 复杂链路：
-	// Parse(根字符串) -> Duplicate -> ChangeStringValue -> Compare/CompareOnlyKey -> Print/Parse。
-	// 目标：验证根节点为字符串时的修改、比较与往返稳定性。
+	// Parse(根 String) -> Duplicate -> ChangeStringValue -> Compare/CompareOnlyKey -> Print/Parse。
+	// 目标：验证根节点为 String 时的修改、比较与往返稳定性。
 	RyanJson_t root = RyanJsonParse("\"alpha\"");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -643,8 +643,8 @@ static void testRootScalarStringChangeCompareRoundtrip(void)
 	TEST_ASSERT_NOT_NULL(copy);
 
 	TEST_ASSERT_TRUE(RyanJsonChangeStringValue(copy, "beta"));
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(root, copy), "根字符串值变化后 Compare 应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(root, copy), "根字符串值变化后 CompareOnlyKey 应返回 True");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(root, copy), "根 String 值变化后 Compare 应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(root, copy), "根 String 值变化后 CompareOnlyKey 应返回 True");
 
 	char *printed = RyanJsonPrint(copy, 32, RyanJsonFalse, NULL);
 	TEST_ASSERT_NOT_NULL(printed);
@@ -661,8 +661,8 @@ static void testRootScalarStringChangeCompareRoundtrip(void)
 static void testRootScalarIntChangeCompareOnlyKey(void)
 {
 	// 复杂链路：
-	// Parse(根整数) -> Duplicate -> ChangeIntValue -> Compare/CompareOnlyKey。
-	// 目标：验证根节点为 int 时 CompareOnlyKey 忽略 value 差异。
+	// Parse(根 Int) -> Duplicate -> ChangeIntValue -> Compare/CompareOnlyKey。
+	// 目标：验证根节点为 Int 时 CompareOnlyKey 忽略 value 差异。
 	RyanJson_t root = RyanJsonParse("1");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -670,8 +670,8 @@ static void testRootScalarIntChangeCompareOnlyKey(void)
 	TEST_ASSERT_NOT_NULL(copy);
 
 	TEST_ASSERT_TRUE(RyanJsonChangeIntValue(copy, 2));
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(root, copy), "根整数值变化后 Compare 应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(root, copy), "根整数值变化后 CompareOnlyKey 应返回 True");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(root, copy), "根 Int 值变化后 Compare 应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(root, copy), "根 Int 值变化后 CompareOnlyKey 应返回 True");
 	TEST_ASSERT_EQUAL_INT(1, RyanJsonGetIntValue(root));
 
 	RyanJsonDelete(copy);
@@ -681,8 +681,8 @@ static void testRootScalarIntChangeCompareOnlyKey(void)
 static void testRootScalarDoubleChangeCompareOnlyKey(void)
 {
 	// 复杂链路：
-	// Parse(根浮点) -> Duplicate -> ChangeDoubleValue -> Compare/CompareOnlyKey。
-	// 目标：验证根节点为 double 时 CompareOnlyKey 忽略 value 差异。
+	// Parse(根 Double) -> Duplicate -> ChangeDoubleValue -> Compare/CompareOnlyKey。
+	// 目标：验证根节点为 Double 时 CompareOnlyKey 忽略 value 差异。
 	RyanJson_t root = RyanJsonParse("1.5");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -700,8 +700,8 @@ static void testRootScalarDoubleChangeCompareOnlyKey(void)
 static void testRootScalarBoolChangeCompareOnlyKey(void)
 {
 	// 复杂链路：
-	// Parse(根布尔) -> Duplicate -> ChangeBoolValue -> Compare/CompareOnlyKey。
-	// 目标：验证根节点为 bool 时 CompareOnlyKey 忽略 value 差异。
+	// Parse(根 Bool) -> Duplicate -> ChangeBoolValue -> Compare/CompareOnlyKey。
+	// 目标：验证根节点为 Bool 时 CompareOnlyKey 忽略 value 差异。
 	RyanJson_t root = RyanJsonParse("true");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -709,8 +709,8 @@ static void testRootScalarBoolChangeCompareOnlyKey(void)
 	TEST_ASSERT_NOT_NULL(copy);
 
 	TEST_ASSERT_TRUE(RyanJsonChangeBoolValue(copy, RyanJsonFalse));
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(root, copy), "根布尔值变化后 Compare 应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(root, copy), "根布尔值变化后 CompareOnlyKey 应返回 True");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(root, copy), "根 Bool 值变化后 Compare 应返回 False");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(root, copy), "根 Bool 值变化后 CompareOnlyKey 应返回 True");
 
 	RyanJsonDelete(copy);
 	RyanJsonDelete(root);

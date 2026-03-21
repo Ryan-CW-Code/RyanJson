@@ -2,7 +2,7 @@
 
 static void testStandardTopLevelScalars(void)
 {
-	// 标准 Json 允许顶层是任意 Json 值，而不仅是对象/数组。
+	// 标准 Json 允许顶层是任意 Json 值，而不仅是 Object/Array。
 	RyanJson_t json = NULL;
 	RyanJson_t roundtrip = NULL;
 	char *printed = NULL;
@@ -49,7 +49,7 @@ static void testStandardTopLevelScalars(void)
 	RyanJsonDelete(json);
 
 	json = RyanJsonParse("\"root string\"");
-	TEST_ASSERT_NOT_NULL_MESSAGE(json, "顶层字符串解析失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(json, "顶层 String 解析失败");
 	TEST_ASSERT_TRUE(RyanJsonIsString(json));
 	TEST_ASSERT_EQUAL_STRING("root string", RyanJsonGetStringValue(json));
 	printed = RyanJsonPrint(json, 64, RyanJsonFalse, NULL);
@@ -78,24 +78,24 @@ static void testStandardTopLevelScalars(void)
 
 static void testStandardStringEscapesRoundtrip(void)
 {
-	// 覆盖 RFC 8259 字符串基础转义字符的解码与往返。
+	// 覆盖 RFC 8259 String 基础转义字符的解码与往返。
 	const char *jsonText = "{\"s\":\"\\\"\\\\\\/\\b\\f\\n\\r\\t\"}";
 	const char *expect = "\"\\/\b\f\n\r\t";
 
 	RyanJson_t json = RyanJsonParse(jsonText);
-	TEST_ASSERT_NOT_NULL_MESSAGE(json, "字符串转义解析失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(json, "String 转义解析失败");
 
 	RyanJson_t s = RyanJsonGetObjectToKey(json, "s");
 	TEST_ASSERT_NOT_NULL(s);
 	TEST_ASSERT_TRUE(RyanJsonIsString(s));
-	TEST_ASSERT_EQUAL_STRING_MESSAGE(expect, RyanJsonGetStringValue(s), "字符串转义解码结果不符合预期");
+	TEST_ASSERT_EQUAL_STRING_MESSAGE(expect, RyanJsonGetStringValue(s), "String 转义解码结果不符合预期");
 
 	char *printed = RyanJsonPrint(json, 128, RyanJsonFalse, NULL);
-	TEST_ASSERT_NOT_NULL_MESSAGE(printed, "字符串转义打印失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(printed, "String 转义打印失败");
 
 	RyanJson_t roundtrip = RyanJsonParse(printed);
-	TEST_ASSERT_NOT_NULL_MESSAGE(roundtrip, "字符串转义往返解析失败");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(json, roundtrip), "字符串转义往返后 Compare 应相等");
+	TEST_ASSERT_NOT_NULL_MESSAGE(roundtrip, "String 转义往返解析失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(json, roundtrip), "String 转义往返后 Compare 应相等");
 
 	RyanJsonDelete(roundtrip);
 	RyanJsonFree(printed);
@@ -134,7 +134,7 @@ static void testStandardUnicodeRoundtrip(void)
 
 static void testStandardLiteralArrayTypeMatrix(void)
 {
-	// 覆盖数组中标准字面量与容器的类型边界，避免落回复杂 key 语义。
+	// 覆盖 Array 中标准字面量与容器的类型边界，避免落回复杂 key 语义。
 	const char *jsonText = "[null,true,false,\"true\",\"false\",\"null\",{\"k\":\"v\"},[\"x\"],0]";
 	RyanJson_t json = RyanJsonParse(jsonText);
 	TEST_ASSERT_NOT_NULL_MESSAGE(json, "字面量类型矩阵解析失败");
@@ -216,8 +216,8 @@ static void testStandardTopLevelEmptyContainersRoundtrip(void)
 {
 	RyanJson_t obj = RyanJsonParse("{}");
 	RyanJson_t arr = RyanJsonParse("[]");
-	TEST_ASSERT_NOT_NULL_MESSAGE(obj, "顶层空对象解析失败");
-	TEST_ASSERT_NOT_NULL_MESSAGE(arr, "顶层空数组解析失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(obj, "顶层空 Object 解析失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(arr, "顶层空 Array 解析失败");
 	TEST_ASSERT_TRUE(RyanJsonIsObject(obj));
 	TEST_ASSERT_TRUE(RyanJsonIsArray(arr));
 	TEST_ASSERT_EQUAL_UINT32(0U, RyanJsonGetSize(obj));
@@ -247,7 +247,7 @@ static void testStandardTopLevelEmptyContainersRoundtrip(void)
 
 static void testStandardUnicodeLineSeparatorInString(void)
 {
-	// 覆盖 U+2028 在字符串中的值语义与往返。
+	// 覆盖 U+2028 在 String 中的值语义与往返。
 	const char *utf8Text = "{\"s\":\"\xE2\x80\xA8\"}";
 	const char *escapedText = "{\"s\":\"\\u2028\"}";
 
@@ -274,7 +274,7 @@ static void testStandardRejectNonFiniteNumbers(void)
 	TEST_ASSERT_NULL_MESSAGE(RyanJsonParse("NaN"), "标准 Json 不允许 NaN");
 	TEST_ASSERT_NULL_MESSAGE(RyanJsonParse("Infinity"), "标准 Json 不允许 Infinity");
 	TEST_ASSERT_NULL_MESSAGE(RyanJsonParse("-Infinity"), "标准 Json 不允许 -Infinity");
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonParse("{\"n\":NaN}"), "对象中的 NaN 应解析失败");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonParse("{\"n\":NaN}"), "Object 中的 NaN 应解析失败");
 }
 
 void testStandardValueRoundtripRunner(void)

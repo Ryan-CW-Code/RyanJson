@@ -5,7 +5,7 @@
  * @brief duplicate/compare 模块的一次性最小自检
  *
  * 这里只恢复运行期 harness 结构上不容易构造的比较拓扑：
- * 自比较、标量值不相等、对象乱序匹配，以及嵌套对象缺少匹配 key 的失败路径。
+ * 自比较、标量值不相等、Object 乱序匹配，以及嵌套 Object 缺少匹配 key 的失败路径。
  */
 void RyanJsonFuzzerSelfTestDuplicateCases(void)
 {
@@ -112,12 +112,12 @@ void RyanJsonFuzzerSelfTestDuplicateCases(void)
  *
  * 测试深度复制与结构比较能力。
  * 覆盖场景：
- * 深度复制正确性：验证复制后的对象与原对象在结构和值上完全一致。
- * 独立性验证：验证修改复制后的对象不会影响原对象。
+ * 深度复制正确性：验证复制后的 Object 与原 Object 在结构和值上完全一致。
+ * 独立性验证：验证修改复制后的 Object 不会影响原 Object。
  * 内存管理：验证复制过程中的内存分配与释放。
  *
  * @param state Fuzzer 状态上下文
- * @param pJson 需要复制的源 Json 对象
+ * @param pJson 需要复制的源 Json Object
  */
 RyanJsonBool_e RyanJsonFuzzerTestDuplicate(RyanJson_t pJson)
 {
@@ -150,11 +150,11 @@ RyanJsonBool_e RyanJsonFuzzerTestDuplicate(RyanJson_t pJson)
 	jsonStrDup = RyanJsonPrint(pJsonDup, 100, RyanJsonFalse, &lenDup);
 	RyanJsonCheckGotoExit(NULL != jsonStrDup && lenDup > 0);
 
-	// 验证序列化后的字符串内容完全一致
+	// 验证序列化后的 String 内容完全一致
 	RyanJsonCheckCode(len == lenDup && 0 == memcmp(jsonStr, jsonStrDup, (size_t)len), { RyanJsonCheckGotoExit(0); });
 
 	// 独立性验证
-	// 修改原对象（如果可能）或修改副本，验证互不影响
+	// 修改原 Object（如果可能）或修改副本，验证互不影响
 	// 这里选择修改副本（pJsonDup），因为后续会销毁副本
 	if (RyanJsonIsArray(pJson) || RyanJsonIsObject(pJson))
 	{
@@ -218,8 +218,8 @@ RyanJsonBool_e RyanJsonFuzzerTestDuplicate(RyanJson_t pJson)
 			}
 		}
 
-		// 验证修改后的副本与原对象不再相等
-		// 注意：如果原对象本来就是空的，或者修改没有实际生效（例如没找到对应类型的节点），这里可能会相等
+		// 验证修改后的副本与原 Object 不再相等
+		// 注意：如果原 Object 本来就是空的，或者修改没有实际生效（例如没找到对应类型的节点），这里可能会相等
 		// 所以这里只调用比较函数增加覆盖率，不强制断言 False，因为逻辑极其复杂
 		RyanJsonCompare(pJson, pJsonDup);
 		RyanJsonCompareOnlyKey(pJson, pJsonDup);

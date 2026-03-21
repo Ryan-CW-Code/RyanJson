@@ -37,7 +37,7 @@ static void testEqualityBoolBasic(void)
 		const char *jsonBoolStr = "{\"bool\":true}";
 		RyanJson_t jsonRoot = RyanJsonParse(jsonBoolStr);
 		TEST_ASSERT_NOT_NULL_MESSAGE(jsonRoot, "解析包含 true 的 Json 失败");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(RyanJsonGetObjectToKey(jsonRoot, "bool")), "字段 'bool' 不是布尔类型");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(RyanJsonGetObjectToKey(jsonRoot, "bool")), "字段 'bool' 不是 Bool 类型");
 		TEST_ASSERT_EQUAL_INT_MESSAGE(RyanJsonTrue, RyanJsonGetBoolValue(RyanJsonGetObjectToKey(jsonRoot, "bool")),
 					      "字段 'bool' 的值不是 true");
 
@@ -60,7 +60,7 @@ static void testEqualityBoolBasic(void)
 		const char *jsonBoolStr = "{\"bool\":false}";
 		RyanJson_t jsonRoot = RyanJsonParse(jsonBoolStr);
 		TEST_ASSERT_NOT_NULL_MESSAGE(jsonRoot, "解析包含 false 的 Json 失败");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(RyanJsonGetObjectToKey(jsonRoot, "bool")), "字段 'bool' 不是布尔类型");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(RyanJsonGetObjectToKey(jsonRoot, "bool")), "字段 'bool' 不是 Bool 类型");
 		TEST_ASSERT_EQUAL_INT_MESSAGE(RyanJsonFalse, RyanJsonGetBoolValue(RyanJsonGetObjectToKey(jsonRoot, "bool")),
 					      "字段 'bool' 的值不是 false");
 
@@ -80,22 +80,22 @@ static void testEqualityBoolBasic(void)
 }
 
 /**
- * @brief 布尔数组一致性测试
+ * @brief BoolArray 一致性测试
  */
 static void testEqualityBoolArray(void)
 {
 	const char *jsonArrayStr = "[true, false, true, false]";
 	RyanJson_t jsonRoot = RyanJsonParse(jsonArrayStr);
-	TEST_ASSERT_NOT_NULL_MESSAGE(jsonRoot, "解析布尔数组失败");
-	TEST_ASSERT_EQUAL_INT_MESSAGE(4, RyanJsonGetArraySize(jsonRoot), "数组大小不正确");
+	TEST_ASSERT_NOT_NULL_MESSAGE(jsonRoot, "解析 BoolArray 失败");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(4, RyanJsonGetArraySize(jsonRoot), "Array 大小不正确");
 
 	RyanJsonBool_e expected[] = {RyanJsonTrue, RyanJsonFalse, RyanJsonTrue, RyanJsonFalse};
 	int32_t idx = 0;
 	RyanJson_t item = NULL;
 	RyanJsonArrayForEach(jsonRoot, item)
 	{
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(item), "数组元素不是布尔类型");
-		TEST_ASSERT_EQUAL_INT_MESSAGE(expected[idx], RyanJsonGetBoolValue(item), "数组元素值不匹配");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(item), "Array 元素不是 Bool 类型");
+		TEST_ASSERT_EQUAL_INT_MESSAGE(expected[idx], RyanJsonGetBoolValue(item), "Array 元素值不匹配");
 		idx++;
 	}
 
@@ -105,14 +105,14 @@ static void testEqualityBoolArray(void)
 
 	RyanJson_t roundtripJson = RyanJsonParse(serializedStr);
 	RyanJsonFree(serializedStr);
-	TEST_ASSERT_NOT_NULL_MESSAGE(roundtripJson, "往返测试：重新解析数组失败");
-	TEST_ASSERT_EQUAL_INT_MESSAGE(4, RyanJsonGetArraySize(roundtripJson), "往返测试：数组大小不正确");
+	TEST_ASSERT_NOT_NULL_MESSAGE(roundtripJson, "往返测试：重新解析 Array 失败");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(4, RyanJsonGetArraySize(roundtripJson), "往返测试：Array 大小不正确");
 
 	idx = 0;
 	RyanJsonArrayForEach(roundtripJson, item)
 	{
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(item), "往返测试：数组元素不是布尔类型");
-		TEST_ASSERT_EQUAL_INT_MESSAGE(expected[idx], RyanJsonGetBoolValue(item), "往返测试：数组元素值不匹配");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(item), "往返测试：Array 元素不是 Bool 类型");
+		TEST_ASSERT_EQUAL_INT_MESSAGE(expected[idx], RyanJsonGetBoolValue(item), "往返测试：Array 元素值不匹配");
 		idx++;
 	}
 

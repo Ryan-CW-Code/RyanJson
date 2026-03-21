@@ -27,5 +27,5 @@
 - `xmake.lua`：`RyanJson` / `RyanJsonFuzz` 模式 target
 - `test/unityTest/runner/main.c`：unit 模式入口隔离
 - `test/unityTest/cases/core/testCreate.c`、`test/unityTest/cases/core/testReplace.c`：失败路径断言样例
-- `run_local_base.sh`：unit 矩阵与合并覆盖率（`coverage/unitMatrix`）
-- `run_local_fuzz.sh`：fuzz 覆盖率复核链路（`coverage/fuzz`）
+- `run_local_base.sh`：unit 矩阵与合并覆盖率（`localLogs/unitMatrix`）
+- `run_local_fuzz.sh`：fuzz 覆盖率复核链路（`test/fuzzer/coverage`）

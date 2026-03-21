@@ -23,28 +23,28 @@ static void testChangeEdgeCases(void)
 	TEST_ASSERT_NOT_NULL(keyedStrNode);
 	TEST_ASSERT_NOT_NULL(keyedBoolNode);
 
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeIntValue(doubleNode, 3), "ChangeIntValue(非Int节点) 应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeDoubleValue(intNode, 3.14), "ChangeDoubleValue(非Double节点) 应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeBoolValue(intNode, RyanJsonTrue), "ChangeBoolValue(非Bool节点) 应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeStringValue(intNode, "x"), "ChangeStringValue(非String节点) 应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeKey(strNode, "k2"), "ChangeKey(无Key的String节点) 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeIntValue(doubleNode, 3), "ChangeIntValue(非 Int 节点) 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeDoubleValue(intNode, 3.14), "ChangeDoubleValue(非 Double 节点) 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeBoolValue(intNode, RyanJsonTrue), "ChangeBoolValue(非 Bool 节点) 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeStringValue(intNode, "x"), "ChangeStringValue(非 String 节点) 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeKey(strNode, "k2"), "ChangeKey(无Key的 String 节点) 应返回 False");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeKey(keyedStrNode, NULL), "ChangeKey(key!=NULL 前置条件) 应返回 False");
 
 	// 失败后原值应保持不变
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonGetBoolValue(boolNode), "bool 初始值错误");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeIntValue(boolNode, 9), "ChangeIntValue(Bool节点) 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeIntValue(boolNode, 9), "ChangeIntValue(Bool 节点) 应返回 False");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonGetBoolValue(boolNode), "失败后 bool 值不应变化");
 
 	TEST_ASSERT_EQUAL_INT_MESSAGE(1, RyanJsonGetIntValue(intNode), "int 初始值错误");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeDoubleValue(intNode, 8.8), "ChangeDoubleValue(Int节点) 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeDoubleValue(intNode, 8.8), "ChangeDoubleValue(Int 节点) 应返回 False");
 	TEST_ASSERT_EQUAL_INT_MESSAGE(1, RyanJsonGetIntValue(intNode), "失败后 int 值不应变化");
 
 	TEST_ASSERT_EQUAL_STRING_MESSAGE("v", RyanJsonGetStringValue(keyedStrNode), "string 初始值错误");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeBoolValue(keyedStrNode, RyanJsonFalse), "ChangeBoolValue(String节点) 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeBoolValue(keyedStrNode, RyanJsonFalse), "ChangeBoolValue(String 节点) 应返回 False");
 	TEST_ASSERT_EQUAL_STRING_MESSAGE("v", RyanJsonGetStringValue(keyedStrNode), "失败后 string 值不应变化");
 	TEST_ASSERT_EQUAL_STRING_MESSAGE("k", RyanJsonGetKey(keyedStrNode), "失败后 key 不应变化");
 
-	// 有 key 的非字符串节点允许改 key，且值不应改变
+	// 有 key 的非 String 节点允许改 key，且值不应改变
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonChangeKey(keyedBoolNode, "flag2"), "ChangeKey(Bool+Key 节点) 应成功");
 	TEST_ASSERT_EQUAL_STRING_MESSAGE("flag2", RyanJsonGetKey(keyedBoolNode), "Bool 节点改 key 失败");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonGetBoolValue(keyedBoolNode), "Bool 节点改 key 后 value 不应变化");
@@ -77,7 +77,7 @@ static void testChangeKeyDuplicatePolicy(void)
 #else
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonChangeKey(bNode, "a"), "非严格模式下 ChangeKey 重复 key 应成功");
 	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByKey(obj, "b"), "非严格模式成功后旧 key 应不存在");
-	TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, RyanJsonGetSize(obj), "非严格模式成功后对象元素数量应保持不变");
+	TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, RyanJsonGetSize(obj), "非严格模式成功后 Object 元素数量应保持不变");
 #endif
 
 	RyanJsonDelete(obj);
@@ -102,7 +102,7 @@ static void testChangeKeySameTextNoOp(void)
 	TEST_ASSERT_EQUAL_INT_MESSAGE(1, RyanJsonGetIntValue(RyanJsonGetObjectToKey(obj, "a")), "同文本 ChangeKey 后值不应变化");
 	TEST_ASSERT_EQUAL_STRING_MESSAGE("keep", RyanJsonGetStringValue(RyanJsonGetObjectToKey(obj, "b")),
 					 "同文本 ChangeKey 不应影响其他兄弟节点");
-	TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, RyanJsonGetSize(obj), "同文本 ChangeKey 不应改变对象元素数量");
+	TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, RyanJsonGetSize(obj), "同文本 ChangeKey 不应改变 Object 元素数量");
 
 	RyanJsonDelete(obj);
 }
@@ -161,14 +161,14 @@ static void testChangeScalarAndStorageMode(void)
 	/**
 	 * @brief 修改基本类型
 	 */
-	// 修改整数
+	// 修改 Int
 	RyanJsonChangeIntValue(RyanJsonGetObjectToKey(jsonRoot, "inter"), 20);
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsInt(RyanJsonGetObjectToKey(jsonRoot, "inter")), "字段 'inter' 修改后不是整数");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsInt(RyanJsonGetObjectToKey(jsonRoot, "inter")), "字段 'inter' 修改后不是 Int");
 	TEST_ASSERT_EQUAL_INT_MESSAGE(20, RyanJsonGetIntValue(RyanJsonGetObjectToKey(jsonRoot, "inter")), "字段 'inter' 值不匹配");
 
-	// 修改浮点数
+	// 修改 Double
 	RyanJsonChangeDoubleValue(RyanJsonGetObjectToKey(jsonRoot, "double"), 20.89);
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDouble(RyanJsonGetObjectToKey(jsonRoot, "double")), "字段 'double' 修改后不是浮点数");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDouble(RyanJsonGetObjectToKey(jsonRoot, "double")), "字段 'double' 修改后不是 Double");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareDouble(RyanJsonGetDoubleValue(RyanJsonGetObjectToKey(jsonRoot, "double")), 20.89),
 				 "字段 'double' 值不匹配");
 
@@ -207,9 +207,9 @@ static void testChangeScalarAndStorageMode(void)
 	TEST_ASSERT_EQUAL_STRING_MESSAGE("Mashaaaaaaaaaaaaaaaaaaaaaaaa", RyanJsonGetStringValue(RyanJsonGetObjectToKey(jsonRoot, "name")),
 					 "长 Value 模式下的内容不匹配");
 
-	// 修改字符串
+	// 修改 String
 	RyanJsonChangeStringValue(RyanJsonGetObjectToKey(jsonRoot, "string"), "world");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(RyanJsonGetObjectToKey(jsonRoot, "string")), "字段 'string' 修改后不是字符串");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(RyanJsonGetObjectToKey(jsonRoot, "string")), "字段 'string' 修改后不是 String");
 	TEST_ASSERT_EQUAL_STRING_MESSAGE("world", RyanJsonGetStringValue(RyanJsonGetObjectToKey(jsonRoot, "string")),
 					 "字段 'string' 内容不匹配");
 
@@ -226,43 +226,43 @@ static void testChangeScalarAndStorageMode(void)
 				      "字段 'boolFalse' 值错误");
 
 	/**
-	 * @brief 修改数组元素 (arrayInt)
+	 * @brief 修改 Array 元素 (arrayInt)
 	 */
 	RyanJsonChangeIntValue(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(jsonRoot, "arrayInt"), 0), 99);
 	TEST_ASSERT_EQUAL_INT_MESSAGE(99, RyanJsonGetIntValue(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(jsonRoot, "arrayInt"), 0)),
-				      "数组元素修改失败");
+				      "Array 元素修改失败");
 
 	/**
-	 * @brief 修改数组元素 (arrayDouble)
+	 * @brief 修改 Array 元素 (arrayDouble)
 	 */
 	RyanJsonChangeDoubleValue(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(jsonRoot, "arrayDouble"), 1), 99.99);
 	TEST_ASSERT_TRUE_MESSAGE(
 		RyanJsonCompareDouble(RyanJsonGetDoubleValue(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(jsonRoot, "arrayDouble"), 1)),
 				      99.99),
-		"数组浮点元素修改失败");
+		"Array 浮点元素修改失败");
 
 	/**
-	 * @brief 修改数组元素 (arrayString)
+	 * @brief 修改 Array 元素 (arrayString)
 	 */
 	RyanJsonChangeStringValue(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(jsonRoot, "arrayString"), 2), "changedString");
 	TEST_ASSERT_EQUAL_STRING_MESSAGE(
 		"changedString", RyanJsonGetStringValue(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(jsonRoot, "arrayString"), 2)),
-		"数组字符串元素修改失败");
+		"ArrayString 元素修改失败");
 
 	/**
-	 * @brief 修改嵌套对象
+	 * @brief 修改嵌套 Object
 	 */
 	RyanJson_t nestedObj = RyanJsonGetObjectToKey(jsonRoot, "item");
 	RyanJsonChangeStringValue(RyanJsonGetObjectToKey(nestedObj, "string"), "nestedWorld");
 	TEST_ASSERT_EQUAL_STRING_MESSAGE("nestedWorld", RyanJsonGetStringValue(RyanJsonGetObjectToKey(nestedObj, "string")),
-					 "嵌套对象修改失败");
+					 "嵌套 Object 修改失败");
 
 	/**
-	 * @brief 修改数组对象中的字段 (arrayItem[0].inter -> 123)
+	 * @brief 修改 Array 中 Object 的字段 (arrayItem[0].inter -> 123)
 	 */
 	RyanJson_t arrayItem0 = RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(jsonRoot, "arrayItem"), 0);
 	RyanJsonChangeIntValue(RyanJsonGetObjectToKey(arrayItem0, "inter"), 123);
-	TEST_ASSERT_EQUAL_INT_MESSAGE(123, RyanJsonGetIntValue(RyanJsonGetObjectToKey(arrayItem0, "inter")), "数组中对象的字段修改失败");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(123, RyanJsonGetIntValue(RyanJsonGetObjectToKey(arrayItem0, "inter")), "Array 中 Object 的字段修改失败");
 
 	char *str = RyanJsonPrint(jsonRoot, 1024, RyanJsonTrue, NULL);
 	RyanJsonFree(str);
@@ -275,14 +275,14 @@ static void testChangeScalarAndStorageMode(void)
 	TEST_ASSERT_NOT_NULL(json);
 	TEST_ASSERT_EQUAL_STRING_MESSAGE("val", RyanJsonGetStringValue(json), "Inline 模式初次设置失败");
 
-	// 修改为长字符串 (触发自动切换到 ptr 模式)
+	// 修改为长 String (触发自动切换到 ptr 模式)
 	const char *longVal = "This is a very long string that definitely exceeds the inline threshold of RyanJson structure.";
 	RyanJsonChangeStringValue(json, longVal);
 	TEST_ASSERT_EQUAL_STRING_MESSAGE(longVal, RyanJsonGetStringValue(json), "切换到 Ptr 模式后值错误");
 
-	// 修改回短字符串
+	// 修改回短 String
 	RyanJsonChangeStringValue(json, "new");
-	TEST_ASSERT_EQUAL_STRING_MESSAGE("new", RyanJsonGetStringValue(json), "切回短字符串后值错误");
+	TEST_ASSERT_EQUAL_STRING_MESSAGE("new", RyanJsonGetStringValue(json), "切回短 String 后值错误");
 
 	// 修改 Key 为长 Key
 	const char *longKey = "a_very_long_key_name_to_trigger_ptr_mode_for_key_storage_in_ryanjson";
@@ -295,7 +295,8 @@ static void testChangeScalarAndStorageMode(void)
 static void testChangeInlineCalcBoundary(void)
 {
 	/**
-	 * 这个测试的目标：
+	 * @brief 这个测试的目标：
+	 * @details
 	 * 验证 RyanJsonInternalChangeString 的容量判断在“临界长度”处是否正确；
 	 * 验证 value 和 key 两条路径都会发生 inline <-> ptr 的双向切换；
 	 * 不依赖固定常量（例如 keyLen=255），而是基于当前编译配置动态计算边界。
@@ -314,7 +315,8 @@ static void testChangeInlineCalcBoundary(void)
 	uint32_t fixedValueLen = 1;
 
 	/**
-	 * value 边界计算（固定 key="k"）：
+	 * @brief value 边界计算（固定 key="k"）。
+	 * @details
 	 * 需要占用的总 inline 空间 = keyFieldLen + keyLen + '\0' + valueLen + '\0'
 	 * 先算出不含 value 内容本体时的固定开销 baseNeedForValue，
 	 * 再反推出 value 能放进 inline 的最大长度 maxInlineValueLen。
@@ -347,7 +349,8 @@ static void testChangeInlineCalcBoundary(void)
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonGetPayloadStrIsPtrByFlag(valueNode), "value 回退到临界长度应切回 inline");
 
 	/**
-	 * key 边界计算（固定 value="v"）：
+	 * @brief key 边界计算（固定 value="v"）。
+	 * @details
 	 * keyLen 变化时，keyLenField 可能从 1/2/4 字节变化，
 	 * 所以不能硬编码某个 keyLen，必须遍历找到“当前配置下最大可 inline 的 key 长度”。
 	 */
@@ -400,13 +403,13 @@ static void testChangeInlineCalcBoundary(void)
 
 static void testChangeNumericStringIdFidelity(void)
 {
-	// 覆盖“数字字符串 ID”保真：
-	// 1) 解析后仍为 string 类型，且保留前导零与大整数文本；
-	// 2) Print/Parse 往返不数值化；
-	// 3) ChangeStringValue 不会触发数值化或去零。
+	// 覆盖“NumberString ID”保真：
+	// - 解析后仍为 String 类型，且保留前导零与大 Int 文本；
+	// - Print/Parse 往返不数值化；
+	// - ChangeStringValue 不会触发数值化或去零。
 	const char *text = "{\"id\":\"00123\",\"big\":\"9007199254740993\",\"arr\":[\"00123\",\"9007199254740993\"]}";
 	RyanJson_t root = RyanJsonParse(text);
-	TEST_ASSERT_NOT_NULL_MESSAGE(root, "数字字符串样本解析失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(root, "Number String 样本解析失败");
 
 	RyanJson_t idNode = RyanJsonGetObjectByKey(root, "id");
 	RyanJson_t bigNode = RyanJsonGetObjectByKey(root, "big");
@@ -476,9 +479,9 @@ static void testChangeFailureThenSuccessChainAgainstExpected(void)
 	// Parse -> Duplicate(snapshot) -> 连续失败 Change -> Compare(snapshot)
 	// -> 连续成功 Change(含 ChangeKey) -> CompareOnlyKey 差异 -> 对齐期望文档 -> Roundtrip。
 	// 目标：
-	// 1) 验证失败 Change 不会污染原树；
-	// 2) 验证失败与成功交错后，结构和值仍可稳定收敛到期望语义；
-	// 3) 覆盖 ChangeKey 引起的 key 结构变化对 CompareOnlyKey 的影响。
+	// - 验证失败 Change 不会污染原树；
+	// - 验证失败与成功交错后，结构和值仍可稳定收敛到期望语义；
+	// - 覆盖 ChangeKey 引起的 key 结构变化对 CompareOnlyKey 的影响。
 	const char *source = "{\"cfg\":{\"mode\":\"a\",\"retry\":1},\"arr\":[{\"k\":\"x\"},{\"k\":\"y\"}],\"flag\":true}";
 	const char *expectText = "{\"cfg\":{\"mode\":\"b\",\"retry2\":9},\"arr\":[{\"k\":\"x\"},{\"k\":\"z\"}],\"flag\":false}";
 
@@ -496,11 +499,11 @@ static void testChangeFailureThenSuccessChainAgainstExpected(void)
 	TEST_ASSERT_NOT_NULL(arr0);
 	TEST_ASSERT_NOT_NULL(arr1);
 
-	// 失败路径：类型不匹配 + 数组元素无 key，不应改变文档语义。
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeIntValue(RyanJsonGetObjectToKey(cfg, "mode"), 1), "string 节点 ChangeIntValue 应失败");
+	// 失败路径：类型不匹配 + Array 元素无 key，不应改变文档语义。
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeIntValue(RyanJsonGetObjectToKey(cfg, "mode"), 1), "String 节点 ChangeIntValue 应失败");
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeBoolValue(RyanJsonGetObjectToKey(arr0, "k"), RyanJsonTrue),
-				  "string 节点 ChangeBoolValue 应失败");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeKey(arr0, "arr0"), "数组元素无 key，ChangeKey 应失败");
+				  "String 节点 ChangeBoolValue 应失败");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeKey(arr0, "arr0"), "Array 元素无 key，ChangeKey 应失败");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(root, snapshot), "仅发生失败 Change 时，文档语义应与 snapshot 完全一致");
 
 	// 成功路径：值修改 + key 修改。

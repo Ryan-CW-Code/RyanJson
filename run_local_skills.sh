@@ -72,7 +72,9 @@ INNER_EOF
 		elif grep -Fq '../../shared/terminology.md' "${termFile}"; then
 			ryanjson_log_info "synced ${termFile} (already linked)"
 		else
-			tmpFile="$(mktemp)"
+			local tmpRoot="${repoRoot}/localLogs/_tmp"
+			mkdir -p "${tmpRoot}"
+			tmpFile="$(mktemp "${tmpRoot}/terminology.XXXXXX")"
 			cat > "${tmpFile}" <<'INNER_EOF'
 # 术语字典
 

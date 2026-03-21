@@ -21,7 +21,7 @@ static void testUsageContainerInsertAtExactSizeObject(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> Insert(index==size) -> 顺序校验。
-	// 目标：验证对象显式尾插的用户写法。
+	// 目标：验证 Object 显式尾插的用户写法。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1}");
 	TEST_ASSERT_NOT_NULL(obj);
 	TEST_ASSERT_TRUE(RyanJsonInsert(obj, 1, RyanJsonCreateInt("b", 2)));
@@ -35,7 +35,7 @@ static void testUsageContainerInsertAtExactSizeObject(void)
 static void testUsageContainerInsertDetachedContainerBetweenObjects(void)
 {
 	// 复杂链路：
-	// Parse -> DetachByKey(container) -> Insert(另一对象) -> Compare。
+	// Parse -> DetachByKey(container) -> Insert(另一 Object) -> Compare。
 	// 目标：验证带 key 的容器节点可按用户预期整体迁移并保留原 key。
 	RyanJson_t root = RyanJsonParse("{\"left\":{\"arr\":[1,2]},\"right\":{}}");
 	TEST_ASSERT_NOT_NULL(root);
@@ -61,7 +61,7 @@ static void testUsageContainerChangeKeyOnDetachedArrayThenInsertIntoObject(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> DetachByKey(Array) -> ChangeKey -> Insert(Object) -> Compare。
-	// 目标：验证已分离数组在重命名后可直接回插为新字段。
+	// 目标：验证已分离 Array 在重命名后可直接回插为新字段。
 	RyanJson_t obj = RyanJsonParse("{\"arr\":[1]}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -81,8 +81,8 @@ static void testUsageContainerChangeKeyOnDetachedArrayThenInsertIntoObject(void)
 static void testUsageContainerDetachNestedArrayToRoot(void)
 {
 	// 复杂链路：
-	// Parse -> DetachByKey(子数组) -> AddItemToObject(root) -> 结果校验。
-	// 目标：验证嵌套数组可直接提升为根级字段。
+	// Parse -> DetachByKey(子 Array) -> AddItemToObject(root) -> 结果校验。
+	// 目标：验证嵌套 Array 可直接提升为根级字段。
 	RyanJson_t root = RyanJsonParse("{\"payload\":{\"items\":[1,2]},\"meta\":0}");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -103,7 +103,7 @@ static void testUsageContainerDetachArrayElementToObject(void)
 {
 	// 复杂链路：
 	// Parse -> DetachByIndex -> AddItemToObject -> 结果校验。
-	// 目标：验证数组元素可通过新 key 挂载到对象。
+	// 目标：验证 Array 元素可通过新 key 挂载到 Object。
 	RyanJson_t root = RyanJsonParse("{\"arr\":[{\"id\":1},{\"id\":2}],\"dst\":{}}");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -127,7 +127,7 @@ static void testUsageContainerDetachObjectToArrayThenInsert(void)
 {
 	// 复杂链路：
 	// Parse -> DetachByKey(Object) -> Insert(Array) -> Compare。
-	// 目标：验证对象字段可整体降级为数组元素。
+	// 目标：验证 Object 字段可整体降级为 Array 元素。
 	RyanJson_t root = RyanJsonParse("{\"obj\":{\"k\":1},\"arr\":[]}");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -147,23 +147,23 @@ static void testUsageContainerInsertParsedRootObjectIntoParsedRootArray(void)
 {
 	// 复杂链路：
 	// Parse(ArrayRoot) -> Parse(ObjectRoot) -> Insert(Array, parsedRoot) -> Print -> Parse -> Compare。
-	// 目标：验证独立解析出来的根对象，本身就能像游离容器一样直接并入另一份根数组文档。
+	// 目标：验证独立解析出来的根 Object，本身就能像游离容器一样直接并入另一份根 Array 文档。
 	RyanJson_t arrRoot = RyanJsonParse("[{\"id\":\"old\"}]");
 	RyanJson_t objRoot = RyanJsonParse("{\"id\":\"new\",\"tags\":[\"hot\"]}");
 	TEST_ASSERT_NOT_NULL(arrRoot);
 	TEST_ASSERT_NOT_NULL(objRoot);
 
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(arrRoot, 1, objRoot), "将解析出的根对象插入根数组失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(arrRoot, 1, objRoot), "将解析出的根 Object 插入根 Array 失败");
 
 	RyanJson_t expect = RyanJsonParse("[{\"id\":\"old\"},{\"id\":\"new\",\"tags\":[\"hot\"]}]");
 	TEST_ASSERT_NOT_NULL(expect);
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(arrRoot, expect), "根对象并入根数组后的结构不符合预期");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(arrRoot, expect), "根 Object 并入根 Array 后的结构不符合预期");
 
 	char *printed = RyanJsonPrint(arrRoot, 128, RyanJsonFalse, NULL);
 	TEST_ASSERT_NOT_NULL(printed);
 	RyanJson_t roundtrip = RyanJsonParse(printed);
 	TEST_ASSERT_NOT_NULL(roundtrip);
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(arrRoot, roundtrip), "根对象并入根数组后的往返 Compare 应相等");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(arrRoot, roundtrip), "根 Object 并入根 Array 后的往返 Compare 应相等");
 
 	RyanJsonDelete(roundtrip);
 	RyanJsonFree(printed);
@@ -174,7 +174,7 @@ static void testUsageContainerInsertParsedRootObjectIntoParsedRootArray(void)
 static void testUsageContainerMoveDetachedSubtreeBetweenParsedDocs(void)
 {
 	// 复杂链路：
-	// Parse(src) -> Parse(dst) -> DetachByKey(src 子对象) -> ChangeKey -> Insert(dst 子对象)
+	// Parse(src) -> Parse(dst) -> DetachByKey(src 子 Object) -> ChangeKey -> Insert(dst 子 Object)
 	// -> 双文档 Compare -> Print/Parse。
 	// 目标：验证两份独立解析文档之间，可直接迁移 detached subtree，
 	// 且源/目标文档都会稳定收敛到各自期望结构。
@@ -225,7 +225,7 @@ static void testUsageContainerMoveDetachedSubtreeBetweenParsedDocs(void)
 static void testUsageContainerMoveDetachedSubtreeFromParsedDocToCreatedDoc(void)
 {
 	// 复杂链路：
-	// Parse(src) -> Create(dst root/user) -> DetachByKey(src 子对象) -> ChangeKey
+	// Parse(src) -> Create(dst root/user) -> DetachByKey(src 子 Object) -> ChangeKey
 	// -> Insert(created user, index==size) -> 双文档 Compare -> Print/Parse。
 	// 目标：验证 parsed 文档分离出来的 detached subtree，可直接迁入 create 出来的目标文档；
 	// 该链路与“parsed -> parsed”迁移不同，专门覆盖 parse/create 混合来源。

@@ -26,8 +26,35 @@
   - 默认写入 `./fuzz.log`（仅运行日志，覆盖写）
 - `run_local_format.sh`
   - 本地一键格式化或 `--check` 校验仓库源码（排除 `test/externalModule` 与临时产物）
+- `run_local_memory.sh`
+  - 本地一键运行内存对比用例（仅 memory runner），支持 host / qemu
+  - 默认仅跑单配置（`MEM_SINGLE_CASE=1`），默认语义：`MEM_DEFAULT_CASE="false false true"`
+  - 默认同时生成 host + qemu 两份报告（`MEM_PLATFORM=both`）
+  - 默认清理 ANSI 颜色：`MEM_STRIP_ANSI_LOG=1`（如需保留颜色设为 0）
+  - 固定跑 4 组模拟分配参数：
+    - header=12 align=4
+    - header=8 align=8
+    - header=8 align=4
+    - header=4 align=4
+  - 结构化输出 `[MEM][COMPARE]`
+  - 仅输出 Markdown 汇总（项目根目录）：
+    - `memoryUsageCompareHost.md`
+    - `memoryUsageCompareQemu.md`
+- `run_local_rfc8259.sh`
+  - 本地一键生成 RFC8259 报告（仅 RFC runner），支持 host / qemu
+  - 默认仅跑单配置（`RFC_SINGLE_CASE=1`），默认语义：`RFC_DEFAULT_CASE="false false true"`
+  - 默认同时生成 host + qemu 两份报告（`RFC_PLATFORM=both`）
+  - 默认清理 ANSI 颜色：`RFC_STRIP_ANSI_LOG=1`（如需保留颜色设为 0）
+  - Host/QEMU 均使用内嵌 RFC8259 数据集（避免依赖文件系统）
+  - 仅输出 Markdown 汇总（项目根目录）：
+    - `rfc8259ReportHost.md`
+    - `rfc8259ReportQemu.md`
+- `scripts/tools/gen_rfc8259_embedded.py`
+  - 生成 RFC8259 内嵌数据文件（`test/unityTest/cases/RFC8259/rfc8259Embedded.*`）
+  - 当 `test/data/rfc8259` 更新时需要重新生成
 - `run_local_qemu.sh`
   - 本地一键跑 QEMU 硬件语义校验（完整 localbase 单测 + 非对齐 fault）
   - 默认 `QEMU_MEMORY=64M`，可按需通过环境变量覆盖
+  - 日志目录默认 `localLogs/qemu`（已在 `.gitignore` 中忽略）
 - `run_local_skills.sh`
   - 本地同步并校验 `skills/*`

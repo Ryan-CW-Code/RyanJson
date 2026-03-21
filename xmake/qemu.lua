@@ -25,10 +25,18 @@ local function setupRyanJsonQemuTarget(options)
     local strictObjectKeyCheck = getBooleanEnvDefineValue("RYANJSON_STRICT_OBJECT_KEY_CHECK", "false")
     local defaultAddAtHead = getBooleanEnvDefineValue("RYANJSON_DEFAULT_ADD_AT_HEAD", "false")
     local snprintfSupportScientific = getBooleanEnvDefineValue("RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC", "true")
+    local unitOnlyMemory = getBooleanEnvDefineValue("RYANJSON_UNIT_ONLY_MEMORY", "false")
+    local unitOnlyRfc8259 = getBooleanEnvDefineValue("RYANJSON_UNIT_ONLY_RFC8259", "false")
 
     add_defines("RyanJsonStrictObjectKeyCheck=" .. strictObjectKeyCheck)
     add_defines("RyanJsonDefaultAddAtHead=" .. defaultAddAtHead)
     add_defines("RyanJsonSnprintfSupportScientific=" .. snprintfSupportScientific)
+    if "true" == unitOnlyMemory then
+        add_defines("RyanJsonUnitOnlyMemory")
+    end
+    if "true" == unitOnlyRfc8259 then
+        add_defines("RyanJsonUnitOnlyRfc8259")
+    end
     add_defines("RyanJsonTestPlatformQemu")
     add_defines("RyanJsonFreeRtosHeap4")
     add_defines("RyanJsonProjectRootPath=\"$(projectdir)\"")

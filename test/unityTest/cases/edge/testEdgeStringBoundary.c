@@ -118,8 +118,8 @@ static void testEdgeStringBoundaryChangeValueSameLength(void)
 static void testEdgeStringRoundtripLongValue(void)
 {
 	// 复杂链路：
-	// Create(Object长 value) -> Print -> Parse -> Compare。
-	// 目标：验证长字符串 value 往返一致。
+	// Create(Object 长 value) -> Print -> Parse -> Compare。
+	// 目标：验证长 String value 往返一致。
 	uint32_t longLen = RyanJsonInlineStringSize + 8U;
 	char *longVal = allocPatternString(longLen, 'v');
 	TEST_ASSERT_NOT_NULL(longVal);
@@ -240,7 +240,7 @@ static void testEdgeStringParsePtrBoundaryPlain(void)
 
 static void testEdgeStringParseInlineBoundaryEscaped(void)
 {
-	// 目标：转义字符串的“解码长度”决定 inline/ptr 模式。
+	// 目标：转义 String 的“解码长度”决定 inline/ptr 模式。
 	const uint32_t maxInlineLen = RyanJsonInlineStringSize - 1U;
 	char *escaped = allocEscapedUnicodeRepeat(maxInlineLen);
 	char *jsonText = allocJsonStringWithContent(escaped);
@@ -258,7 +258,7 @@ static void testEdgeStringParseInlineBoundaryEscaped(void)
 
 static void testEdgeStringParsePtrBoundaryEscaped(void)
 {
-	// 目标：转义字符串解码长度超过 inline 临界后，应切到 ptr。
+	// 目标：转义 String 解码长度超过 inline 临界后，应切到 ptr。
 	const uint32_t overInlineLen = RyanJsonInlineStringSize;
 	char *escaped = allocEscapedUnicodeRepeat(overInlineLen);
 	char *jsonText = allocJsonStringWithContent(escaped);

@@ -46,7 +46,7 @@ extern void vAssertCalled(const char *file, int32_t line);
 #define configRECORD_STACK_HIGH_ADDRESS 1
 
 /**
- * @brief 内核对象能力开关。
+ * @brief 内核 Object 能力开关。
  * @note 测试模式下尽量打开常用同步原语，覆盖更多内核交互路径。
  */
 #define configUSE_TASK_NOTIFICATIONS          1

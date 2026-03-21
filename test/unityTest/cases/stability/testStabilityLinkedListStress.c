@@ -4,7 +4,7 @@ static void testListStabilityArrayDeleteHeadTailThenInsert(void)
 {
 	// 复杂链路：
 	// Parse(Array) -> DeleteByIndex(head/tail) -> Insert(head/tail) -> 遍历链表校验。
-	// 目标：验证数组头尾删插后链表稳定。
+	// 目标：验证 Array 头尾删插后链表稳定。
 	RyanJson_t arr = RyanJsonParse("[1,2,3,4,5]");
 	TEST_ASSERT_NOT_NULL(arr);
 
@@ -27,13 +27,13 @@ static void testListStabilityArrayDeleteHeadTailThenInsert(void)
 	while (node)
 	{
 		count++;
-		if (count > size + 1U) { TEST_FAIL_MESSAGE("数组链表疑似形成环"); }
+		if (count > size + 1U) { TEST_FAIL_MESSAGE("Array 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(size, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "数组尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Array 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(arr);
 }
@@ -65,13 +65,13 @@ static void testListStabilityArrayLargeChurnNoCycle(void)
 	while (node)
 	{
 		count++;
-		if (count > size + 1U) { TEST_FAIL_MESSAGE("数组链表疑似形成环"); }
+		if (count > size + 1U) { TEST_FAIL_MESSAGE("Array 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(size, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "数组尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Array 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(arr);
 }
@@ -80,7 +80,7 @@ static void testListStabilityObjectDeleteHeadTailThenInsert(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> DeleteByKey(head/tail) -> Insert(head/tail) -> 遍历链表校验。
-	// 目标：验证对象头尾删插后链表稳定。
+	// 目标：验证 Object 头尾删插后链表稳定。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"b\":2,\"c\":3,\"d\":4}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -102,13 +102,13 @@ static void testListStabilityObjectDeleteHeadTailThenInsert(void)
 	while (node)
 	{
 		count++;
-		if (count > size + 1U) { TEST_FAIL_MESSAGE("对象链表疑似形成环"); }
+		if (count > size + 1U) { TEST_FAIL_MESSAGE("Object 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(size, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "对象尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Object 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(obj);
 }
@@ -117,7 +117,7 @@ static void testListStabilityObjectDetachThenReplaceAndInsert(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> DetachByKey -> ReplaceByKey -> Insert -> 遍历链表校验。
-	// 目标：验证对象分离/替换/插入后的链表稳定。
+	// 目标：验证 Object 分离/替换/插入后的链表稳定。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"b\":2,\"c\":3}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -139,13 +139,13 @@ static void testListStabilityObjectDetachThenReplaceAndInsert(void)
 	while (node)
 	{
 		count++;
-		if (count > size + 1U) { TEST_FAIL_MESSAGE("对象链表疑似形成环"); }
+		if (count > size + 1U) { TEST_FAIL_MESSAGE("Object 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(size, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "对象尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Object 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(obj);
 }
@@ -173,13 +173,13 @@ static void testListStabilityObjectMultiReplaceByIndex(void)
 	while (node)
 	{
 		count++;
-		if (count > size + 1U) { TEST_FAIL_MESSAGE("对象链表疑似形成环"); }
+		if (count > size + 1U) { TEST_FAIL_MESSAGE("Object 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(size, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "对象尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Object 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(obj);
 }
@@ -213,13 +213,13 @@ static void testListStabilityObjectDuplicateKeyDeleteLoop(void)
 	while (node)
 	{
 		count++;
-		if (count > size + 1U) { TEST_FAIL_MESSAGE("对象链表疑似形成环"); }
+		if (count > size + 1U) { TEST_FAIL_MESSAGE("Object 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(size, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "对象尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Object 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(obj);
 }

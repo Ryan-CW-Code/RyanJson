@@ -19,6 +19,8 @@ default.profdata
 default.profraw
 test/fuzzer/corpus
 ./coverage/**
+local_logs/
+localLogs/
 
 fuzz-*
 RyanJson_Technical_Paper.md

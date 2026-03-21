@@ -27,9 +27,9 @@ static void testDetachDuplicateKey(void)
 	RyanJson_t obj = RyanJsonCreateObject();
 	TEST_ASSERT_TRUE(RyanJsonAddIntToObject(obj, "dup", 1));
 #if true == RyanJsonStrictObjectKeyCheck
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonAddIntToObject(obj, "dup", 2), "严格模式下对象不应允许重复 key");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonAddIntToObject(obj, "dup", 2), "严格模式下 Object 不应允许重复 key");
 #else
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToObject(obj, "dup", 2), "非严格模式下对象应允许重复 key");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToObject(obj, "dup", 2), "非严格模式下 Object 应允许重复 key");
 #endif
 
 	RyanJson_t only = RyanJsonGetObjectByKey(obj, "dup");
@@ -107,10 +107,10 @@ static void testDetachReInsert(void)
 	TEST_ASSERT_NOT_NULL(item);
 	TEST_ASSERT_EQUAL_INT(10, RyanJsonGetIntValue(item));
 
-	RyanJsonAddIntToArray(arr, 20); // 当前数组为 [20]
+	RyanJsonAddIntToArray(arr, 20); // 当前 Array 为 [20]
 
 	// 使用 RyanJsonInsert 直接插入，避免 RyanJsonAddItemToArray 的包装行为
-	RyanJsonInsert(arr, UINT32_MAX, item); // 当前数组为 [20, 10]
+	RyanJsonInsert(arr, UINT32_MAX, item); // 当前 Array 为 [20, 10]
 
 	TEST_ASSERT_EQUAL_INT(2, RyanJsonGetArraySize(arr));
 	TEST_ASSERT_EQUAL_INT(20, RyanJsonGetIntValue(RyanJsonGetObjectByIndex(arr, 0)));
@@ -245,7 +245,7 @@ static void testDetachStandardOperations(void)
 	TEST_ASSERT_NOT_NULL_MESSAGE(json, "解析 Json 失败");
 
 	/**
-	 * @brief 对象子项分离测试（头、中、尾）
+	 * @brief Object 子项分离测试（头、中、尾）
 	 */
 	{
 		// 头部（第一个 key：inter）
@@ -254,7 +254,7 @@ static void testDetachStandardOperations(void)
 		RyanJsonDelete(detached);
 		TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectToKey(json, "inter"), "分离后 inter 依然存在");
 
-		// 中间（double）
+		// 中间（Double）
 		detached = RyanJsonDetachByKey(json, "double");
 		TEST_ASSERT_NOT_NULL_MESSAGE(detached, "分离中间项 double 失败");
 		RyanJsonDelete(detached);
@@ -269,7 +269,7 @@ static void testDetachStandardOperations(void)
 	}
 
 	/**
-	 * @brief 数组元素分离测试 (arrayInt / arrayDouble / arrayString)
+	 * @brief Array 元素分离测试 (arrayInt / arrayDouble / arrayString)
 	 */
 	{
 		RyanJson_t arrInt = RyanJsonGetObjectByKey(json, "arrayInt");
@@ -312,17 +312,17 @@ static void testDetachStandardOperations(void)
 	}
 
 	/**
-	 * @brief 嵌套对象分离测试 (item)
+	 * @brief 嵌套 Object 分离测试 (item)
 	 */
 	{
 		RyanJson_t detached = RyanJsonDetachByKey(json, "item");
-		TEST_ASSERT_NOT_NULL_MESSAGE(detached, "分离嵌套对象 item 失败");
+		TEST_ASSERT_NOT_NULL_MESSAGE(detached, "分离嵌套 Object item 失败");
 		RyanJsonDelete(detached);
 		TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectToKey(json, "item"), "分离后 item 依然存在");
 	}
 
 	/**
-	 * @brief 数组对象元素分离测试 (arrayItem 头、中、尾)
+	 * @brief Array 中 Object 元素分离测试 (arrayItem 头、中、尾)
 	 */
 	{
 		RyanJson_t arr = RyanJsonGetObjectByKey(json, "arrayItem");
@@ -331,27 +331,27 @@ static void testDetachStandardOperations(void)
 		uint32_t size = RyanJsonGetSize(arr);
 		// 头部
 		RyanJson_t detached = RyanJsonDetachByIndex(arr, 0);
-		TEST_ASSERT_NOT_NULL_MESSAGE(detached, "分离对象数组头部项失败");
+		TEST_ASSERT_NOT_NULL_MESSAGE(detached, "分离 ObjectArray 头部项失败");
 		RyanJsonDelete(detached);
-		TEST_ASSERT_EQUAL_INT_MESSAGE(size - 1, RyanJsonGetSize(arr), "分离对象数组头部后长度未减少");
+		TEST_ASSERT_EQUAL_INT_MESSAGE(size - 1, RyanJsonGetSize(arr), "分离 ObjectArray 头部后长度未减少");
 
 		// 中间
 		size = RyanJsonGetSize(arr);
 		detached = RyanJsonDetachByIndex(arr, 1);
-		TEST_ASSERT_NOT_NULL_MESSAGE(detached, "分离对象数组中间项失败");
+		TEST_ASSERT_NOT_NULL_MESSAGE(detached, "分离 ObjectArray 中间项失败");
 		RyanJsonDelete(detached);
-		TEST_ASSERT_EQUAL_INT_MESSAGE(size - 1, RyanJsonGetSize(arr), "分离对象数组中间后长度未减少");
+		TEST_ASSERT_EQUAL_INT_MESSAGE(size - 1, RyanJsonGetSize(arr), "分离 ObjectArray 中间后长度未减少");
 
 		// 尾部
 		size = RyanJsonGetSize(arr);
 		detached = RyanJsonDetachByIndex(arr, RyanJsonGetSize(arr) - 1);
-		TEST_ASSERT_NOT_NULL_MESSAGE(detached, "分离对象数组尾部项失败");
+		TEST_ASSERT_NOT_NULL_MESSAGE(detached, "分离 ObjectArray 尾部项失败");
 		RyanJsonDelete(detached);
-		TEST_ASSERT_EQUAL_INT_MESSAGE(size - 1, RyanJsonGetSize(arr), "分离对象数组尾部后长度未减少");
+		TEST_ASSERT_EQUAL_INT_MESSAGE(size - 1, RyanJsonGetSize(arr), "分离 ObjectArray 尾部后长度未减少");
 	}
 
 	/**
-	 * @brief 特殊类型分离测试（null / bool）
+	 * @brief 特殊类型分离测试（Null / Bool）
 	 */
 	{
 		RyanJson_t detached = RyanJsonDetachByKey(json, "null");
@@ -393,7 +393,7 @@ static void testDetachMassiveItemsStress(void)
 	TEST_ASSERT_EQUAL_INT(0, RyanJsonGetArraySize(arr));
 	RyanJsonDelete(arr);
 
-	// 分离刚添加的对象字段（字段类型为 String）
+	// 分离刚添加的 Object 字段（字段类型为 String）
 	RyanJson_t obj = RyanJsonCreateObject();
 	// 使用标准 AddString 宏：会创建带 key 的 String 节点并插入
 	RyanJsonAddStringToObject(obj, "sub", "v");
@@ -415,9 +415,9 @@ static void testDetachFailureRecoveryAndCrossContainerRebuild(void)
 	// Parse -> Detach(失败) -> Detach(成功) -> Insert(Object) -> Detach(Array) -> AddItemToObject
 	// -> Compare(期望文档) -> Roundtrip。
 	// 目标：
-	// 1) 验证分离失败路径不会污染原树；
-	// 2) 验证对象分离节点可重命名后跨容器插入；
-	// 3) 验证数组分离节点可经 AddItemToObject 包装后重建结构。
+	// - 验证分离失败路径不会污染原树；
+	// - 验证 Object 分离节点可重命名后跨容器插入；
+	// - 验证 Array 分离节点可经 AddItemToObject 包装后重建结构。
 	const char *source = "{\"live\":{\"a\":{\"v\":1},\"b\":{\"v\":2}},\"archive\":[{\"id\":\"x\"}],\"archiveMap\":{}}";
 	const char *expectText = "{\"live\":{\"a\":{\"v\":1},\"x\":{\"id\":\"x\"}},\"archive\":[],\"archiveMap\":{\"bMoved\":{\"v\":2}}}";
 
@@ -437,18 +437,18 @@ static void testDetachFailureRecoveryAndCrossContainerRebuild(void)
 	TEST_ASSERT_NULL_MESSAGE(RyanJsonDetachByKey(live, "missing"), "DetachByKey(不存在 key) 应返回 NULL");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(root, snapshot), "仅发生失败分离时，文档应保持不变");
 
-	// 成功分离对象节点并迁移到 archiveMap。
+	// 成功分离 Object 节点并迁移到 archiveMap。
 	RyanJson_t movedB = RyanJsonDetachByKey(live, "b");
 	TEST_ASSERT_NOT_NULL_MESSAGE(movedB, "分离 live.b 失败");
 	TEST_ASSERT_TRUE(RyanJsonIsDetachedItem(movedB));
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonChangeKey(movedB, "bMoved"), "重命名分离节点 key 失败");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(archiveMap, 0, movedB), "插入 archiveMap.bMoved 失败");
 
-	// 成功分离数组节点并通过 AddItemToObject 包装回 live.x。
+	// 成功分离 Array 节点并通过 AddItemToObject 包装回 live.x。
 	RyanJson_t movedX = RyanJsonDetachByIndex(archive, 0);
 	TEST_ASSERT_NOT_NULL_MESSAGE(movedX, "分离 archive[0] 失败");
 	TEST_ASSERT_TRUE(RyanJsonIsDetachedItem(movedX));
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddItemToObject(live, "x", movedX), "将分离数组节点挂载到 live.x 失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddItemToObject(live, "x", movedX), "将分离 Array 节点挂载到 live.x 失败");
 
 	TEST_ASSERT_NULL(RyanJsonGetObjectToKey(live, "b"));
 	TEST_ASSERT_EQUAL_UINT32(0U, RyanJsonGetArraySize(archive));

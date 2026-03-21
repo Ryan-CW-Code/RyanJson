@@ -61,16 +61,16 @@ static void testPrintPreallocatedObjectIntHeadroom(void)
 	char *expect = RyanJsonPrint(obj, 0, RyanJsonFalse, &expectLen);
 	TEST_ASSERT_NOT_NULL(expect);
 
-	// 对象中包含 int 时，内部数字路径会预留固定工作区，
+	// Object 中包含 Int 时，内部 Number 路径会预留固定工作区，
 	// 因而“仅够最终输出长度”的缓冲区不一定足够。
 	char *exactBuf = (char *)malloc((size_t)expectLen + 1U);
 	TEST_ASSERT_NOT_NULL(exactBuf);
 	char *out = RyanJsonPrintPreallocated(obj, exactBuf, expectLen + 1U, RyanJsonFalse, NULL);
-	TEST_ASSERT_NULL_MESSAGE(out, "对象(int) 预分配仅按最终长度应失败");
+	TEST_ASSERT_NULL_MESSAGE(out, "Object(int) 预分配仅按最终长度应失败");
 
 	char headroomBuf[32] = {0};
 	out = RyanJsonPrintPreallocated(obj, headroomBuf, sizeof(headroomBuf), RyanJsonFalse, NULL);
-	TEST_ASSERT_NOT_NULL_MESSAGE(out, "对象(int) 预分配带预留空间应成功");
+	TEST_ASSERT_NOT_NULL_MESSAGE(out, "Object(int) 预分配带预留空间应成功");
 	TEST_ASSERT_EQUAL_STRING(expect, out);
 	TEST_ASSERT_EQUAL_UINT32(expectLen, (uint32_t)strlen(out));
 
@@ -105,7 +105,7 @@ static void testPrintDoubleBoundaryPreallocated(void)
 	char *expect = RyanJsonPrint(doubleJson, 0, RyanJsonFalse, &expectLen);
 	TEST_ASSERT_NOT_NULL(expect);
 
-	// double 路径同样会先申请内部工作区，仅按最终输出长度预分配不一定足够。
+	// Double 路径同样会先申请内部工作区，仅按最终输出长度预分配不一定足够。
 	char *exactBuf = (char *)malloc((size_t)expectLen + 1U);
 	TEST_ASSERT_NOT_NULL(exactBuf);
 	char *out = RyanJsonPrintPreallocated(doubleJson, exactBuf, expectLen + 1U, RyanJsonFalse, NULL);
@@ -190,9 +190,9 @@ static void testPrintDoubleScientificAndRoundtrip(void)
 static void testPrintDoubleFixedPointBoundary(void)
 {
 	// 固定点边界分支：
-	// 1) 真实 0 必须打印成 0.0；
-	// 2) 小于 1e15 的整数样式 double 仍应保留一位小数；
-	// 3) 到达 1e15 后应切到“大数”分支，避免继续沿用固定点规则。
+	// - 真实 0 必须打印成 0.0；
+	// - 小于 1e15 的 Int 样式 Double 仍应保留一位小数；
+	// - 到达 1e15 后应切到“大数”分支，避免继续沿用固定点规则。
 	RyanJson_t obj = RyanJsonCreateObject();
 	TEST_ASSERT_NOT_NULL(obj);
 	TEST_ASSERT_TRUE(RyanJsonAddDoubleToObject(obj, "zero", 0.0));
@@ -202,7 +202,7 @@ static void testPrintDoubleFixedPointBoundary(void)
 	char *printed = RyanJsonPrint(obj, 160, RyanJsonFalse, NULL);
 	TEST_ASSERT_NOT_NULL(printed);
 	TEST_ASSERT_NOT_NULL_MESSAGE(strstr(printed, "\"zero\":0.0"), "0.0 应固定打印为 0.0");
-	TEST_ASSERT_NOT_NULL_MESSAGE(strstr(printed, "\"belowLimit\":999999999999999.0"), "<1e15 的整数样式 double 应保留一位小数");
+	TEST_ASSERT_NOT_NULL_MESSAGE(strstr(printed, "\"belowLimit\":999999999999999.0"), "<1e15 的 Int 样式 double 应保留一位小数");
 
 	char *atLimitPos = strstr(printed, "\"atLimit\":");
 	TEST_ASSERT_NOT_NULL(atLimitPos);
@@ -237,7 +237,7 @@ static void testPrintDoubleFixedPointBoundary(void)
 
 static void testPrintTinyDoubleNotZeroed(void)
 {
-	// 极小非零 double 不能只靠 roundtrip 证明；
+	// 极小非零 Double 不能只靠 roundtrip 证明；
 	// 这里直接检查原始输出 token，防止打印阶段先被抹成 0.0 / -0.0。
 	RyanJson_t obj = RyanJsonCreateObject();
 	TEST_ASSERT_NOT_NULL(obj);

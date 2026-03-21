@@ -36,11 +36,11 @@ static inline uint32_t randomRange(uint32_t max)
 }
 
 /**
- * @brief 生成深度嵌套的 Json 字符串
+ * @brief 生成深度嵌套的 Json 文本
  *
  * @param depth 目标深度
- * @param outSize 输出生成的字符串长度
- * @return char* 动态分配的字符串，需要调用者 free
+ * @param outSize 输出生成的 Json 文本长度
+ * @return char* 动态分配的 Json 文本，需要调用者 free
  */
 static char *generateDeepJson(int32_t depth, size_t *outSize, deepJsonMode_e mode)
 {
@@ -55,7 +55,7 @@ static char *generateDeepJson(int32_t depth, size_t *outSize, deepJsonMode_e mod
 	char *jsonStr = (char *)malloc(bufCap);
 
 	// 使用位图替代类型栈，减少辅助空间占用
-	// bit=1 表示对象层，bit=0 表示数组层
+	// bit=1 表示 Object 层，bit=0 表示 Array 层
 	uint8_t *typeBitset = (uint8_t *)calloc((depth + 7) / 8, 1);
 
 	if (!jsonStr || !typeBitset)
@@ -69,7 +69,7 @@ static char *generateDeepJson(int32_t depth, size_t *outSize, deepJsonMode_e mod
 
 	for (int32_t i = 0; i < depth; i++)
 	{
-		// 随机决定当前层类型：对象或数组
+		// 随机决定当前层类型：Object 或 Array
 		bool isObject = false;
 		if (deepJsonModeObjectOnly == mode) { isObject = true; }
 		else if (deepJsonModeArrayOnly == mode) { isObject = false; }
@@ -99,15 +99,15 @@ static char *generateDeepJson(int32_t depth, size_t *outSize, deepJsonMode_e mod
 				}
 				else if (type == 1)
 				{
-					ptr += sprintf(ptr, "\"%c\":true,", key); // bool
+					ptr += sprintf(ptr, "\"%c\":true,", key); // Bool
 				}
 				else if (type == 2)
 				{
-					ptr += sprintf(ptr, "\"%c\":null,", key); // null
+					ptr += sprintf(ptr, "\"%c\":null,", key); // Null
 				}
 				else
 				{
-					ptr += sprintf(ptr, "\"%c\":\"s\",", key); // string
+					ptr += sprintf(ptr, "\"%c\":\"s\",", key); // String
 				}
 			}
 
@@ -115,7 +115,7 @@ static char *generateDeepJson(int32_t depth, size_t *outSize, deepJsonMode_e mod
 			memcpy(ptr, "\"n\":", 4);
 			ptr += 4;
 		}
-		else // 数组层
+		else // Array 层
 		{
 			*ptr++ = '[';
 
@@ -238,7 +238,7 @@ static void deepStackTask(void)
 		}
 		else if (RyanJsonIsArray(current))
 		{
-			// 对于本测试生成的结构，下一个层级（或负载）总是数组最后一个元素。
+			// 对于本测试生成的结构，下一个层级（或负载）总是 Array 最后一个元素。
 			// 旧逻辑只查找 Object/Array，末层为 "end"（String/Number）时会少算 1 层。
 			RyanJson_t child = RyanJsonGetObjectValue(current);
 			if (child)
@@ -253,7 +253,7 @@ static void deepStackTask(void)
 			}
 			else
 			{
-				// 生成器理论上不会产出空数组，这里保留防御性分支
+				// 生成器理论上不会产出空 Array，这里保留防御性分支
 				current = NULL;
 			}
 		}

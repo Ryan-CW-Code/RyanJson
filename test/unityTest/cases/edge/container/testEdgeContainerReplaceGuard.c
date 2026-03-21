@@ -19,8 +19,8 @@ static void testEdgeContainerOpsReplaceByIndexObjectWithNewKey(void)
 static void testEdgeContainerOpsReplaceByIndexArrayWithObject(void)
 {
 	// 复杂链路：
-	// Parse(Array) -> ReplaceByIndex(对象) -> 结构校验。
-	// 目标：验证数组索引可替换为对象。
+	// Parse(Array) -> ReplaceByIndex(Object) -> 结构校验。
+	// 目标：验证 Array 索引可替换为 Object。
 	RyanJson_t arr = RyanJsonParse("[1,2]");
 	TEST_ASSERT_NOT_NULL(arr);
 
@@ -62,7 +62,7 @@ static void testEdgeContainerOpsReplaceByKeyWithArrayContainer(void)
 {
 	// 复杂链路：
 	// Parse -> Create(Array) -> ReplaceByKey -> 类型校验。
-	// 目标：验证 ReplaceByKey 可替换为数组容器。
+	// 目标：验证 ReplaceByKey 可替换为 Array 容器。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -83,7 +83,7 @@ static void testEdgeContainerOpsAddItemToArrayThenReplaceByIndex(void)
 {
 	// 复杂链路：
 	// Create(Array) -> AddItemToArray -> ReplaceByIndex -> 类型校验。
-	// 目标：验证替换后数组元素类型更新。
+	// 目标：验证替换后 Array 元素类型更新。
 	RyanJson_t arr = RyanJsonCreateArray();
 	TEST_ASSERT_NOT_NULL(arr);
 
@@ -103,7 +103,7 @@ static void testEdgeContainerOpsAddItemToObjectThenReplaceByKey(void)
 {
 	// 复杂链路：
 	// Create(Object) -> AddItemToObject -> ReplaceByKey -> 类型校验。
-	// 目标：验证替换后对象字段类型更新。
+	// 目标：验证替换后 Object 字段类型更新。
 	RyanJson_t obj = RyanJsonCreateObject();
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -181,13 +181,13 @@ static void testEdgeContainerOpsReplaceByIndexEmptyContainerKeepsDetachedItem(vo
 
 	RyanJson_t arrItem = RyanJsonCreateInt(NULL, 1);
 	TEST_ASSERT_NOT_NULL(arrItem);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonReplaceByIndex(arr, 0, arrItem), "空数组 ReplaceByIndex 应失败");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonReplaceByIndex(arr, 0, arrItem), "空 Array ReplaceByIndex 应失败");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDetachedItem(arrItem), "ReplaceByIndex 失败后 item 应保持游离");
 	RyanJsonDelete(arrItem);
 
 	RyanJson_t objItem = RyanJsonCreateInt("a", 1);
 	TEST_ASSERT_NOT_NULL(objItem);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonReplaceByIndex(obj, 0, objItem), "空对象 ReplaceByIndex 应失败");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonReplaceByIndex(obj, 0, objItem), "空 Object ReplaceByIndex 应失败");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDetachedItem(objItem), "ReplaceByIndex 失败后 item 应保持游离");
 	RyanJsonDelete(objItem);
 
@@ -210,7 +210,7 @@ static void testEdgeContainerOpsGetObjectByKeyOnArrayReturnsNull(void)
 {
 	// 复杂链路：
 	// Parse(Array) -> GetObjectByKey -> NULL。
-	// 目标：验证数组场景下 key 获取失败。
+	// 目标：验证 Array 场景下 key 获取失败。
 	RyanJson_t arr = RyanJsonParse("[1]");
 	TEST_ASSERT_NOT_NULL(arr);
 	TEST_ASSERT_NULL(RyanJsonGetObjectByKey(arr, "a"));
@@ -221,7 +221,7 @@ static void testEdgeContainerOpsInsertKeylessIntoObjectFailsRecover(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> Insert(keyless, 失败) -> Insert(合法)。
-	// 目标：验证失败后对象可继续使用。
+	// 目标：验证失败后 Object 可继续使用。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -256,7 +256,7 @@ static void testEdgeContainerOpsReplaceByIndexObjectOutOfRange(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> ReplaceByIndex(越界) -> item 保持游离。
-	// 目标：验证对象越界替换失败路径。
+	// 目标：验证 Object 越界替换失败路径。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -273,7 +273,7 @@ static void testEdgeContainerOpsReplaceByIndexObjectWithKeylessItemFails(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> ReplaceByIndex(无 key 节点) -> 失败且 item 仍游离。
-	// 目标：验证对象替换必须提供带 key 的节点。
+	// 目标：验证 Object 替换必须提供带 key 的节点。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"b\":2}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -290,7 +290,7 @@ static void testEdgeContainerOpsReplaceByIndexUpdatesArrayHead(void)
 {
 	// 复杂链路：
 	// Parse(Array) -> ReplaceByIndex(head) -> GetArrayValue 校验。
-	// 目标：验证替换头元素后数组入口指针更新。
+	// 目标：验证替换头元素后 Array 入口指针更新。
 	RyanJson_t arr = RyanJsonParse("[1,2]");
 	TEST_ASSERT_NOT_NULL(arr);
 
@@ -306,7 +306,7 @@ static void testEdgeContainerOpsReplaceByIndexUpdatesObjectHead(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> ReplaceByIndex(head) -> GetObjectValue 校验。
-	// 目标：验证替换头节点后对象入口指针更新。
+	// 目标：验证替换头节点后 Object 入口指针更新。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"b\":2}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -323,7 +323,7 @@ static void testEdgeContainerOpsReplaceByKeyOnArrayFails(void)
 {
 	// 复杂链路：
 	// Parse(Array) -> ReplaceByKey(失败) -> item 保持游离。
-	// 目标：验证数组不可使用 ReplaceByKey。
+	// 目标：验证 Array 不可使用 ReplaceByKey。
 	RyanJson_t arr = RyanJsonParse("[1]");
 	TEST_ASSERT_NOT_NULL(arr);
 
@@ -340,7 +340,7 @@ static void testEdgeContainerOpsGetObjectByIndexEmptyObject(void)
 {
 	// 复杂链路：
 	// Create(Object) -> GetObjectByIndex -> NULL。
-	// 目标：验证空对象索引获取失败。
+	// 目标：验证空 Object 索引获取失败。
 	RyanJson_t obj = RyanJsonCreateObject();
 	TEST_ASSERT_NOT_NULL(obj);
 	TEST_ASSERT_NULL(RyanJsonGetObjectByIndex(obj, 0));
@@ -351,7 +351,7 @@ static void testEdgeContainerOpsGetObjectByIndexEmptyArray(void)
 {
 	// 复杂链路：
 	// Create(Array) -> GetObjectByIndex -> NULL。
-	// 目标：验证空数组索引获取失败。
+	// 目标：验证空 Array 索引获取失败。
 	RyanJson_t arr = RyanJsonCreateArray();
 	TEST_ASSERT_NOT_NULL(arr);
 	TEST_ASSERT_NULL(RyanJsonGetObjectByIndex(arr, 0));

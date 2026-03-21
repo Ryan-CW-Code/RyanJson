@@ -72,7 +72,7 @@ static void assertMinifyBinarySliceCase(const minifyBinarySliceCase_t *testCase)
 		assertMinifyBinarySliceCase(&testCase);                                                                                    \
 	}
 
-// 块注释: 对象 token 边界
+// 块注释: Object token 边界
 MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceBlockObjectLeadingComment, "leading block comment before object", "/*c*/{\"a\":1,\"b\":2}",
 		       "{\"a\":1,\"b\":2}")
 MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceBlockObjectAfterOpenBrace, "block comment after object start", "{/*c*/\"a\":1,\"b\":2}",
@@ -94,7 +94,7 @@ MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceBlockObjectBeforeCloseBrace, "block co
 MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceBlockObjectTrailingComment, "trailing block comment after object", "{\"a\":1,\"b\":2}/*c*/",
 		       "{\"a\":1,\"b\":2}")
 
-// 行注释: 对象 token 边界
+// 行注释: Object token 边界
 MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceLineObjectLeadingComment, "leading line comment before object", "//c\n{\"a\":1,\"b\":2}",
 		       "{\"a\":1,\"b\":2}")
 MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceLineObjectAfterOpenBrace, "line comment after object start", "{//c\n\"a\":1,\"b\":2}",
@@ -116,7 +116,7 @@ MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceLineObjectBeforeCloseBrace, "line comm
 MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceLineObjectTrailingComment, "trailing line comment after object", "{\"a\":1,\"b\":2}//c\n",
 		       "{\"a\":1,\"b\":2}")
 
-// 注释: 数组 token 边界
+// 注释: Array token 边界
 MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceBlockArrayLeadingComment, "leading block comment before array", "/*c*/[1,2,3]", "[1,2,3]")
 MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceBlockArrayAfterOpenBracket, "block comment after array start", "[/*c*/1,2,3]", "[1,2,3]")
 MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceBlockArrayAfterFirstItem, "block comment after first item", "[1/*c*/,2,3]", "[1,2,3]")
@@ -182,7 +182,7 @@ MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceLineNestedAfterObjectValueBeforeClose,
 MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceLineNestedBetweenInnerObjectAndRootClose, "line comment between nested object and root close",
 		       "{\"a\":[1,2],\"b\":{\n\"c\":3}\n//c\n}", "{\"a\":[1,2],\"b\":{\"c\":3}}")
 
-// 字符串中的注释标记必须保留
+// String 中的注释标记必须保留
 MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceStringMarkerLiteralSlashesAndBlock, "double slash and block marker strings",
 		       "{\"s\":\"//\",\"t\":\"/* */\"}", "{\"s\":\"//\",\"t\":\"/* */\"}")
 MINIFY_TEXT_SLICE_CASE(testEdgeMinifySliceStringMarkerLiteralSplitBlock, "block marker split across strings",

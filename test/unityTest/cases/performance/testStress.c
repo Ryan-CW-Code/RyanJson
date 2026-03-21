@@ -3,12 +3,12 @@
 /**
  * @brief 压力与边界测试
  *
- * @note 验证 RyanJson 处理大数据量（长字符串、大数组）的能力。
+ * @note 验证 RyanJson 处理大数据量（长 String、大 Array）的能力。
  */
 
 static void testStressLongString(void)
 {
-	// 测试超长字符串 (10KB)
+	// 测试超长 String (10KB)
 	const int32_t longStrLen = 10 * 1024;
 	char *longStrVal = (char *)malloc(longStrLen + 1);
 	TEST_ASSERT_NOT_NULL(longStrVal);
@@ -17,7 +17,7 @@ static void testStressLongString(void)
 
 	RyanJson_t jsonStr = RyanJsonCreateString("longStr", longStrVal);
 	TEST_ASSERT_NOT_NULL(jsonStr);
-	TEST_ASSERT_EQUAL_STRING_MESSAGE(longStrVal, RyanJsonGetStringValue(jsonStr), "超长字符串读取不匹配");
+	TEST_ASSERT_EQUAL_STRING_MESSAGE(longStrVal, RyanJsonGetStringValue(jsonStr), "超长 String 读取不匹配");
 
 	RyanJsonDelete(jsonStr);
 	free(longStrVal);
@@ -25,23 +25,23 @@ static void testStressLongString(void)
 
 static void testStressLargeArray(void)
 {
-	// 测试大数组 (1000 个整数)
+	// 测试大 Array (1000 个 Int)
 	const uint32_t arraySize = 1000;
 	RyanJson_t array = RyanJsonCreateArray();
 	TEST_ASSERT_NOT_NULL(array);
 	for (uint32_t i = 0; i < arraySize; i++)
 	{
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(array, (int32_t)i), "向大数组添加整数失败");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(array, (int32_t)i), "向大 Array 添加 Int 失败");
 	}
 
-	TEST_ASSERT_EQUAL_UINT32_MESSAGE(arraySize, (uint32_t)RyanJsonGetArraySize(array), "大数组长度错误");
+	TEST_ASSERT_EQUAL_UINT32_MESSAGE(arraySize, (uint32_t)RyanJsonGetArraySize(array), "大 Array 长度错误");
 
 	// 校验最后一个元素
 	RyanJson_t lastItem = RyanJsonGetObjectByIndex(array, (int32_t)(arraySize - 1U));
 #if true == RyanJsonDefaultAddAtHead
-	TEST_ASSERT_EQUAL_INT32_MESSAGE(0, RyanJsonGetIntValue(lastItem), "大数组末尾元素错误");
+	TEST_ASSERT_EQUAL_INT32_MESSAGE(0, RyanJsonGetIntValue(lastItem), "大 Array 末尾元素错误");
 #else
-	TEST_ASSERT_EQUAL_INT32_MESSAGE((int32_t)(arraySize - 1U), RyanJsonGetIntValue(lastItem), "大数组末尾元素错误");
+	TEST_ASSERT_EQUAL_INT32_MESSAGE((int32_t)(arraySize - 1U), RyanJsonGetIntValue(lastItem), "大 Array 末尾元素错误");
 #endif
 
 	RyanJsonDelete(array);
@@ -55,11 +55,11 @@ static void testStressPrint(void)
 	TEST_ASSERT_NOT_NULL(array);
 	for (uint32_t i = 0; i < arraySize; i++)
 	{
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(array, (int32_t)i), "向大数组添加整数失败");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(array, (int32_t)i), "向大 Array 添加 Int 失败");
 	}
 
 	char *printed = RyanJsonPrint(array, 8192, RyanJsonFalse, NULL);
-	TEST_ASSERT_NOT_NULL_MESSAGE(printed, "大数组序列化失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(printed, "大 Array 序列化失败");
 
 	RyanJsonFree(printed);
 	RyanJsonDelete(array);
@@ -72,7 +72,7 @@ static void testStressLargeArrayRoundtrip(void)
 	TEST_ASSERT_NOT_NULL(array);
 	for (uint32_t i = 0; i < arraySize; i++)
 	{
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(array, (int32_t)i), "向大数组添加整数失败");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(array, (int32_t)i), "向大 Array 添加 Int 失败");
 	}
 
 	// 关键位置抽样检查，避免仅检查尾节点导致漏检
@@ -81,23 +81,23 @@ static void testStressLargeArrayRoundtrip(void)
 	{
 		uint32_t idx = sampleIndex[i];
 		RyanJson_t item = RyanJsonGetObjectByIndex(array, (int32_t)idx);
-		TEST_ASSERT_NOT_NULL_MESSAGE(item, "大数组抽样索引越界");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsInt(item), "大数组抽样元素类型错误");
+		TEST_ASSERT_NOT_NULL_MESSAGE(item, "大 Array 抽样索引越界");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsInt(item), "大 Array 抽样元素类型错误");
 #if true == RyanJsonDefaultAddAtHead
-		TEST_ASSERT_EQUAL_INT32_MESSAGE((int32_t)(arraySize - 1U - idx), RyanJsonGetIntValue(item), "大数组抽样元素值错误");
+		TEST_ASSERT_EQUAL_INT32_MESSAGE((int32_t)(arraySize - 1U - idx), RyanJsonGetIntValue(item), "大 Array 抽样元素值错误");
 #else
-		TEST_ASSERT_EQUAL_INT32_MESSAGE((int32_t)idx, RyanJsonGetIntValue(item), "大数组抽样元素值错误");
+		TEST_ASSERT_EQUAL_INT32_MESSAGE((int32_t)idx, RyanJsonGetIntValue(item), "大 Array 抽样元素值错误");
 #endif
 	}
 
 	uint32_t printLen = 0;
 	char *printed = RyanJsonPrint(array, 0, RyanJsonFalse, &printLen);
-	TEST_ASSERT_NOT_NULL_MESSAGE(printed, "大数组往返测试：序列化失败");
-	TEST_ASSERT_TRUE_MESSAGE(printLen > arraySize, "大数组序列化长度异常");
+	TEST_ASSERT_NOT_NULL_MESSAGE(printed, "大 Array 往返测试：序列化失败");
+	TEST_ASSERT_TRUE_MESSAGE(printLen > arraySize, "大 Array 序列化长度异常");
 
 	RyanJson_t parsed = RyanJsonParse(printed);
-	TEST_ASSERT_NOT_NULL_MESSAGE(parsed, "大数组往返测试：反序列化失败");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(array, parsed), "大数组往返测试：前后 Compare 不一致");
+	TEST_ASSERT_NOT_NULL_MESSAGE(parsed, "大 Array 往返测试：反序列化失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(array, parsed), "大 Array 往返测试：前后 Compare 不一致");
 
 	RyanJsonDelete(parsed);
 	RyanJsonFree(printed);
@@ -112,23 +112,23 @@ static void testStressLargeStringArrayPreallocated(void)
 
 	for (uint32_t i = 0; i < arraySize; i++)
 	{
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddStringToArray(array, "v"), "向字符串大数组添加元素失败");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddStringToArray(array, "v"), "向 String 大 Array 添加元素失败");
 	}
 
 	uint32_t expectLen = 0;
 	char *expect = RyanJsonPrint(array, 0, RyanJsonFalse, &expectLen);
-	TEST_ASSERT_NOT_NULL_MESSAGE(expect, "字符串大数组序列化失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(expect, "String 大 Array 序列化失败");
 
 	char *buf = (char *)malloc((size_t)expectLen + 1U);
 	TEST_ASSERT_NOT_NULL(buf);
 
 	char *out = RyanJsonPrintPreallocated(array, buf, expectLen + 1U, RyanJsonFalse, NULL);
-	TEST_ASSERT_NOT_NULL_MESSAGE(out, "字符串大数组预分配刚好够用应成功");
-	TEST_ASSERT_EQUAL_STRING_MESSAGE(expect, out, "字符串大数组预分配输出不一致");
+	TEST_ASSERT_NOT_NULL_MESSAGE(out, "String 大 Array 预分配刚好够用应成功");
+	TEST_ASSERT_EQUAL_STRING_MESSAGE(expect, out, "String 大 Array 预分配输出不一致");
 
 	RyanJson_t parsed = RyanJsonParse(out);
-	TEST_ASSERT_NOT_NULL_MESSAGE(parsed, "字符串大数组预分配结果解析失败");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(array, parsed), "字符串大数组预分配结果前后 Compare 不一致");
+	TEST_ASSERT_NOT_NULL_MESSAGE(parsed, "String 大 Array 预分配结果解析失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(array, parsed), "String 大 Array 预分配结果前后 Compare 不一致");
 
 	RyanJsonDelete(parsed);
 	free(buf);
@@ -144,7 +144,7 @@ static void testStressLargeStringArrayPreallocatedNoTerminator(void)
 
 	for (uint32_t i = 0; i < arraySize; i++)
 	{
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddStringToArray(array, "value"), "向字符串大数组添加元素失败");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddStringToArray(array, "value"), "向 String 大 Array 添加元素失败");
 	}
 
 	uint32_t expectLen = 0;
@@ -169,7 +169,7 @@ static void testStressPrintOomLargeArray(void)
 	TEST_ASSERT_NOT_NULL(array);
 	for (int32_t i = 0; i < 2000; i++)
 	{
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(array, i), "向大数组添加整数失败");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToArray(array, i), "向大 Array 添加 Int 失败");
 	}
 
 	// 首次分配失败
@@ -199,10 +199,10 @@ static void testStressLargeObjectKeyLookup(void)
 	{
 		char key[24];
 		RyanJsonSnprintf(key, sizeof(key), "k%04u", (unsigned)i);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToObject(obj, key, (int32_t)i), "大对象添加 key 失败");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddIntToObject(obj, key, (int32_t)i), "大 Object 添加 key 失败");
 	}
 
-	TEST_ASSERT_EQUAL_UINT32_MESSAGE(keyCount, (uint32_t)RyanJsonGetSize(obj), "大对象大小错误");
+	TEST_ASSERT_EQUAL_UINT32_MESSAGE(keyCount, (uint32_t)RyanJsonGetSize(obj), "大 Object 大小错误");
 
 	// 热点索引查找：头/中/尾
 	const uint32_t lookupIndex[] = {0U, keyCount / 2U, keyCount - 1U};
@@ -212,8 +212,8 @@ static void testStressLargeObjectKeyLookup(void)
 		uint32_t idx = lookupIndex[i];
 		RyanJsonSnprintf(key, sizeof(key), "k%04u", (unsigned)idx);
 		RyanJson_t item = RyanJsonGetObjectByKey(obj, key);
-		TEST_ASSERT_NOT_NULL_MESSAGE(item, "大对象 key 查找失败");
-		TEST_ASSERT_EQUAL_INT32_MESSAGE((int32_t)idx, RyanJsonGetIntValue(item), "大对象 key 查找值错误");
+		TEST_ASSERT_NOT_NULL_MESSAGE(item, "大 Object key 查找失败");
+		TEST_ASSERT_EQUAL_INT32_MESSAGE((int32_t)idx, RyanJsonGetIntValue(item), "大 Object key 查找值错误");
 	}
 
 	// 替换中间节点并验证
@@ -223,19 +223,19 @@ static void testStressLargeObjectKeyLookup(void)
 		RyanJsonSnprintf(midKey, sizeof(midKey), "k%04u", (unsigned)mid);
 		RyanJson_t replaceItem = RyanJsonCreateInt(midKey, -12345);
 		TEST_ASSERT_NOT_NULL(replaceItem);
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(obj, midKey, replaceItem), "大对象中间节点替换失败");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonReplaceByKey(obj, midKey, replaceItem), "大 Object 中间节点替换失败");
 		TEST_ASSERT_EQUAL_INT32_MESSAGE(-12345, RyanJsonGetIntValue(RyanJsonGetObjectByKey(obj, midKey)),
-						"大对象中间节点替换值错误");
+						"大 Object 中间节点替换值错误");
 	}
 
 	uint32_t len = 0;
 	char *printed = RyanJsonPrint(obj, 0, RyanJsonFalse, &len);
-	TEST_ASSERT_NOT_NULL_MESSAGE(printed, "大对象序列化失败");
-	TEST_ASSERT_TRUE_MESSAGE(len > keyCount * 6U, "大对象序列化长度异常");
+	TEST_ASSERT_NOT_NULL_MESSAGE(printed, "大 Object 序列化失败");
+	TEST_ASSERT_TRUE_MESSAGE(len > keyCount * 6U, "大 Object 序列化长度异常");
 
 	RyanJson_t roundtrip = RyanJsonParse(printed);
-	TEST_ASSERT_NOT_NULL_MESSAGE(roundtrip, "大对象往返测试：解析失败");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(obj, roundtrip), "大对象往返测试：前后 Compare 不一致");
+	TEST_ASSERT_NOT_NULL_MESSAGE(roundtrip, "大 Object 往返测试：解析失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(obj, roundtrip), "大 Object 往返测试：前后 Compare 不一致");
 
 	RyanJsonDelete(roundtrip);
 	RyanJsonFree(printed);

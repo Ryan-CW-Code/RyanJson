@@ -71,6 +71,7 @@ static RyanJsonBool_e buildReport(char *out, uint32_t outCap, uint32_t *outLen)
     RyanJson_t root = NULL;
 
     if ((NULL == out) || (NULL == outLen) || (0U == outCap)) { return RyanJsonFalse; }
+    if (RyanJsonFalse == appEnsureJsonHooks()) { return RyanJsonFalse; }
 
     root = RyanJsonCreateObject();
     if (NULL == root) { return RyanJsonFalse; }
@@ -102,6 +103,7 @@ static RyanJsonBool_e replaceFreqAsObject(RyanJson_t root)
     RyanJson_t newFreq = NULL;
 
     if (NULL == root) { return RyanJsonFalse; }
+    if (RyanJsonFalse == appEnsureJsonHooks()) { return RyanJsonFalse; }
 
     newFreq = RyanJsonCreateObject();
     if (NULL == newFreq) { return RyanJsonFalse; }
@@ -137,6 +139,7 @@ static RyanJsonBool_e movePayload(RyanJson_t src, RyanJson_t dst)
     RyanJson_t detached = NULL;
 
     if ((NULL == src) || (NULL == dst)) { return RyanJsonFalse; }
+    if (RyanJsonFalse == appEnsureJsonHooks()) { return RyanJsonFalse; }
 
     detached = RyanJsonDetachByKey(src, "payload");
     if (NULL == detached) { return RyanJsonFalse; }

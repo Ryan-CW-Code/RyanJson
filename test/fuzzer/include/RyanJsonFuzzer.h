@@ -102,7 +102,7 @@ extern RyanJsonBool_e RyanJsonFuzzerTestMinify(const char *data, uint32_t size);
 
 /**
  * @brief 深度复制与比较测试
- * 验证复制结果与原对象的一致性。
+ * 验证复制结果与原 Object 的一致性。
  */
 extern RyanJsonBool_e RyanJsonFuzzerTestDuplicate(RyanJson_t pJson);
 

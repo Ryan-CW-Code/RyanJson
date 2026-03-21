@@ -2,6 +2,32 @@
 
 # 通用脚本工具函数（供 run_local_* 使用）
 
+ryanjson_init_utf8_locale() {
+  # Force UTF-8 locale for script-generated files/logs when available.
+  local localeValue=""
+
+  if command -v locale >/dev/null 2>&1; then
+    if locale -a 2>/dev/null | grep -qx "C.UTF-8"; then
+      localeValue="C.UTF-8"
+    elif locale -a 2>/dev/null | grep -qx "en_US.UTF-8"; then
+      localeValue="en_US.UTF-8"
+    fi
+  fi
+
+  if [[ -n "${localeValue}" ]]; then
+    export LC_ALL="${localeValue}"
+    export LANG="${localeValue}"
+  fi
+}
+
+ryanjson_init_utf8_locale
+
+ryanjson_init_utf8_log() {
+  # Initialize a UTF-8 log file (no BOM).
+  local path="$1"
+  : > "${path}"
+}
+
 ryanjson_abs_dir() {
   # 返回文件/目录的绝对路径（仅取目录部分）
   local inputPath="$1"

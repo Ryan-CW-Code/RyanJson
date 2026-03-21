@@ -6,7 +6,7 @@ typedef struct
 	uint32_t remainSize;       // 待解析字符串剩余长度
 } RyanJsonParseBuffer;
 
-// 相关宏定义已迁移到 RyanJsonInternal.h
+// 解析缓冲区辅助宏（本文件局部使用）
 #define parseBufAdvanceCurrentPrt(parseBuf, bytesToAdvance)                                                                                \
 	do                                                                                                                                 \
 	{                                                                                                                                  \
@@ -41,7 +41,7 @@ static inline RyanJsonBool_e RyanJsonParseBufTryAdvanceCurrentPtr(RyanJsonParseB
 }
 
 /**
- * @brief 跳过无意义的字符
+ * @brief 跳过空白字符
  */
 static inline RyanJsonBool_e RyanJsonParseBufSkipWhitespace(RyanJsonParseBuffer *parseBuf)
 {
@@ -115,11 +115,11 @@ static RyanJsonBool_e RyanJsonParseHex(const uint8_t *text, uint32_t *value)
 }
 
 /**
- * @brief 解析 Json number（含符号/小数/指数）
+ * @brief 解析 Number（含符号/小数/指数）
  *
  * @param parseBuf 解析缓冲区
  * @param numberValuePtr 输出数值
- * @param isIntPtr 输出是否为整数
+ * @param isIntPtr 输出是否为 Int
  * @return RyanJsonBool_e 解析是否成功
  */
 static RyanJsonBool_e RyanJsonInternalParseDouble(RyanJsonParseBuffer *parseBuf, double *numberValuePtr, RyanJsonBool_e *isIntPtr)
@@ -137,20 +137,20 @@ static RyanJsonBool_e RyanJsonInternalParseDouble(RyanJsonParseBuffer *parseBuf,
 	if ('-' == *parseBuf->currentPtr)
 	{
 		isNegative = RyanJsonTrue;
-		// 这个不会失败因为进来前已经判断过 parseBufHasRemain(parseBuf)
+		// 正常路径下不会失败（已确保 remain>0），Fuzzer 注入时可能被强制失败
 		RyanJsonAssertAlwaysEval(RyanJsonTrue == RyanJsonParseBufTryAdvanceCurrentPtr(parseBuf, 1));
 		RyanJsonCheckReturnFalse(parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9');
 	}
 
-	// 前导0是非法的
+	// 前导 0 是非法的
 	if ('0' == *parseBuf->currentPtr)
 	{
 		RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonParseBufTryAdvanceCurrentPtr(parseBuf, 1));
-		// 前导0后面不允许跟数字，比如"0123"
+		// 前导 0 后面不允许跟数字，例如 "0123"
 		if (parseBufHasRemain(parseBuf)) { RyanJsonCheckReturnFalse(*parseBuf->currentPtr < '0' || *parseBuf->currentPtr > '9'); }
 	}
 
-	// 整数部分
+	// Int 部分
 	while (parseBufHasRemain(parseBuf) && *parseBuf->currentPtr >= '0' && *parseBuf->currentPtr <= '9')
 	{
 		number = number * 10.0 + (*parseBuf->currentPtr - '0');
@@ -169,7 +169,7 @@ static RyanJsonBool_e RyanJsonInternalParseDouble(RyanJsonParseBuffer *parseBuf,
 		{
 			number = number * 10.0 + (*parseBuf->currentPtr - '0');
 			RyanJsonCheckReturnFalse(isfinite(number));
-			scale--; // 每读一位小数，scale减一
+			scale--; // 每读一位小数，scale 减一
 			RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonParseBufTryAdvanceCurrentPtr(parseBuf, 1));
 		}
 		isInt = RyanJsonFalse;
@@ -205,7 +205,7 @@ static RyanJsonBool_e RyanJsonInternalParseDouble(RyanJsonParseBuffer *parseBuf,
 	// 判断符号
 	if (RyanJsonTrue == isNegative) { number = -number; }
 
-	// 浮点数还需要处理
+	// Double 场景还需应用小数与指数缩放
 	if (RyanJsonFalse == isInt)
 	{
 		// 使用更宽位数拼接指数，避免中间表达式溢出
@@ -221,7 +221,7 @@ static RyanJsonBool_e RyanJsonInternalParseDouble(RyanJsonParseBuffer *parseBuf,
 }
 
 /**
- * @brief 解析文本中的数字并创建 Json 节点
+ * @brief 解析文本中的 Number 并创建 Json 节点
  */
 static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *key, RyanJson_t *out)
 {
@@ -249,9 +249,11 @@ static RyanJsonBool_e RyanJsonParseNumber(RyanJsonParseBuffer *parseBuf, char *k
  * @brief 预扫描字符串长度并统计是否包含转义字符
  *
  * @param parseBuf 解析缓冲区（当前指向起始双引号）
- * @param lenPtr 输出解码后的字节长度（不含 '\0'）
+ * @param lenPtr 输出解码后的最大字节长度（上限，不含 '\0'）
  * @param hasEscapePtr 输出是否包含转义字符
  * @return RyanJsonBool_e 扫描是否成功
+ * @note 成功后 parseBuf->currentPtr 已前移到引号后的首字符位置。
+ * @note 该函数仅预扫描，不消费结尾引号。
  */
 static RyanJsonBool_e RyanJsonParseStringBufferGetLen(RyanJsonParseBuffer *parseBuf, uint32_t *lenPtr, RyanJsonBool_e *hasEscapePtr)
 {
@@ -265,7 +267,7 @@ static RyanJsonBool_e RyanJsonParseStringBufferGetLen(RyanJsonParseBuffer *parse
 
 	RyanJsonCheckReturnFalse(RyanJsonTrue == RyanJsonParseBufTryAdvanceCurrentPtr(parseBuf, 1));
 
-	// 获取字符串解码后的实际字节长度
+	// 估算字符串解码后的最大字节长度
 	for (uint32_t i = 0;;)
 	{
 		RyanJsonCheckReturnFalse(parseBufHasRemainAtIndex(parseBuf, i));
@@ -329,9 +331,11 @@ static RyanJsonBool_e RyanJsonParseStringBufferGetLen(RyanJsonParseBuffer *parse
 }
 
 /**
- * @brief 将 Json 字符串片段解码到目标缓冲区
+ * @brief 将 Json 字符串字面量片段（引号内文本）解码到目标缓冲区
  *
  * @note 调用前必须先执行 RyanJsonParseStringBufferGetLen 获取长度与转义信息。
+ * @note buffer 至少需要 len + 1 字节，函数会写入 '\0'。
+ * @note 成功后 parseBuf->currentPtr 指向结尾引号后的下一个字符。
  */
 static RyanJsonBool_e RyanJsonParseStringBuffer(RyanJsonParseBuffer *parseBuf, char *buffer, uint32_t len, RyanJsonBool_e hasEscape)
 {
@@ -465,7 +469,7 @@ error__:
 }
 
 /**
- * @brief 解析字符串节点并创建 Json string 节点
+ * @brief 解析 String 节点并创建 String 节点
  */
 static RyanJsonBool_e RyanJsonParseString(RyanJsonParseBuffer *parseBuf, char *key, RyanJson_t *out)
 {
@@ -507,6 +511,9 @@ static RyanJsonBool_e RyanJsonParseString(RyanJsonParseBuffer *parseBuf, char *k
 
 /**
  * @brief 解析单个 Json 值（非递归，仅创建当前层节点）
+ *
+ * @note 对 Array/Object 仅创建空容器并消费起始符号（'[' 或 '{'），
+ *       后续子节点由外层迭代器继续解析。
  */
 static RyanJsonBool_e RyanJsonParseValue(RyanJsonParseBuffer *parseBuf, char *key, RyanJson_t *out)
 {
@@ -631,7 +638,7 @@ static RyanJsonBool_e RyanJsonParseIterative(RyanJsonParseBuffer *parseBuf, Ryan
 			}
 		}
 
-		// 阶段：解析对象 key（仅对象）
+		// 阶段：解析 Object key（仅 Object）
 		if (!scopeParentIsArray)
 		{
 			uint32_t len;
@@ -659,14 +666,14 @@ static RyanJsonBool_e RyanJsonParseIterative(RyanJsonParseBuffer *parseBuf, Ryan
 			parseBufAdvanceCurrentPrt(parseBuf, 1);
 			RyanJsonCheckCode(RyanJsonTrue == RyanJsonParseBufSkipWhitespace(parseBuf), { goto error__; });
 
-			// 严格模式下：对象从源头拒绝重复 key，避免后续语义歧义（Get/Replace/Compare）
+			// 严格模式下：Object 从源头拒绝重复 key，避免后续语义歧义（Get/Replace/Compare）
 #if true == RyanJsonStrictObjectKeyCheck
 			RyanJsonCheckCode(RyanJsonFalse == RyanJsonHasObjectByKey(scopeParent, key), { goto error__; });
 #endif
 		}
 		else
 		{
-			key = NULL; // 数组没有 key
+			key = NULL; // Array 没有 key
 			isKeyAllocated = RyanJsonFalse;
 		}
 
@@ -736,8 +743,9 @@ static RyanJsonBool_e RyanJsonParseCheckNullTerminator(RyanJsonParseBuffer *pars
  * @param text 输入文本
  * @param size 文本长度
  * @param requireNullTerminator 是否要求解析后仅剩空白
- * @param parseEndPtr 输出解析结束位置，可为 NULL
+ * @param parseEndPtr 输出第一个未消费字符位置，可为 NULL
  * @return RyanJson_t 解析成功返回根节点，失败返回 NULL
+ * @note parseEndPtr 仅在解析成功时写入。
  */
 RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool_e requireNullTerminator, const char **parseEndPtr)
 {
@@ -773,10 +781,10 @@ RyanJson_t RyanJsonParse(const char *text)
 }
 
 /**
- * @brief 解析原始 number 文本（打印回读校验辅助）
+ * @brief 解析原始 Number 文本（打印回读校验辅助）
  *
- * @param currentPtr number 文本起始地址
- * @param remainSize number 文本长度
+ * @param currentPtr Number 文本起始地址
+ * @param remainSize Number 文本长度
  * @param numberValuePtr 输出数值
  * @return RyanJsonBool_e 解析是否成功
  */

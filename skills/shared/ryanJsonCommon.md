@@ -35,8 +35,8 @@
     - `run_local_fuzz.sh`：`FUZZ_RUNS=100000`、`FUZZ_WORKERS/JOBS=1/9`
   - `run_local_qemu.sh` 默认保留 ANSI 颜色输出；仅在用户明确要求“去色/净化日志”时再剥离控制符。
 - 覆盖率目录固定且每次执行前清理（仅保留最新结果）：
-  - unit：`coverage/unitMatrix`（`report.txt` + `html/`）
-  - fuzz：`coverage/fuzz`（`report.txt` + `html/`）
+  - unit：`localLogs/unitMatrix`（`report.txt` + `html/`）
+  - fuzz：`test/fuzzer/coverage`（`report.txt` + `html/`）
 - `Makefile` 为历史辅助，不是当前主流程。
 - `SConscript` 主要用于 RT-Thread 软件包集成。
 
@@ -112,8 +112,8 @@
   - fuzz 快检：`FUZZ_MODE=quick FUZZ_SKIP_COV=1 bash run_local_fuzz.sh`
   - fuzz 覆盖：`FUZZ_MODE=nightly FUZZ_SKIP_COV=0 bash run_local_fuzz.sh`
 - `XMAKE_FORCE_CLEAN=1` 仅在怀疑配置缓存污染时启用；默认增量模式更快。
-- `run_local_fuzz.sh` 会先把 `llvm-cov report --use-color` 输出到终端，再写入 `coverage/fuzz/report.txt`。
-- RFC8259 用例列表通过目录扫描（`readdir`）获取，不再维护 `rfc8259_filelist.inc`。
+- `run_local_fuzz.sh` 会先把 `llvm-cov report --use-color` 输出到终端，再写入 `test/fuzzer/coverage/report.txt`。
+- RFC8259 用例来自内嵌数据集（`test/unityTest/cases/RFC8259/rfc8259Embedded.*`），由 `scripts/tools/gen_rfc8259_embedded.py` 从 `test/data/rfc8259` 生成。
 
 ## 7. 输出契约
 - 输出必须显式区分：

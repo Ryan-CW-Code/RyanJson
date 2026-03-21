@@ -33,9 +33,9 @@ extern "C" {
  *
  * 各项用途：
  * - sizeof(void*) - RyanJsonFlagSize：
- *   flag占用一个字节，32位4字节对齐情况下，减去flag 占用的 1 字节后，剩余部分正好是一个指针槽的净可用载荷。
+ *   flag 占用一个字节，32 位 4 字节对齐场景下，减去 flag 占用的 1 字节后，剩余部分正好是一个指针槽的净可用载荷。
  * - + sizeof(void*)：
- *   char* 最少占用一个指针大小，所以再加一个指针大小
+ *   char * 最少占用一个指针大小，所以再加一个指针大小
  * - + (RyanJsonMallocHeaderSize / 2)：
  *   再加上半个 header 大小的补偿，内存占用和字节内联的一个平衡点
  * - + RyanJsonFlagSize：
@@ -50,9 +50,12 @@ extern "C" {
  * inlineSize = RyanJsonAlign(2 * sizeof(void*) + (RyanJsonMallocHeaderSize / 2), RyanJsonMallocAlign)
  *            - RyanJsonFlagSize
  *
- * 32 位示例（sizeof(void*)=4, RyanJsonFlagSize=1, RyanJsonMallocAlign=4）：
+ * 32 位示例（sizeof(void *)=4, RyanJsonFlagSize=1, RyanJsonMallocAlign=4）：
  * - RyanJsonMallocHeaderSize=8:  Align(12, 4) - 1 = 11
  * - RyanJsonMallocHeaderSize=12: Align(14, 4) - 1 = 15
+ *
+ * 64 位示例（sizeof(void *)=8, RyanJsonFlagSize=1, RyanJsonMallocAlign=8）：
+ * - RyanJsonMallocHeaderSize=12: Align(22, 8) - 1 = 23
  */
 #define RyanJsonInlineStringSize                                                                                                           \
 	(RyanJsonAlign((sizeof(void *) - RyanJsonFlagSize + sizeof(void *) + (RyanJsonMallocHeaderSize / 2) + RyanJsonFlagSize),           \
@@ -60,10 +63,10 @@ extern "C" {
 	 RyanJsonFlagSize)
 // static uint32_t RyanJsonInlineStringSize(void)
 // {
-// 	// Step1: 先计算“两个指针槽 + 补偿值”的基础尺寸（暂不做对齐）
+// 	// 先计算“两个指针槽 + 补偿值”的基础尺寸（暂不做对齐）
 // 	uint32_t baseSize = sizeof(void *) - RyanJsonFlagSize;     // 一个指针槽，先扣掉 flag
 // 	baseSize += sizeof(void *) + RyanJsonMallocHeaderSize / 2; // 再加一个指针槽和半个 header 补偿
-// 	// Step2: 对齐前把 flag 加回，对齐后再减回，得到最终可用字节数
+// 	// 再对齐：对齐前把 flag 加回，对齐后再减回，得到最终可用字节数
 // 	return (uint32_t)(RyanJsonAlign(baseSize + RyanJsonFlagSize, RyanJsonMallocAlign) - RyanJsonFlagSize);
 // }
 #endif
@@ -98,10 +101,13 @@ RyanJsonInternalApi RyanJsonBool_e RyanJsonInternalChangeString(RyanJson_t pJson
 								const char *strValue);
 RyanJsonInternalApi RyanJson_t RyanJsonInternalCreateObjectAndKey(const char *key);
 RyanJsonInternalApi RyanJson_t RyanJsonInternalCreateArrayAndKey(const char *key);
-// 内部接口：仅用于容器 children 指针改写（调用方需保证 pJson 为 array/object 且非 NULL）
+/**
+ * @brief 内部接口：仅用于容器 children 指针改写。
+ * @note 调用方需保证 pJson 为 Array/Object 且非 NULL。
+ */
 RyanJsonInternalApi RyanJsonBool_e RyanJsonInternalChangeObjectValue(RyanJson_t pJson, RyanJson_t objValue);
 RyanJsonInternalApi RyanJsonBool_e RyanJsonInternalStrEq(const char *s1, const char *s2);
-RyanJsonInternalApi void *RyanJsonInternalExpandRealloc(void *block, uint32_t oldSize, uint32_t newSize); // Keep if used across modules
+RyanJsonInternalApi void *RyanJsonInternalExpandRealloc(void *block, uint32_t oldSize, uint32_t newSize); // 跨模块使用时保留
 
 RyanJsonInternalApi RyanJsonBool_e RyanJsonInternalParseDoubleRaw(const uint8_t *currentPtr, uint32_t remainSize, double *numberValuePtr);
 

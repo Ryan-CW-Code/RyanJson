@@ -3,7 +3,7 @@
 static void testLoadRootZero(void)
 {
 	RyanJson_t json = RyanJsonParse("0");
-	TEST_ASSERT_NOT_NULL_MESSAGE(json, "Parse 数字 \"0\" 作为根节点 应正常");
+	TEST_ASSERT_NOT_NULL_MESSAGE(json, "Parse Number \"0\" 作为根节点应正常");
 	if (json)
 	{
 		TEST_ASSERT_TRUE(RyanJsonIsInt(json));
@@ -12,7 +12,7 @@ static void testLoadRootZero(void)
 	}
 
 	json = RyanJsonParse("-0");
-	TEST_ASSERT_NOT_NULL_MESSAGE(json, "Parse 数字 \"-0\" 作为根节点 应正常");
+	TEST_ASSERT_NOT_NULL_MESSAGE(json, "Parse Number \"-0\" 作为根节点应正常");
 	if (json)
 	{
 		TEST_ASSERT_TRUE(RyanJsonIsInt(json));
@@ -60,12 +60,12 @@ static void testLoadStandardObject(void)
 		"\"boolFalse\":false,\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,"
 		"\"boolFalse\":false,\"null\":null}],\"unicode\":\"😀\"}";
 
-	// 标准对象加载测试
+	// 标准 Object 加载测试
 	json = RyanJsonParse(jsonstr);
 	TEST_ASSERT_NOT_NULL_MESSAGE(json, "解析基础 Json 失败");
 
 	str = RyanJsonPrint(json, 250, RyanJsonFalse, NULL);
-	TEST_ASSERT_EQUAL_STRING_MESSAGE(jsonstr, str, "打印生成的字符串与原始字符串不匹配");
+	TEST_ASSERT_EQUAL_STRING_MESSAGE(jsonstr, str, "打印生成的 String 与原始 String 不匹配");
 	RyanJsonFree(str);
 
 	// 使用公共验证函数进一步检查
@@ -86,11 +86,11 @@ static void testLoadUnicodeValid(void)
 	TEST_ASSERT_NOT_NULL_MESSAGE(str, "打印 Unicode Emoji 失败");
 	RyanJsonDelete(json);
 
-	// 测试数字 0-9 分支: \u0030 = '0', \u0039 = '9'
+	// 测试 Number 0-9 分支: \u0030 = '0', \u0039 = '9'
 	json = RyanJsonParse("{\"num\":\"\\u0030\\u0039\"}");
-	TEST_ASSERT_NOT_NULL_MESSAGE(json, "解析 Unicode 数字失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(json, "解析 Unicode 数字字符失败");
 	str = RyanJsonPrintPreallocated(json, printfBuf, sizeof(printfBuf), RyanJsonFalse, NULL);
-	TEST_ASSERT_EQUAL_STRING_MESSAGE("{\"num\":\"09\"}", str, "Unicode 数字解析/打印错误");
+	TEST_ASSERT_EQUAL_STRING_MESSAGE("{\"num\":\"09\"}", str, "Unicode 数字字符解析/打印错误");
 	RyanJsonDelete(json);
 
 	// 测试小写 a-f 分支: \u0061 = 'a', \u0066 = 'f'
@@ -261,7 +261,7 @@ static void testLoadNumberBoundaries(void)
 
 	RyanJsonDelete(json);
 
-	// 极大负指数会下溢到 0（有限数），应作为合法数字解析成功
+	// 极大负指数会下溢到 0（有限数），应作为合法 Number 解析成功
 	json = RyanJsonParse("1e-2147483647");
 	TEST_ASSERT_NOT_NULL_MESSAGE(json, "1e-2147483647 应解析成功");
 	if (json)
@@ -328,12 +328,12 @@ static void testLoadDuplicateKeyScopeIsolation(void)
 static void testLoadParseOptionsSequentialNonNullTerminatedMultiDocs(void)
 {
 	// 复杂链路：
-	// ParseOptions(非 NUL 终止切片) 连续解析 object -> array -> object，
+	// ParseOptions(非 NUL 终止切片) 连续解析 Object -> Array -> Object，
 	// 并验证剩余非法尾片段会失败。
 	// 目标：
-	// 1) 覆盖“无 '\0' 结尾 + size 驱动”的多文档顺序解析成功路径；
-	// 2) 覆盖 parseEndPtr 在多次推进中的准确性；
-	// 3) 覆盖剩余非法尾部的失败隔离与严格切片解析能力。
+	// - 覆盖“无 '\0' 结尾 + size 驱动”的多文档顺序解析成功路径；
+	// - 覆盖 parseEndPtr 在多次推进中的准确性；
+	// - 覆盖剩余非法尾部的失败隔离与严格切片解析能力。
 	const uint8_t stream[] = {' ', '{', '"', 'a', '"', ':', '1', '}', '\n', '[', '2', ',',
 				  '3', ']', ' ', '{', '"', 'x', '"', ':', '4',  '}', '#'};
 	const uint32_t streamLen = (uint32_t)sizeof(stream);

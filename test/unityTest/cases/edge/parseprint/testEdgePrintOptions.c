@@ -131,7 +131,7 @@ static void testEdgeParsePrintPrintWithStyleLongIndent(void)
 {
 	// 复杂链路：
 	// Parse -> PrintWithStyle(长缩进) -> Parse -> Compare。
-	// 目标：验证长缩进字符串可往返。
+	// 目标：验证长缩进 String 可往返。
 	RyanJson_t root = RyanJsonParse("{\"a\":1,\"b\":{\"c\":2}}");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -172,8 +172,8 @@ static void testEdgeParsePrintPrintWithStyleFormatFalse(void)
 static void testEdgeParsePrintPrintNullRootRoundtrip(void)
 {
 	// 复杂链路：
-	// Parse(null) -> Print -> Parse -> Compare。
-	// 目标：验证根 null 往返一致。
+	// Parse(Null) -> Print -> Parse -> Compare。
+	// 目标：验证根 Null 往返一致。
 	RyanJson_t root = RyanJsonParse("null");
 	TEST_ASSERT_NOT_NULL(root);
 	char *printed = RyanJsonPrint(root, 8, RyanJsonFalse, NULL);
@@ -190,8 +190,8 @@ static void testEdgeParsePrintPrintNullRootRoundtrip(void)
 static void testEdgeParsePrintPrintBoolRootRoundtrip(void)
 {
 	// 复杂链路：
-	// Parse(bool) -> Print -> Parse -> Compare。
-	// 目标：验证根布尔往返一致。
+	// Parse(Bool) -> Print -> Parse -> Compare。
+	// 目标：验证根 Bool 往返一致。
 	RyanJson_t root = RyanJsonParse("false");
 	TEST_ASSERT_NOT_NULL(root);
 	char *printed = RyanJsonPrint(root, 8, RyanJsonFalse, NULL);
@@ -208,7 +208,7 @@ static void testEdgeParsePrintPrintBoolRootRoundtrip(void)
 static void testEdgeParsePrintPrintNumberRootRoundtrip(void)
 {
 	// 复杂链路：
-	// Parse(number) -> Print -> Parse -> Compare。
+	// Parse(Number) -> Print -> Parse -> Compare。
 	// 目标：验证根数值往返一致。
 	RyanJson_t root = RyanJsonParse("123.5");
 	TEST_ASSERT_NOT_NULL(root);

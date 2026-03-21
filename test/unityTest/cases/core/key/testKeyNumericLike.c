@@ -2,7 +2,7 @@
 
 static void testNumericLikeKeyLookupKeepsLiteralSpellings(void)
 {
-	// 覆盖“看起来像数字”的 key 仍按字面文本存取，不做归一化。
+	// 覆盖“看起来像 Number”的 key 仍按字面文本存取，不做归一化。
 	struct
 	{
 		const char *key;
@@ -76,7 +76,7 @@ static void testNumericLikeKeyHasApisTreatSimilarSpellingsAsDifferentKeys(void)
 
 static void testNumericLikeKeyChangeKeyRetainsTextualIdentityAfterRoundtrip(void)
 {
-	// 复杂链路：ChangeKey(leading-zero -> big-int-like) -> Print -> Parse。
+	// 复杂链路：ChangeKey(leading-zero -> big-integer-like) -> Print -> Parse。
 	// 目标：验证 key 改名后仍按文本保真，不会被数值化。
 	RyanJson_t root = RyanJsonParse("{\"00123\":7,\"keep\":17}");
 	TEST_ASSERT_NOT_NULL_MESSAGE(root, "ChangeKey numeric-like 样本解析失败");

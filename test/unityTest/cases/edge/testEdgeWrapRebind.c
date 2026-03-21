@@ -33,7 +33,7 @@ static void testEdgeWrapAddItemToArrayDiscardOldKey(void)
 {
 	// 复杂链路：
 	// Parse -> DetachByKey(带 key 的容器) -> AddItemToArray -> Compare/属性校验。
-	// 目标：验证 AddItemToArray 会丢弃原 key，数组元素不应携带 key。
+	// 目标：验证 AddItemToArray 会丢弃原 key，Array 元素不应携带 key。
 	RyanJson_t root = RyanJsonParse("{\"src\":{\"old\":{\"v\":1}},\"arr\":[]}");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -49,7 +49,7 @@ static void testEdgeWrapAddItemToArrayDiscardOldKey(void)
 	TEST_ASSERT_EQUAL_UINT32(1U, RyanJsonGetArraySize(arr));
 	RyanJson_t arrItem = RyanJsonGetObjectByIndex(arr, 0);
 	TEST_ASSERT_NOT_NULL(arrItem);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonIsKey(arrItem), "数组元素不应携带 key");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonIsKey(arrItem), "Array 元素不应携带 key");
 	TEST_ASSERT_EQUAL_INT(1, RyanJsonGetIntValue(RyanJsonGetObjectToKey(arrItem, "v")));
 
 	RyanJson_t expect = RyanJsonParse("{\"src\":{},\"arr\":[{\"v\":1}]}");
@@ -64,7 +64,7 @@ static void testEdgeWrapObjectNodeToArrayThenRebindNewKey(void)
 {
 	// 复杂链路：
 	// Parse -> DetachByKey -> AddItemToArray -> DetachByIndex -> ChangeKey(失败) -> AddItemToObject。
-	// 目标：验证对象节点经数组中转后会失去 key，必须通过 AddItemToObject 重新绑定新 key。
+	// 目标：验证 Object 节点经 Array 中转后会失去 key，必须通过 AddItemToObject 重新绑定新 key。
 	RyanJson_t root = RyanJsonParse("{\"obj\":{\"k\":{\"v\":1}},\"arr\":[]}");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -79,7 +79,7 @@ static void testEdgeWrapObjectNodeToArrayThenRebindNewKey(void)
 
 	RyanJson_t movedBack = RyanJsonDetachByIndex(arr, 0);
 	TEST_ASSERT_NOT_NULL(movedBack);
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeKey(movedBack, "k2"), "数组元素无 key，ChangeKey 应失败");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonChangeKey(movedBack, "k2"), "Array 元素无 key，ChangeKey 应失败");
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddItemToObject(obj, "k2", movedBack), "AddItemToObject 重新绑定 key 失败");
 
 	RyanJson_t expect = RyanJsonParse("{\"obj\":{\"k2\":{\"v\":1}},\"arr\":[]}");
@@ -94,7 +94,7 @@ static void testEdgeWrapArrayElementToObjectAndBackPreservesWrappedKey(void)
 {
 	// 复杂链路：
 	// Parse -> DetachByIndex -> AddItemToObject -> DetachByKey -> Insert(Array)。
-	// 目标：验证数组元素包装成对象字段后，再插回数组时会保留包装阶段生成的 key。
+	// 目标：验证 Array 元素包装成 Object 字段后，再插回 Array 时会保留包装阶段生成的 key。
 	RyanJson_t root = RyanJsonParse("{\"arr\":[{\"id\":\"a\"},{\"id\":\"b\"}],\"obj\":{}}");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -105,11 +105,11 @@ static void testEdgeWrapArrayElementToObjectAndBackPreservesWrappedKey(void)
 
 	RyanJson_t moved = RyanJsonDetachByIndex(arr, 0);
 	TEST_ASSERT_NOT_NULL(moved);
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddItemToObject(obj, "first", moved), "将数组元素包装挂到对象失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonAddItemToObject(obj, "first", moved), "将 Array 元素包装挂到 Object 失败");
 
 	RyanJson_t movedBack = RyanJsonDetachByKey(obj, "first");
 	TEST_ASSERT_NOT_NULL(movedBack);
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(arr, 1, movedBack), "将包装节点插回数组失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(arr, 1, movedBack), "将包装节点插回 Array 失败");
 
 	TEST_ASSERT_EQUAL_UINT32(2U, RyanJsonGetArraySize(arr));
 	TEST_ASSERT_EQUAL_UINT32(0U, RyanJsonGetSize(obj));
@@ -120,7 +120,7 @@ static void testEdgeWrapArrayElementToObjectAndBackPreservesWrappedKey(void)
 	TEST_ASSERT_NOT_NULL(e1);
 	TEST_ASSERT_EQUAL_STRING("b", RyanJsonGetStringValue(RyanJsonGetObjectToKey(e0, "id")));
 	TEST_ASSERT_EQUAL_STRING("a", RyanJsonGetStringValue(RyanJsonGetObjectToKey(e1, "id")));
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsKey(e1), "包装节点插回数组后应仍携带 key");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsKey(e1), "包装节点插回 Array 后应仍携带 key");
 
 	RyanJsonDelete(root);
 }
@@ -128,8 +128,8 @@ static void testEdgeWrapArrayElementToObjectAndBackPreservesWrappedKey(void)
 static void testEdgeWrapChangeDetachedKeyThenInsertBack(void)
 {
 	// 复杂链路：
-	// Parse -> DetachByKey -> ChangeKey -> Insert(回插同对象) -> Compare。
-	// 目标：验证分离节点改 key 后仍可稳定插回对象。
+	// Parse -> DetachByKey -> ChangeKey -> Insert(回插同 Object) -> Compare。
+	// 目标：验证分离节点改 key 后仍可稳定插回 Object。
 	RyanJson_t root = RyanJsonParse("{\"o\":{\"a\":1,\"b\":2}}");
 	TEST_ASSERT_NOT_NULL(root);
 

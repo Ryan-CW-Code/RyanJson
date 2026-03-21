@@ -13,7 +13,7 @@ static RyanJsonBool_e createJsonExample(void)
 	char *str = NULL;
 	RyanJson_t jsonRoot, item;
 
-	// 构建根对象
+	// 构建根 Object
 	jsonRoot = RyanJsonCreateObject();
 	RyanJsonAddIntToObject(jsonRoot, "inter", 16);
 	RyanJsonAddDoubleToObject(jsonRoot, "double", 16.89);
@@ -22,7 +22,7 @@ static RyanJsonBool_e createJsonExample(void)
 	RyanJsonAddBoolToObject(jsonRoot, "boolFalse", RyanJsonFalse);
 	RyanJsonAddNullToObject(jsonRoot, "null");
 
-	// 添加子对象
+	// 添加子 Object
 	item = RyanJsonCreateObject();
 	RyanJsonAddIntToObject(item, "inter", 16);
 	RyanJsonAddDoubleToObject(item, "double", 16.89);
@@ -30,23 +30,23 @@ static RyanJsonBool_e createJsonExample(void)
 	RyanJsonAddBoolToObject(item, "boolTrue", RyanJsonTrue);
 	RyanJsonAddBoolToObject(item, "boolFalse", RyanJsonFalse);
 	RyanJsonAddNullToObject(item, "null");
-	RyanJsonAddItemToObject(jsonRoot, "item", item); // 把子对象挂到根对象
+	RyanJsonAddItemToObject(jsonRoot, "item", item); // 把子 Object 挂到根 Object
 
-	// 添加数字子数组
+	// 添加 Int 子 Array
 	int32_t arrayInt[] = {16, 16, 16, 16, 16};
 	RyanJsonAddItemToObject(jsonRoot, "arrayInt", RyanJsonCreateIntArray(arrayInt, sizeof(arrayInt) / sizeof(arrayInt[0])));
 
-	// 添加浮点数子数组
+	// 添加 Double 子 Array
 	double arrayDouble[] = {16.89, 16.89, 16.89, 16.89, 16.89};
 	RyanJsonAddItemToObject(jsonRoot, "arrayDouble",
 				RyanJsonCreateDoubleArray(arrayDouble, sizeof(arrayDouble) / sizeof(arrayDouble[0])));
 
-	// 添加字符串子数组
+	// 添加 String 子 Array
 	const char *arrayString[] = {"hello", "hello", "hello", "hello", "hello"};
 	RyanJsonAddItemToObject(jsonRoot, "arrayString",
 				RyanJsonCreateStringArray(arrayString, sizeof(arrayString) / sizeof(arrayString[0])));
 
-	// 添加杂项数组
+	// 添加杂项 Array
 	RyanJson_t array = RyanJsonCreateArray();
 	RyanJsonAddIntToArray(array, 16);
 	RyanJsonAddDoubleToArray(array, 16.89);
@@ -54,9 +54,9 @@ static RyanJsonBool_e createJsonExample(void)
 	RyanJsonAddBoolToArray(array, RyanJsonTrue);
 	RyanJsonAddBoolToArray(array, RyanJsonFalse);
 	RyanJsonAddNullToArray(array);
-	RyanJsonAddItemToObject(jsonRoot, "array", array); // 把混合数组挂到根对象
+	RyanJsonAddItemToObject(jsonRoot, "array", array); // 把混合 Array 挂到根 Object
 
-	// 添加对象数组
+	// 添加 Object Array
 	RyanJson_t arrayItem = RyanJsonCreateArray();
 	item = RyanJsonCreateObject();
 	RyanJsonAddIntToObject(item, "inter", 16);
@@ -65,7 +65,7 @@ static RyanJsonBool_e createJsonExample(void)
 	RyanJsonAddBoolToObject(item, "boolTrue", RyanJsonTrue);
 	RyanJsonAddBoolToObject(item, "boolFalse", RyanJsonFalse);
 	RyanJsonAddNullToObject(item, "null");
-	RyanJsonAddItemToObject(arrayItem, "item", item); // 将对象加入数组
+	RyanJsonAddItemToObject(arrayItem, "item", item); // 将 Object 加入 Array
 
 	item = RyanJsonCreateObject();
 	RyanJsonAddIntToObject(item, "inter", 16);
@@ -74,9 +74,9 @@ static RyanJsonBool_e createJsonExample(void)
 	RyanJsonAddBoolToObject(item, "boolTrue", RyanJsonTrue);
 	RyanJsonAddBoolToObject(item, "boolFalse", RyanJsonFalse);
 	RyanJsonAddNullToObject(item, "null");
-	RyanJsonAddItemToObject(arrayItem, "item", item); // 将对象加入数组
+	RyanJsonAddItemToObject(arrayItem, "item", item); // 将 Object 加入 Array
 
-	RyanJsonAddItemToObject(jsonRoot, "arrayItem", arrayItem); // 把对象数组挂到根对象
+	RyanJsonAddItemToObject(jsonRoot, "arrayItem", arrayItem); // 把 Object Array 挂到根 Object
 
 	uint32_t len = 0;
 	str = RyanJsonPrint(jsonRoot, 250, RyanJsonTrue, &len); // 格式化打印
@@ -114,7 +114,7 @@ static RyanJsonBool_e loadJsonExample(void)
 		return RyanJsonFalse;
 	}
 
-	// 读取 int32_t 数据
+	// 读取 Int 数据
 	int32_t inter = RyanJsonGetIntValue(RyanJsonGetObjectByKey(jsonRoot, "inter"));
 	if (16 != inter)
 	{
@@ -123,7 +123,7 @@ static RyanJsonBool_e loadJsonExample(void)
 		return RyanJsonFalse;
 	}
 
-	// 读取 double 数据
+	// 读取 Double 数据
 	double doubleValue = RyanJsonGetDoubleValue(RyanJsonGetObjectByKey(jsonRoot, "double"));
 	if (RyanJsonFalse == RyanJsonCompareDouble(doubleValue, 16.89))
 	{
@@ -132,7 +132,7 @@ static RyanJsonBool_e loadJsonExample(void)
 		return RyanJsonFalse;
 	}
 
-	// 读取 string 数据
+	// 读取 String 数据
 	const char *strValue = RyanJsonGetStringValue(RyanJsonGetObjectByKey(jsonRoot, "string"));
 	if (0 != strcmp(strValue, "hello"))
 	{
@@ -141,7 +141,7 @@ static RyanJsonBool_e loadJsonExample(void)
 		return RyanJsonFalse;
 	}
 
-	// 读取 bool 数据
+	// 读取 Bool 数据
 	RyanJsonBool_e boolValue = RyanJsonGetBoolValue(RyanJsonGetObjectByKey(jsonRoot, "boolTrue"));
 	if (RyanJsonTrue != boolValue)
 	{
@@ -150,7 +150,7 @@ static RyanJsonBool_e loadJsonExample(void)
 		return RyanJsonFalse;
 	}
 
-	// 读取 null 数据
+	// 读取 Null 数据
 	if (RyanJsonTrue != RyanJsonIsNull(RyanJsonGetObjectByKey(jsonRoot, "null")))
 	{
 		printf("%s:%d 读取null失败\r\n", __FILE__, __LINE__);
@@ -175,7 +175,7 @@ static RyanJsonBool_e loadJsonExample(void)
 	printf("strLen: %" PRIu32 ", data: %s\r\n", len, str);
 	RyanJsonFree(str);
 
-	// 释放 Json 对象
+	// 释放 Json Object
 	RyanJsonDelete(jsonRoot);
 
 	return RyanJsonTrue;
@@ -254,7 +254,7 @@ static RyanJsonBool_e changeJsonExample(void)
 	printf("strLen: %" PRIu32 ", data: %s\r\n", len, str);
 	RyanJsonFree(str);
 
-	// 释放 Json 对象
+	// 释放 Json Object
 	RyanJsonDelete(jsonRoot);
 
 	return RyanJsonTrue;

@@ -22,7 +22,7 @@ static void testLoadFailureWhitespaceOnlySlice(void)
 
 static void testLoadFailureHugeNumberOverflow(void)
 {
-	// 超长整数：应在数值累乘过程中触发 isfinite 防御并失败
+	// 超长 Int：应在数值累乘过程中触发 isfinite 防御并失败
 	const uint32_t intLen = 1024;
 	char *hugeInt = (char *)malloc((size_t)intLen + 1U);
 	TEST_ASSERT_NOT_NULL(hugeInt);
@@ -30,7 +30,7 @@ static void testLoadFailureHugeNumberOverflow(void)
 	hugeInt[0] = '1';
 	memset(hugeInt + 1, '9', intLen - 1U);
 	hugeInt[intLen] = '\0';
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonParse(hugeInt), "Parse(超长整数溢出) 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonParse(hugeInt), "Parse(超长 Int 溢出) 应返回 NULL");
 	free(hugeInt);
 
 	// 超长小数：同样应触发 isfinite 防御并失败
@@ -240,8 +240,8 @@ static void testLoadParseOptionsSequentialOomRecovery(void)
 static void testLoadFailureInvalidUtf8AndEmbeddedNull(void)
 {
 	// 复杂输入场景：
-	// 1) 非法 UTF-8 字节序列（截断、错误续字节、过长编码）；
-	// 2) 字符串内容中内嵌 NUL（\0）字节。
+	// - 非法 UTF-8 字节序列（截断、错误续字节、过长编码）；
+	// - String 内容中内嵌 NUL（\0）字节。
 	// 目标：
 	// - 记录当前实现对“非法 UTF-8 原始字节”的行为：按普通字节透传，不在 Parse 阶段拦截；
 	// - 验证内嵌 NUL（控制字符）仍会严格失败，防止混入不可见截断字节。
@@ -302,10 +302,10 @@ static void testLoadFailureInvalidUtf8AndEmbeddedNull(void)
 	const uint8_t embeddedNulInString[] = {'{', '"', 's', '"', ':', '"', 'a', 'b', '\0', 'c', 'd', '"', '}', '\0'};
 	TEST_ASSERT_NULL_MESSAGE(
 		RyanJsonParseOptions((const char *)embeddedNulInString, (uint32_t)(sizeof(embeddedNulInString) - 1U), RyanJsonTrue, NULL),
-		"字符串内嵌 NUL 且 strict 终止时应解析失败");
+		"String 内嵌 NUL 且 strict 终止时应解析失败");
 	TEST_ASSERT_NULL_MESSAGE(
 		RyanJsonParseOptions((const char *)embeddedNulInString, (uint32_t)(sizeof(embeddedNulInString) - 1U), RyanJsonFalse, NULL),
-		"字符串内嵌 NUL 且流式解析时也应解析失败");
+		"String 内嵌 NUL 且流式解析时也应解析失败");
 }
 
 void testLoadFailureRunner(void)

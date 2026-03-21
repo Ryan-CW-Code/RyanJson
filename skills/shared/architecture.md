@@ -12,6 +12,7 @@
 
 ## 3. 载荷与字符串存储
 - 节点载荷位于结构体之后，`flag` 后按类型写入 key、strValue、number、children 指针等数据。
+- `String` 节点的 strValue 存放在字符串区，不使用 value 区；value 区仅用于 `Number/Array/Object`。
 - key 长度字段采用“长度占用字节数”编码方式（1/2/4 字节），由 `flag` 位域决定。
 - `RyanJsonInlineStringSize` 定义 key/短字符串的内联阈值，`RyanJsonInternalChangeString` 依据阈值选择内联或指针模式，并用 `flag` 标记指针模式。
 - `RyanJsonInternalNewNode` 依据节点类型计算分配尺寸，Number 会按 int32_t 或 double 追加空间，Array/Object 会追加子节点指针空间，key/字符串会追加内联区。

@@ -24,17 +24,17 @@ static char *allocPatternString(uint32_t len, char ch)
 
 static void testCreateEdgeCases(void)
 {
-	// 测试创建空列表
+	// 测试创建空 Array
 	RyanJson_t emptyArr = RyanJsonCreateArray();
 	TEST_ASSERT_NOT_NULL(emptyArr);
 	TEST_ASSERT_EQUAL_INT(0, RyanJsonGetArraySize(emptyArr));
 	RyanJsonDelete(emptyArr);
 
-	// 测试通过辅助函数创建空列表
+	// 测试通过辅助函数创建空 Array
 	// RyanJsonCreateIntArray 传入 NULL 指针和 0 长度
 	RyanJson_t nullIntArr = RyanJsonCreateIntArray(NULL, 0);
 	// 该场景属于边界输入：只要不崩溃且行为可预测即可。
-	// 若实现返回空数组，则继续校验 size；
+	// 若实现返回空 Array，则继续校验 size；
 	// 若实现返回 NULL，也视为可接受行为。
 	if (nullIntArr)
 	{
@@ -94,9 +94,9 @@ static void testCreateStandardComplexHierarchy(void)
 {
 	RyanJson_t jsonRoot, item;
 
-	// 对象生成测试
+	// Object 生成测试
 	jsonRoot = RyanJsonCreateObject();
-	TEST_ASSERT_NOT_NULL_MESSAGE(jsonRoot, "创建对象失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(jsonRoot, "创建 Object 失败");
 
 	RyanJsonAddIntToObject(jsonRoot, "inter", 16);
 	RyanJsonAddDoubleToObject(jsonRoot, "double", 16.89);
@@ -106,11 +106,11 @@ static void testCreateStandardComplexHierarchy(void)
 	RyanJsonAddNullToObject(jsonRoot, "null");
 
 	/**
-	 * @brief 对象添加测试
+	 * @brief Object 添加测试
 	 *
 	 */
 	item = RyanJsonCreateObject();
-	TEST_ASSERT_NOT_NULL_MESSAGE(item, "创建子对象失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(item, "创建子 Object 失败");
 	RyanJsonAddIntToObject(item, "inter", 16);
 	RyanJsonAddDoubleToObject(item, "double", 16.89);
 	RyanJsonAddStringToObject(item, "string", "hello");
@@ -120,7 +120,7 @@ static void testCreateStandardComplexHierarchy(void)
 	RyanJsonAddItemToObject(jsonRoot, "item", item);
 
 	/**
-	 * @brief 数组添加测试
+	 * @brief Array 添加测试
 	 *
 	 */
 	int32_t arrayInt[] = {16, 16, 16, 16, 16};
@@ -135,7 +135,7 @@ static void testCreateStandardComplexHierarchy(void)
 				RyanJsonCreateStringArray(arrayString, sizeof(arrayString) / sizeof(arrayString[0])));
 
 	RyanJson_t array = RyanJsonCreateArray();
-	TEST_ASSERT_NOT_NULL_MESSAGE(array, "创建数组失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(array, "创建 Array 失败");
 	RyanJsonAddIntToArray(array, 16);
 	RyanJsonAddDoubleToArray(array, 16.89);
 	RyanJsonAddStringToArray(array, "hello");
@@ -145,14 +145,14 @@ static void testCreateStandardComplexHierarchy(void)
 	RyanJsonAddItemToObject(jsonRoot, "array", array);
 
 	/**
-	 * @brief 对象数组测试
+ * @brief Object Array 测试
 	 *
 	 */
 	RyanJson_t arrayItem = RyanJsonCreateArray();
-	TEST_ASSERT_NOT_NULL_MESSAGE(arrayItem, "创建对象数组失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(arrayItem, "创建 ObjectArray 失败");
 
 	item = RyanJsonCreateObject();
-	TEST_ASSERT_NOT_NULL_MESSAGE(item, "创建对象数组项 1 失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(item, "创建 ObjectArray 项 1 失败");
 	RyanJsonAddIntToObject(item, "inter", 16);
 	RyanJsonAddDoubleToObject(item, "double", 16.89);
 	RyanJsonAddStringToObject(item, "string", "hello");
@@ -162,7 +162,7 @@ static void testCreateStandardComplexHierarchy(void)
 	RyanJsonAddItemToArray(arrayItem, item);
 
 	item = RyanJsonCreateObject();
-	TEST_ASSERT_NOT_NULL_MESSAGE(item, "创建对象数组项 2 失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(item, "创建 ObjectArray 项 2 失败");
 	RyanJsonAddIntToObject(item, "inter", 16);
 	RyanJsonAddDoubleToObject(item, "double", 16.89);
 	RyanJsonAddStringToObject(item, "string", "hello");
@@ -173,7 +173,7 @@ static void testCreateStandardComplexHierarchy(void)
 
 	RyanJsonAddItemToObject(jsonRoot, "arrayItem", arrayItem);
 
-	// 最终验证根对象结构
+	// 最终验证根 Object 结构
 #if true == RyanJsonDefaultAddAtHead
 	testCheckRootEx(jsonRoot, RyanJsonTrue);
 #else
@@ -185,7 +185,7 @@ static void testCreateStandardComplexHierarchy(void)
 
 static void testCreateHugeString(void)
 {
-	// 极限大字符串创建（模拟大对象；为控制测试耗时，先用 10KB 堆内存）
+	// 极限大 String 创建（模拟大 Object；为控制测试耗时，先用 10KB 堆内存）
 	uint32_t len = 1024 * 10;
 	char *hugeStr = (char *)malloc(len + 1);
 	TEST_ASSERT_NOT_NULL(hugeStr);
@@ -429,7 +429,7 @@ static void testAddItemObjectSemantics(void)
 	TEST_ASSERT_EQUAL_STRING("arr", RyanJsonGetKey(secondArrKeyNode));
 
 #if true == RyanJsonDefaultAddAtHead
-	// 头插模式：新插入的 dupObj 在前，旧数组在后
+	// 头插模式：新插入的 dupObj 在前，旧 Array 在后
 	TEST_ASSERT_TRUE(RyanJsonIsObject(firstArrKeyNode));
 	TEST_ASSERT_TRUE(RyanJsonIsArray(secondArrKeyNode));
 	TEST_ASSERT_EQUAL_INT(99, RyanJsonGetIntValue(RyanJsonGetObjectByKey(firstArrKeyNode, "k")));
@@ -439,7 +439,7 @@ static void testAddItemObjectSemantics(void)
 	TEST_ASSERT_NOT_NULL(arrNode);
 	TEST_ASSERT_TRUE(RyanJsonIsObject(arrNode));
 #else
-	// 尾插模式：旧数组在前，新插入的 dupObj 在后
+	// 尾插模式：旧 Array 在前，新插入的 dupObj 在后
 	TEST_ASSERT_TRUE(RyanJsonIsArray(firstArrKeyNode));
 	TEST_ASSERT_TRUE(RyanJsonIsObject(secondArrKeyNode));
 	TEST_ASSERT_EQUAL_INT(2, RyanJsonGetArraySize(firstArrKeyNode));
@@ -455,13 +455,13 @@ static void testAddItemObjectSemantics(void)
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonAddItemToObject(obj, "scalar", RyanJsonCreateInt(NULL, 7)), "AddItemToObject(标量) 应失败");
 	TEST_ASSERT_NULL(RyanJsonGetObjectByKey(obj, "scalar"));
 
-	// 非对象调用 AddItemToObject 应失败
+	// 非 Object 调用 AddItemToObject 应失败
 	RyanJson_t notObj = RyanJsonCreateInt("num", 1);
 	RyanJson_t childObj = RyanJsonCreateObject();
 	TEST_ASSERT_NOT_NULL(notObj);
 	TEST_ASSERT_NOT_NULL(childObj);
 	TEST_ASSERT_TRUE(RyanJsonAddIntToObject(childObj, "x", 1));
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonAddItemToObject(notObj, "child", childObj), "非对象调用 AddItemToObject 应失败");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonAddItemToObject(notObj, "child", childObj), "非 Object 调用 AddItemToObject 应失败");
 	TEST_ASSERT_TRUE(RyanJsonIsInt(notObj));
 	TEST_ASSERT_EQUAL_INT(1, RyanJsonGetIntValue(notObj));
 
@@ -583,9 +583,9 @@ static void testCreateDetachedReuseAndContainerAssembleChain(void)
 	// Create(root/queue/map/nums) -> Insert(成功) -> 重复 Insert(失败)
 	// -> DetachByIndex -> AddItemToObject(包装成功) -> Compare(期望文档) -> Roundtrip。
 	// 目标：
-	// 1) 验证已挂树节点重复插入会失败且不破坏结构；
-	// 2) 验证游离节点在 Detach 后可被 AddItemToObject 稳定复用；
-	// 3) 验证创建型链路最终语义可收敛到期望文档。
+	// - 验证已挂树节点重复插入会失败且不破坏结构；
+	// - 验证游离节点在 Detach 后可被 AddItemToObject 稳定复用；
+	// - 验证创建型链路最终语义可收敛到期望文档。
 #if true == RyanJsonDefaultAddAtHead
 	const char *expectText = "{\"queue\":[],\"map\":{\"t1\":{\"name\":\"sync\",\"prio\":1}},\"nums\":[2,1]}";
 #else
@@ -653,9 +653,9 @@ static void testCreateAddItemToArrayRejectScalarThenRecover(void)
 	// Create(root/arr) -> AddItemToArray(标量失败) -> AddItemToArray(容器) -> AddIntToArray
 	// -> Compare(期望文档) -> Roundtrip。
 	// 目标：
-	// 1) 验证 AddItemToArray 仅接受容器节点；
-	// 2) 验证失败后数组仍可继续复用；
-	// 3) 验证恢复后的构建结果可稳定打印回读。
+	// - 验证 AddItemToArray 仅接受容器节点；
+	// - 验证失败后 Array 仍可继续复用；
+	// - 验证恢复后的构建结果可稳定打印回读。
 	RyanJson_t root = RyanJsonCreateObject();
 	RyanJson_t arr = RyanJsonCreateArray();
 	TEST_ASSERT_NOT_NULL(root);
@@ -668,7 +668,7 @@ static void testCreateAddItemToArrayRejectScalarThenRecover(void)
 	RyanJson_t scalar = RyanJsonCreateInt(NULL, 7);
 	TEST_ASSERT_NOT_NULL(scalar);
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonAddItemToArray(arr, scalar), "AddItemToArray(标量) 应失败");
-	TEST_ASSERT_EQUAL_UINT32_MESSAGE(0U, RyanJsonGetArraySize(arr), "失败后数组仍应为空");
+	TEST_ASSERT_EQUAL_UINT32_MESSAGE(0U, RyanJsonGetArraySize(arr), "失败后 Array 仍应为空");
 
 	RyanJson_t obj = RyanJsonCreateObject();
 	TEST_ASSERT_NOT_NULL(obj);

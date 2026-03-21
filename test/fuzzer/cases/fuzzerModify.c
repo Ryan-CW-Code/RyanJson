@@ -122,7 +122,7 @@ RyanJsonBool_e RyanJsonFuzzerTestModify(RyanJson_t pJson, uint32_t size)
 		}
 	}
 
-	// 布尔节点
+	// Bool 节点
 	if (RyanJsonIsBool(pJson))
 	{
 		RyanJsonBool_e oldBool = RyanJsonGetBoolValue(pJson);
@@ -165,7 +165,7 @@ RyanJsonBool_e RyanJsonFuzzerTestModify(RyanJson_t pJson, uint32_t size)
 		}
 	}
 
-	// 字符串节点
+	// String 节点
 	if (RyanJsonIsString(pJson))
 	{
 		const char *oldStr = RyanJsonGetStringValue(pJson);

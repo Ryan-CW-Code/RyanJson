@@ -3,8 +3,8 @@
 static void testCompareDuplicateKeyInterleavedWithUnique(void)
 {
 	// 该用例覆盖“重复 key 与唯一 key 交错”场景：
-	// 1) 非严格模式：验证重复 key 的出现序号匹配不会被交错 key 干扰；
-	// 2) 严格模式：重复 key 解析应失败，并使用无重复 key 控制组验证普通语义。
+	// - 非严格模式：验证重复 key 的出现序号匹配不会被交错 key 干扰；
+	// - 严格模式：重复 key 解析应失败，并使用无重复 key 控制组验证普通语义。
 	RyanJson_t left = RyanJsonParse("{\"a\":1,\"b\":2,\"a\":3,\"c\":4}");
 	RyanJson_t rightSame = RyanJsonParse("{\"c\":4,\"a\":1,\"b\":2,\"a\":3}");
 	RyanJson_t rightDupSwapped = RyanJsonParse("{\"c\":4,\"a\":3,\"b\":2,\"a\":1}");
@@ -18,7 +18,7 @@ static void testCompareDuplicateKeyInterleavedWithUnique(void)
 	TEST_ASSERT_NULL_MESSAGE(rightMissingUnique, "strict 模式下重复 key 应解析失败");
 	TEST_ASSERT_NULL_MESSAGE(rightTypeMismatch, "strict 模式下重复 key 应解析失败");
 
-	// 控制组：无重复 key 时，对象乱序应相等，key 不同应不等。
+	// 控制组：无重复 key 时，Object 乱序应相等，key 不同应不等。
 	{
 		RyanJson_t normalLeft = RyanJsonParse("{\"a\":1,\"b\":2,\"c\":3,\"d\":4}");
 		RyanJson_t normalRight = RyanJsonParse("{\"d\":4,\"c\":3,\"b\":2,\"a\":1}");
@@ -168,7 +168,7 @@ static void testCompareDuplicateKeyNestedMutationIsolation(void)
 	TEST_ASSERT_NULL_MESSAGE(left, "strict 模式下嵌套重复 key 应解析失败");
 	TEST_ASSERT_NULL_MESSAGE(right, "strict 模式下嵌套重复 key 应解析失败");
 
-	// 控制组：无重复 key 的嵌套对象变更应被 CompareOnlyKey 捕获。
+	// 控制组：无重复 key 的嵌套 Object 变更应被 CompareOnlyKey 捕获。
 	{
 		RyanJson_t normalLeft = RyanJsonParse("{\"outer\":{\"a\":1,\"b\":2},\"keep\":1}");
 		RyanJson_t normalRight = RyanJsonDuplicate(normalLeft);
@@ -288,7 +288,7 @@ static void testCompareDuplicateKeyReplaceByKeyFirstOccurrence(void)
 
 static void testCompareDuplicateKeyContainerIsolation(void)
 {
-	// 该用例验证“不同对象容器”的重复 key 计数不应互相抵消。
+	// 该用例验证“不同 Object 容器”的重复 key 计数不应互相抵消。
 #if true == RyanJsonStrictObjectKeyCheck
 	RyanJson_t strict = RyanJsonParse("{\"obj\":{\"a\":1,\"a\":2}}");
 	TEST_ASSERT_NULL_MESSAGE(strict, "strict 模式下重复 key 应解析失败");
@@ -309,8 +309,8 @@ static void testCompareDuplicateKeyContainerIsolation(void)
 static void testCompareDuplicateKeyEscapedAndEmptyKey(void)
 {
 	// 该用例验证两类容易遗漏的重复 key：
-	// 1) 空 key（""）重复；
-	// 2) 转义后等价 key（"a" 与 "\u0061"）重复。
+	// - 空 key（""）重复；
+	// - 转义后等价 key（"a" 与 "\u0061"）重复。
 	RyanJson_t left = RyanJsonParse("{\"\":1,\"\":2,\"a\":3,\"\\u0061\":4}");
 	RyanJson_t rightSame = RyanJsonParse("{\"a\":3,\"\\u0061\":4,\"\":1,\"\":2}");
 	RyanJson_t rightValueSwap = RyanJsonParse("{\"\\u0061\":4,\"a\":3,\"\":1,\"\":2}");
@@ -462,7 +462,7 @@ static void testCompareDuplicateKeyHighCardinality(void)
 		RyanJsonDelete(strictObj);
 	}
 
-	// strict 模式下用大规模“唯一 key”对象验证普通比较路径稳定性。
+	// strict 模式下用大规模“唯一 key”Object 验证普通比较路径稳定性。
 	{
 		RyanJson_t left = RyanJsonCreateObject();
 		RyanJson_t rightSame = RyanJsonCreateObject();
@@ -505,7 +505,7 @@ static void testCompareDuplicateKeyHighCardinality(void)
 		TEST_ASSERT_TRUE(RyanJsonAddIntToObject(rightSame, "dup", (int32_t)i));
 		TEST_ASSERT_TRUE(RyanJsonAddIntToObject(rightValueMismatch, "dup", (int32_t)(i == 177U ? (i + 1U) : i)));
 
-		// 在固定序号注入 number/string 类型差异，验证 CompareOnlyKey 的类型判定不被大数据量掩盖。
+		// 在固定序号注入 Number/String 类型差异，验证 CompareOnlyKey 的类型判定不被大数据量掩盖。
 		if (i == 177U) { TEST_ASSERT_TRUE(RyanJsonAddStringToObject(rightTypeMismatch, "dup", "177")); }
 		else
 		{
@@ -537,9 +537,9 @@ static void testCompareDuplicateKeyStreamParseMutationChain(void)
 	// ParseOptions(文档1) -> ParseOptions(文档2) -> Compare/CompareOnlyKey
 	// -> ReplaceByKey(失败) -> CompareOnlyKey 再校验 -> Detach/Add 修复结构 -> Compare。
 	// 目标：
-	// 1) 覆盖“流式多文档 + 重复 key 比较”的真实调用链；
-	// 2) 验证失败 API 不会污染 CompareOnlyKey 的结构判断；
-	// 3) 验证结构修复后 Compare/CompareOnlyKey 可恢复一致。
+	// - 覆盖“流式多文档 + 重复 key 比较”的真实调用链；
+	// - 验证失败 API 不会污染 CompareOnlyKey 的结构判断；
+	// - 验证结构修复后 Compare/CompareOnlyKey 可恢复一致。
 	const char *dupStream = "{\"a\":1,\"a\":2,\"c\":3}{\"a\":1,\"b\":2,\"c\":3}";
 	const uint32_t dupLen = (uint32_t)strlen(dupStream);
 	const char *dupEnd = NULL;

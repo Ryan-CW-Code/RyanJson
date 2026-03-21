@@ -24,7 +24,7 @@ RyanJson_t RyanJsonFuzzerCreateRandomNodeWithKey(RyanJson_t pJson, const char *k
 	case 3: item = RyanJsonCreateInt(key, (int32_t)RyanJsonFuzzerNextRand()); break;
 	case 4: item = RyanJsonCreateDouble(key, 1.0 * RyanJsonFuzzerNextRand() / 1000.0); break;
 	case 5:
-		item = RyanJsonCreateString(key, "random_string"); // 当前使用固定字符串，保证可重复性
+		item = RyanJsonCreateString(key, "random_string"); // 当前使用固定 String，保证可重复性
 		break;
 	case 6:
 		item = RyanJsonCreateObject();

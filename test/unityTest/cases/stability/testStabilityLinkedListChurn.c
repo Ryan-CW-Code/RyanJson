@@ -4,7 +4,7 @@ static void testListStabilityObjectInsertMiddleThenDeleteHead(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> Insert(middle) -> DeleteByIndex(head) -> 遍历链表校验。
-	// 目标：验证对象中间插入与头删组合后链表稳定。
+	// 目标：验证 Object 中间插入与头删组合后链表稳定。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"c\":3}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -23,13 +23,13 @@ static void testListStabilityObjectInsertMiddleThenDeleteHead(void)
 	while (node)
 	{
 		count++;
-		if (count > sizeAfter + 1U) { TEST_FAIL_MESSAGE("对象链表疑似形成环"); }
+		if (count > sizeAfter + 1U) { TEST_FAIL_MESSAGE("Object 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(sizeAfter, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "对象尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Object 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(obj);
 }
@@ -38,7 +38,7 @@ static void testListStabilityArrayInsertMiddleThenDeleteTail(void)
 {
 	// 复杂链路：
 	// Parse(Array) -> Insert(middle) -> DeleteByIndex(tail) -> 遍历链表校验。
-	// 目标：验证数组中间插入与尾删组合后链表稳定。
+	// 目标：验证 Array 中间插入与尾删组合后链表稳定。
 	RyanJson_t arr = RyanJsonParse("[1,2,3]");
 	TEST_ASSERT_NOT_NULL(arr);
 
@@ -57,13 +57,13 @@ static void testListStabilityArrayInsertMiddleThenDeleteTail(void)
 	while (node)
 	{
 		count++;
-		if (count > size + 1U) { TEST_FAIL_MESSAGE("数组链表疑似形成环"); }
+		if (count > size + 1U) { TEST_FAIL_MESSAGE("Array 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(size, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "数组尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Array 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(arr);
 }
@@ -72,7 +72,7 @@ static void testListStabilityNestedObjectDetachChildToOuter(void)
 {
 	// 复杂链路：
 	// Parse -> DetachByKey(inner) -> Insert(outer) -> 遍历 inner/outer 链表校验。
-	// 目标：验证嵌套对象节点迁移后父子链表稳定。
+	// 目标：验证嵌套 Object 节点迁移后父子链表稳定。
 	RyanJson_t root = RyanJsonParse("{\"outer\":{\"keep\":0,\"inner\":{\"x\":1}},\"slot\":{}}");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -131,7 +131,7 @@ static void testListStabilityNestedArrayMoveBetweenInnerArrays(void)
 {
 	// 复杂链路：
 	// Parse -> DetachByIndex(innerA) -> Insert(innerB) -> 遍历链表校验。
-	// 目标：验证内层数组元素跨数组迁移后链表稳定。
+	// 目标：验证内层 Array 元素跨 Array 迁移后链表稳定。
 	RyanJson_t root = RyanJsonParse("{\"a\":[[1,2],[3,4]]}");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -193,21 +193,21 @@ static void testListStabilityReplaceByIndexObjectWithDetached(void)
 {
 	// 复杂链路：
 	// Parse -> DetachByKey -> ReplaceByIndex(新节点) -> 遍历链表校验。
-	// 目标：验证对象经历分离后再替换索引的链表稳定性。
+	// 目标：验证 Object 经历分离后再替换索引的链表稳定性。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"b\":2,\"c\":3}");
 	TEST_ASSERT_NOT_NULL(obj);
 
 	RyanJson_t moved = RyanJsonDetachByKey(obj, "a");
 	TEST_ASSERT_NOT_NULL(moved);
 	uint32_t size = RyanJsonGetSize(obj);
-	TEST_ASSERT_TRUE_MESSAGE(size > 0U, "对象 size 异常");
+	TEST_ASSERT_TRUE_MESSAGE(size > 0U, "Object size 异常");
 	uint32_t replaceIndex = size - 1U;
 	TEST_ASSERT_TRUE(RyanJsonReplaceByIndex(obj, replaceIndex, RyanJsonCreateInt("a", 9)));
 	RyanJsonDelete(moved);
 
 	TEST_ASSERT_EQUAL_UINT32(size, RyanJsonGetSize(obj));
 	TEST_ASSERT_TRUE(RyanJsonHasObjectByKey(obj, "a"));
-	// 替换的是指定索引，避免依赖对象顺序，直接校验索引处 key/value。
+	// 替换的是指定索引，避免依赖 Object 顺序，直接校验索引处 key/value。
 	RyanJson_t replaced = RyanJsonGetObjectByIndex(obj, replaceIndex);
 	TEST_ASSERT_NOT_NULL(replaced);
 	TEST_ASSERT_EQUAL_STRING("a", RyanJsonGetKey(replaced));
@@ -221,13 +221,13 @@ static void testListStabilityReplaceByIndexObjectWithDetached(void)
 	while (node)
 	{
 		count++;
-		if (count > sizeAfter + 1U) { TEST_FAIL_MESSAGE("对象链表疑似形成环"); }
+		if (count > sizeAfter + 1U) { TEST_FAIL_MESSAGE("Object 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(sizeAfter, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "对象尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Object 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(obj);
 }
@@ -260,13 +260,13 @@ static void testListStabilityDeleteByKeyDuplicateThenTraverse(void)
 	while (node)
 	{
 		count++;
-		if (count > size + 1U) { TEST_FAIL_MESSAGE("对象链表疑似形成环"); }
+		if (count > size + 1U) { TEST_FAIL_MESSAGE("Object 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(size, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "对象尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Object 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(obj);
 }
@@ -275,7 +275,7 @@ static void testListStabilityArrayChurnInsertDetachReplace(void)
 {
 	// 复杂链路：
 	// Parse(Array) -> Insert -> Detach -> Replace -> 遍历链表校验。
-	// 目标：验证多次数组变更后链表稳定。
+	// 目标：验证多次 Array 变更后链表稳定。
 	RyanJson_t arr = RyanJsonParse("[1,2,3]");
 	TEST_ASSERT_NOT_NULL(arr);
 
@@ -292,13 +292,13 @@ static void testListStabilityArrayChurnInsertDetachReplace(void)
 	while (node)
 	{
 		count++;
-		if (count > size + 1U) { TEST_FAIL_MESSAGE("数组链表疑似形成环"); }
+		if (count > size + 1U) { TEST_FAIL_MESSAGE("Array 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(size, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "数组尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Array 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(arr);
 }
@@ -307,7 +307,7 @@ static void testListStabilityObjectChurnReplaceInsertDetach(void)
 {
 	// 复杂链路：
 	// Parse(Object) -> ReplaceByKey -> Insert -> DetachByKey -> 遍历链表校验。
-	// 目标：验证多次对象变更后链表稳定。
+	// 目标：验证多次 Object 变更后链表稳定。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"b\":2}");
 	TEST_ASSERT_NOT_NULL(obj);
 
@@ -329,13 +329,13 @@ static void testListStabilityObjectChurnReplaceInsertDetach(void)
 	while (node)
 	{
 		count++;
-		if (count > size + 1U) { TEST_FAIL_MESSAGE("对象链表疑似形成环"); }
+		if (count > size + 1U) { TEST_FAIL_MESSAGE("Object 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(size, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "对象尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Object 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(obj);
 }
@@ -344,7 +344,7 @@ static void testListStabilityGetNextAfterNestedDetachInsert(void)
 {
 	// 复杂链路：
 	// Parse -> DetachByKey(嵌套) -> Insert(嵌套) -> 遍历链表校验。
-	// 目标：验证嵌套对象内的 GetNext 关系稳定。
+	// 目标：验证嵌套 Object 内的 GetNext 关系稳定。
 	RyanJson_t root = RyanJsonParse("{\"o\":{\"a\":1,\"b\":2,\"c\":3}}");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -362,13 +362,13 @@ static void testListStabilityGetNextAfterNestedDetachInsert(void)
 	while (node)
 	{
 		count++;
-		if (count > size + 1U) { TEST_FAIL_MESSAGE("嵌套对象链表疑似形成环"); }
+		if (count > size + 1U) { TEST_FAIL_MESSAGE("嵌套 Object 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(size, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "嵌套对象尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "嵌套 Object 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(root);
 }
@@ -377,7 +377,7 @@ static void testListStabilityArrayInsertHeadThenDetachMiddle(void)
 {
 	// 复杂链路：
 	// Parse(Array) -> Insert(head) -> DetachByIndex(middle) -> 遍历链表校验。
-	// 目标：验证数组头插后再分离中间节点的链表稳定性。
+	// 目标：验证 Array 头插后再分离中间节点的链表稳定性。
 	RyanJson_t arr = RyanJsonParse("[1,2,3]");
 	TEST_ASSERT_NOT_NULL(arr);
 
@@ -394,13 +394,13 @@ static void testListStabilityArrayInsertHeadThenDetachMiddle(void)
 	while (node)
 	{
 		count++;
-		if (count > size + 1U) { TEST_FAIL_MESSAGE("数组链表疑似形成环"); }
+		if (count > size + 1U) { TEST_FAIL_MESSAGE("Array 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(size, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "数组尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Array 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(arr);
 }
@@ -409,7 +409,7 @@ static void testListStabilityArrayDetachAllThenRebuild(void)
 {
 	// 复杂链路：
 	// Parse(Array) -> DetachByIndex(全部) -> Insert(重建) -> 遍历链表校验。
-	// 目标：验证数组清空后重建链表稳定。
+	// 目标：验证 Array 清空后重建链表稳定。
 	RyanJson_t arr = RyanJsonParse("[1,2,3]");
 	TEST_ASSERT_NOT_NULL(arr);
 
@@ -433,13 +433,13 @@ static void testListStabilityArrayDetachAllThenRebuild(void)
 	while (node)
 	{
 		count++;
-		if (count > size + 1U) { TEST_FAIL_MESSAGE("数组链表疑似形成环"); }
+		if (count > size + 1U) { TEST_FAIL_MESSAGE("Array 链表疑似形成环"); }
 		last = node;
 		node = RyanJsonGetNext(node);
 	}
 	TEST_ASSERT_EQUAL_UINT32(size, count);
 	TEST_ASSERT_NOT_NULL(last);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "数组尾节点 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(last), "Array 尾节点 GetNext 应返回 NULL");
 
 	RyanJsonDelete(arr);
 }

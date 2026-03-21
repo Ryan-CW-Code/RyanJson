@@ -9,7 +9,7 @@
 	X(-1)                                                                                                                              \
 	X(2)                                                                                                                               \
 	X(-2)                                                                                                                              \
-	/* 常见小整数 */                                                                                                                   \
+	/* 常见小 Int */                                                                                                                   \
 	X(10)                                                                                                                              \
 	X(-10)                                                                                                                             \
 	X(100)                                                                                                                             \
@@ -29,7 +29,7 @@
 	X(-65535)                                                                                                                          \
 	X(65536)                                                                                                                           \
 	X(-65536)                                                                                                                          \
-	/* 大整数 */                                                                                                                       \
+	/* 大 Int */                                                                                                                       \
 	X(100000)                                                                                                                          \
 	X(-100000)                                                                                                                         \
 	X(1000000)                                                                                                                         \
@@ -110,7 +110,7 @@ static const char *IntStringTable3[] = {
 };
 
 /**
- * @brief 整数类型边界与一致性测试
+ * @brief Int 类型边界与一致性测试
  */
 void testEqualityIntEdgeCases(void)
 {
@@ -138,7 +138,7 @@ void testEqualityIntEdgeCases(void)
 
 static void testEqualityIntTypeBoundaries(void)
 {
-	// int32_t 边界内：应为 int
+	// int32_t 边界内：应为 Int
 	RyanJson_t intMax = RyanJsonParse("2147483647");
 	TEST_ASSERT_NOT_NULL(intMax);
 	TEST_ASSERT_TRUE(RyanJsonIsInt(intMax));
@@ -151,7 +151,7 @@ static void testEqualityIntTypeBoundaries(void)
 	TEST_ASSERT_EQUAL_INT32(INT32_MIN, RyanJsonGetIntValue(intMin));
 	RyanJsonDelete(intMin);
 
-	// 超出 int32_t 范围：应退化为 double
+	// 超出 int32_t 范围：应退化为 Double
 	RyanJson_t overMax = RyanJsonParse("2147483648");
 	TEST_ASSERT_NOT_NULL(overMax);
 	TEST_ASSERT_TRUE(RyanJsonIsDouble(overMax));
@@ -166,7 +166,7 @@ static void testEqualityIntTypeBoundaries(void)
 	TEST_ASSERT_TRUE(RyanJsonCompareDouble(-2147483649.0, RyanJsonGetDoubleValue(belowMin)));
 	RyanJsonDelete(belowMin);
 
-	// 指数/小数语义：数值等于整数也应按 double 处理
+	// 指数/小数语义：数值等于 Int 也应按 Double 处理
 	RyanJson_t expInt = RyanJsonParse("1e0");
 	TEST_ASSERT_NOT_NULL(expInt);
 	TEST_ASSERT_TRUE(RyanJsonIsDouble(expInt));
@@ -179,7 +179,7 @@ static void testEqualityIntTypeBoundaries(void)
 	TEST_ASSERT_FALSE(RyanJsonIsInt(fracInt));
 	RyanJsonDelete(fracInt);
 
-	// -0 保持 int 路径
+	// -0 保持 Int 路径
 	RyanJson_t negZero = RyanJsonParse("-0");
 	TEST_ASSERT_NOT_NULL(negZero);
 	TEST_ASSERT_TRUE(RyanJsonIsInt(negZero));
@@ -203,7 +203,7 @@ static void testEqualityIntTableCommon(const char *const *stringTable, RyanJsonB
 		int32_t intValue = RyanJsonGetIntValue(valueNode);
 		TEST_ASSERT_EQUAL_INT32_MESSAGE(IntValueTable[i], intValue, jsonIntStr);
 
-		// 往返校验：序列化后再次解析，整数值应保持一致
+		// 往返校验：序列化后再次解析，Int 值应保持一致
 		char *serializedStr = RyanJsonPrint(jsonRoot, 128, RyanJsonFalse, NULL);
 		TEST_ASSERT_NOT_NULL_MESSAGE(serializedStr, "序列化失败");
 		RyanJsonDelete(jsonRoot);
@@ -248,7 +248,7 @@ static void testEqualityIntArrayTable(const char *const *stringTable)
 		int32_t intValue = RyanJsonGetIntValue(valueNode);
 		TEST_ASSERT_EQUAL_INT32_MESSAGE(IntValueTable[i], intValue, jsonIntStr);
 
-		// 往返校验：序列化后再次解析，整数值应保持一致
+		// 往返校验：序列化后再次解析，Int 值应保持一致
 		char *serializedStr = RyanJsonPrint(jsonRoot, 128, RyanJsonFalse, NULL);
 		TEST_ASSERT_NOT_NULL_MESSAGE(serializedStr, "序列化失败");
 		RyanJsonDelete(jsonRoot);

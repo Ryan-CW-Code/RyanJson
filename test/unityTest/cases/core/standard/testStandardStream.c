@@ -2,7 +2,7 @@
 
 static void testStandardParseOptionsMixedTopLevelSequence(void)
 {
-	// 覆盖 object -> string -> null -> array 的混合顶层流式推进。
+	// 覆盖 Object -> String -> Null -> Array 的混合顶层流式推进。
 	const char *stream = " {\"a\":1}\n \"txt\" \n null \n [1,{\"k\":2}] ";
 	const uint32_t streamLen = (uint32_t)strlen(stream);
 
@@ -99,13 +99,13 @@ static void testStandardParseOptionsStreamDocsStayIndependentAfterMutation(void)
 	TEST_ASSERT_NOT_NULL(arr);
 	RyanJson_t detached = RyanJsonDetachByIndex(arr, 0);
 	TEST_ASSERT_NOT_NULL(detached);
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonChangeIntValue(detached, 9), "修改分离数组元素失败");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(arr, 1, detached), "回插修改后的数组元素失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonChangeIntValue(detached, 9), "修改分离 Array 元素失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(arr, 1, detached), "回插修改后的 Array 元素失败");
 
 	RyanJson_t expect = RyanJsonParse("{\"a\":[2,9]}");
 	TEST_ASSERT_NOT_NULL(expect);
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(doc1, expect), "首文档变更结果与期望文档不一致");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonGetBoolValue(RyanJsonGetObjectToKey(doc2, "b")), "第二文档应保持原布尔值");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonGetBoolValue(RyanJsonGetObjectToKey(doc2, "b")), "第二文档应保持原 Bool 值");
 
 	RyanJsonDelete(expect);
 	RyanJsonDelete(doc2);

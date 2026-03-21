@@ -150,7 +150,7 @@ static void testPrintWithStyleCrlfTabIndent(void)
 
 static void testPrintPreallocatedWithStyleExactFitDouble(void)
 {
-	// double 节点的 WithStyle 预分配在不同配置下可能需要额外工作区，
+	// Double 节点的 WithStyle 预分配在不同配置下可能需要额外工作区，
 	// 因此这里只强制验证“有足够 headroom 时必须成功”。
 	RyanJson_t obj = RyanJsonParse("{\"pi\":3.14}");
 	TEST_ASSERT_NOT_NULL(obj);

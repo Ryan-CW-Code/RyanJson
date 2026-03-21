@@ -11,7 +11,7 @@
   - `RyanJsonDefaultAddAtHead`
 - 当前仓库默认值（仅参考）：
   - `RyanJsonStrictObjectKeyCheck=false`
-  - `RyanJsonDefaultAddAtHead=true`
+  - `RyanJsonDefaultAddAtHead=false`
 
 ## 3. hooks 基线
 - `RyanJsonInitHooks` 必须在任意 RyanJson API 之前执行。

@@ -65,7 +65,7 @@ static void yyjsonMemoryFootprint(const char *jsonstr, int32_t *footprint)
 	unityTestLeakScopeEnd(leakScope, "yyjson 释放后 TLSF used 未回到基线");
 }
 
-static void printfJsonCompare(const char *title, const char *jsonstr)
+static void printfJsonCompare(const char *id, const char *title, const char *jsonstr)
 {
 	int32_t ryanJsonCount = 0;
 	int32_t cJSONCount = 0;
@@ -78,6 +78,17 @@ static void printfJsonCompare(const char *title, const char *jsonstr)
 	(void)testLog("%s 原始长度: %lu, 模拟分配(header=%lu,align=%lu) 峰值占用 -> RyanJson:%ld, cJSON:%ld, yyjson:%ld\r\n", title,
 		      (unsigned long)strlen(jsonstr), (unsigned long)RyanJsonTestAllocHeaderSize, (unsigned long)RyanJsonTestAllocAlignSize,
 		      (long)ryanJsonCount, (long)cJSONCount, (long)yyjsonCount);
+	(void)testLog("[MEM][COMPARE] id=%s strict=%d head=%d sci=%d len=%lu header=%lu align=%lu ryanjson=%ld cjson=%ld yyjson=%ld\r\n",
+		      (NULL != id) ? id : "unknown",
+		      (int)RyanJsonStrictObjectKeyCheck,
+		      (int)RyanJsonDefaultAddAtHead,
+		      (int)RyanJsonSnprintfSupportScientific,
+		      (unsigned long)strlen(jsonstr),
+		      (unsigned long)RyanJsonTestAllocHeaderSize,
+		      (unsigned long)RyanJsonTestAllocAlignSize,
+		      (long)ryanJsonCount,
+		      (long)cJSONCount,
+		      (long)yyjsonCount);
 
 	TEST_ASSERT_TRUE_MESSAGE(ryanJsonCount > 0 && cJSONCount > 0 && yyjsonCount > 0, "内存统计值必须大于 0");
 	TEST_ASSERT_TRUE_MESSAGE(ryanJsonCount < cJSONCount, "RyanJson 内存占用应低于 cJSON");
@@ -142,7 +153,7 @@ static void testMixedJsonMemory(void)
 		"\"boolTrue\":true,\"boolFalse\":false,"
 		"\"null\":null},{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}]"
 		"}}";
-	printfJsonCompare("混合对象", jsonstr);
+	printfJsonCompare("mixed", "混合对象", jsonstr);
 }
 
 static void testObjectJsonMemory(void)
@@ -219,7 +230,7 @@ static void testObjectJsonMemory(void)
 		"星期一\",\"sunrise\":\"05:50\",\"sunset\":\"19:07\",\"aqi\":60,\"fx\":\"西风\",\"fl\":\"2级\",\"type\":\"小雨\","
 		"\"notice\":"
 		"\"雨虽小，注意保暖别感冒\"}}}";
-	printfJsonCompare("经典天气对象", jsonstr);
+	printfJsonCompare("weather_object", "经典天气对象", jsonstr);
 }
 
 static void testArrayJsonMemory(void)
@@ -247,14 +258,14 @@ static void testArrayJsonMemory(void)
 		"\"hello\",\"hello\","
 		"\"hello\",\"hello\",\"hello\",\"hello\","
 		"\"hello\",\"hello\"],\"array\":[16,16.89,\"hello\",true,false,null,16,16.89,\"hello\",true,false,null]}}";
-	printfJsonCompare("深度数组", jsonstr);
+	printfJsonCompare("deep_array", "深度数组", jsonstr);
 }
 
 static void testSmallMixedJsonMemory(void)
 {
 	static const char jsonstr[] =
 		"{\"inter\":16,\"double\":16.89,\"string\":\"hello\",\"boolTrue\":true,\"boolFalse\":false,\"null\":null}";
-	printfJsonCompare("小型混合对象", jsonstr);
+	printfJsonCompare("small_mixed", "小型混合对象", jsonstr);
 }
 
 static void testSmallStringJsonMemory(void)
@@ -262,7 +273,7 @@ static void testSmallStringJsonMemory(void)
 	static const char jsonstr[] =
 		"{\"inter\":\"16\",\"double\":\"16.89\",\"string\":\"hello\",\"boolTrue\":\"true\",\"boolFalse\":\"false\",\"null\":"
 		"\"null\"}";
-	printfJsonCompare("小型字符串对象", jsonstr);
+	printfJsonCompare("small_string", "小型字符串对象", jsonstr);
 }
 
 static void testCompressedBusinessJsonMemory(void)
@@ -275,7 +286,7 @@ static void testCompressedBusinessJsonMemory(void)
 		"00.20991231\",\"f\":\"0\",\"k\":\"1\",\"l\":\"20000\",\"m\":\"20000\",\"u\":\"0\",\"v\":\"0\",\"e\":\"1\",\"w\":\"0."
 		"00\",\"n\":\"0\",\"2h\":\"0\",\"o\":\"30\",\"1v\":\"12000\",\"2c\":\"0\",\"p\":\"1\",\"q\":\"1\",\"x\":\"0\",\"y\":"
 		"\"167\",\"r\":\"0\",\"1x\":\"0\",\"1w\":\"0\",\"1y\":\"100.00\",\"1u\":\"0\"}";
-	printfJsonCompare("压缩业务对象", jsonstr);
+	printfJsonCompare("compressed_business", "压缩业务对象", jsonstr);
 }
 
 void testMemoryRunner(void)

@@ -127,7 +127,7 @@ static void testKeyLookupEscapedUnicodeControl(void)
 
 static void testKeyChangeFromEscapeToPlain(void)
 {
-	// 覆盖 key 从转义字符切换到普通字符串的路径可达性。
+	// 覆盖 key 从转义字符切换到普通 String 的路径可达性。
 	RyanJson_t root = RyanJsonParse("{\"\\t\":1}");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -144,7 +144,7 @@ static void testKeyChangeFromEscapeToPlain(void)
 
 static void testKeyChangeFromEmptyToEscapedNewline(void)
 {
-	// 覆盖 key 从空字符串切换到 \n 的路径可达性。
+	// 覆盖 key 从空 String 切换到 \n 的路径可达性。
 	RyanJson_t root = RyanJsonParse("{\"\":1}");
 	TEST_ASSERT_NOT_NULL(root);
 
@@ -161,9 +161,9 @@ static void testKeyChangeFromEmptyToEscapedNewline(void)
 static void testUtf8KeyCreateLookupAndRoundtrip(void)
 {
 	// 覆盖 UTF-8 key 的创建、查询与往返：
-	// 1) Create/Add*ToObject 直接写入 UTF-8 key；
-	// 2) GetObjectByKey 可定位多字节 key；
-	// 3) Print/Parse 往返后语义保持一致。
+	// - Create/Add*ToObject 直接写入 UTF-8 key；
+	// - GetObjectByKey 可定位多字节 key；
+	// - Print/Parse 往返后语义保持一致。
 	const char *keyCopyright = "\xC2\xA9";
 	const char *keyCn = "\xE4\xB8\xAD";
 	const char *keyOx = "\xF0\x9F\x90\x82";
@@ -197,9 +197,9 @@ static void testUtf8KeyCreateLookupAndRoundtrip(void)
 static void testAccessorPathLookupWithEscapedAndEmptyKeys(void)
 {
 	// 覆盖“空 key + 特殊字符 key”的路径查询可达性：
-	// 1) 空 key 作为对象字段名；
-	// 2) 包含换行/斜杠的 key；
-	// 3) ByKeys 与 HasObjectToKey 在该类路径上的一致性。
+	// - 空 key 作为 Object 字段名；
+	// - 包含换行/斜杠的 key；
+	// - ByKeys 与 HasObjectToKey 在该类路径上的一致性。
 	const char *jsonText = "{\"\":{\"line\\nkey\":{\"slash/key\":123,\"quote\\\"k\":456}}}";
 	RyanJson_t root = RyanJsonParse(jsonText);
 	TEST_ASSERT_NOT_NULL_MESSAGE(root, "特殊 key 路径样本解析失败");
@@ -222,8 +222,8 @@ static void testAccessorPathLookupWithEscapedAndEmptyKeys(void)
 static void testAccessorUtf8PathLookupAndChangeKey(void)
 {
 	// 覆盖 UTF-8 key 在路径 API 中的可达性与改 key 行为：
-	// 1) GetObjectByKeys/HasObjectToKey 对多字节 key 可达；
-	// 2) ChangeKey(UTF-8 -> ASCII) 后路径更新应一致。
+	// - GetObjectByKeys/HasObjectToKey 对多字节 key 可达；
+	// - ChangeKey(UTF-8 -> ASCII) 后路径更新应一致。
 	const char *keyCn = "\xE4\xB8\xAD";
 	const char *keyOx = "\xF0\x9F\x90\x82";
 	const char *keyCopy = "\xC2\xA9";

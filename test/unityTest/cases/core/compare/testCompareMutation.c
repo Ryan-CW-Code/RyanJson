@@ -45,7 +45,7 @@ static void testCompareMutationFailOnTypeChange(void)
 static void testCompareMutationFailOnSizeChange(void)
 {
 	// 复杂链路：
-	// Parse -> Duplicate -> DetachByIndex(数组) -> CompareOnlyKey。
+	// Parse -> Duplicate -> DetachByIndex(Array) -> CompareOnlyKey。
 	// 目标：验证容器尺寸变化会导致 CompareOnlyKey 失败。
 	RyanJson_t root = RyanJsonParse("{\"arr\":[1,2,3]}");
 	TEST_ASSERT_NOT_NULL(root);
@@ -180,8 +180,9 @@ static void testCompareMutationDuplicateCountMismatchAfterInsert(void)
 static void testCompareMutationAfterAddItemWrap(void)
 {
 	// 复杂链路：
-	// Parse -> Duplicate -> AddItemToObject(数组) -> Compare/CompareOnlyKey。
+	// Parse -> Duplicate -> AddItemToObject(Array) -> Compare/CompareOnlyKey。
 	// 目标：验证包装新增结构后，CompareOnlyKey 只关注结构与 key。
+	// 说明：期望文档刻意使用不同值，以确保 Compare=false、CompareOnlyKey=true。
 	RyanJson_t root = RyanJsonParse("{\"a\":{}}");
 	TEST_ASSERT_NOT_NULL(root);
 	RyanJson_t copy = RyanJsonDuplicate(root);
@@ -206,7 +207,8 @@ static void testCompareMutationWrappedArrayValueChurn(void)
 {
 	// 复杂链路：
 	// Parse -> AddItemToObject(Array) -> Duplicate -> ChangeIntValue -> CompareOnlyKey。
-	// 目标：验证包装数组值变化不影响 CompareOnlyKey。
+	// 目标：验证包装 Array 值变化不影响 CompareOnlyKey。
+	// 说明：期望文档刻意使用不同值，以确保 Compare=false、CompareOnlyKey=true。
 	RyanJson_t root = RyanJsonParse("{\"a\":{}}");
 	TEST_ASSERT_NOT_NULL(root);
 	RyanJson_t work = RyanJsonDuplicate(root);
@@ -254,18 +256,18 @@ static void testCompareMutationNestedArraySizeMismatch(void)
 {
 	// 复杂链路：
 	// Parse -> CompareOnlyKey(失败) -> DeleteByIndex(修复长度) -> CompareOnlyKey(成功)。
-	// 目标：验证 CompareOnlyKey 会检查嵌套数组长度，不因值变化而误判。
+	// 目标：验证 CompareOnlyKey 会检查嵌套 Array 长度，不因值变化而误判。
 	RyanJson_t left = RyanJsonParse("{\"arr\":[[1,2],{\"k\":1}]}");
 	RyanJson_t right = RyanJsonParse("{\"arr\":[[1,2,3],{\"k\":9}]}");
 	TEST_ASSERT_NOT_NULL(left);
 	TEST_ASSERT_NOT_NULL(right);
 
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(left, right), "嵌套数组长度不一致时 CompareOnlyKey 应返回 False");
-	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, right), "嵌套数组长度不一致时 Compare 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(left, right), "嵌套 Array 长度不一致时 CompareOnlyKey 应返回 False");
+	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(left, right), "嵌套 Array 长度不一致时 Compare 应返回 False");
 
 	RyanJson_t inner = RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(right, "arr"), 0);
 	TEST_ASSERT_NOT_NULL(inner);
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonDeleteByIndex(inner, 0), "修复嵌套数组长度失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonDeleteByIndex(inner, 0), "修复嵌套 Array 长度失败");
 	TEST_ASSERT_EQUAL_UINT32(2U, RyanJsonGetArraySize(inner));
 
 	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(left, right), "修复长度后 CompareOnlyKey 应返回 True");

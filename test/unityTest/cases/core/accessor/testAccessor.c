@@ -3,16 +3,16 @@
 static void testAccessorContainerEntryAndSiblingTraversal(void)
 {
 	// 覆盖核心“入口取值 + 兄弟遍历”语义：
-	// 1) Object 用 RyanJsonGetObjectValue 取首子节点；
-	// 2) Array 用 RyanJsonGetArrayValue 取首元素；
-	// 3) 使用 RyanJsonGetNext 遍历同层链表并校验计数与 GetSize 一致。
+	// - Object 用 RyanJsonGetObjectValue 取首子节点；
+	// - Array 用 RyanJsonGetArrayValue 取首元素；
+	// - 使用 RyanJsonGetNext 遍历同层链表并校验计数与 GetSize 一致。
 	const char *jsonText = "{\"obj\":{\"x\":1,\"y\":2},\"arr\":[10,20,30],\"str\":\"ok\",\"flag\":true}";
 	RyanJson_t root = RyanJsonParse(jsonText);
-	TEST_ASSERT_NOT_NULL_MESSAGE(root, "基础对象解析失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(root, "基础 Object 解析失败");
 	TEST_ASSERT_TRUE(RyanJsonIsObject(root));
 
 	RyanJson_t firstChild = RyanJsonGetObjectValue(root);
-	TEST_ASSERT_NOT_NULL_MESSAGE(firstChild, "对象首子节点不应为空");
+	TEST_ASSERT_NOT_NULL_MESSAGE(firstChild, "Object 首子节点不应为空");
 
 	uint32_t objectCount = 0;
 	RyanJson_t child = firstChild;
@@ -20,13 +20,13 @@ static void testAccessorContainerEntryAndSiblingTraversal(void)
 	while (child)
 	{
 		objectCount++;
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsKey(child), "对象子节点必须携带 key");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsKey(child), "Object 子节点必须携带 key");
 		objectLast = child;
 		child = RyanJsonGetNext(child);
 	}
-	TEST_ASSERT_EQUAL_UINT32_MESSAGE(RyanJsonGetSize(root), objectCount, "对象链表遍历计数与 GetSize 不一致");
+	TEST_ASSERT_EQUAL_UINT32_MESSAGE(RyanJsonGetSize(root), objectCount, "Object 链表遍历计数与 GetSize 不一致");
 	TEST_ASSERT_NOT_NULL(objectLast);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(objectLast), "对象尾节点的 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(objectLast), "Object 尾节点的 GetNext 应返回 NULL");
 
 	RyanJson_t arr = RyanJsonGetObjectToKey(root, "arr");
 	TEST_ASSERT_NOT_NULL(arr);
@@ -43,14 +43,14 @@ static void testAccessorContainerEntryAndSiblingTraversal(void)
 	while (elem)
 	{
 		arrayCount++;
-		TEST_ASSERT_FALSE_MESSAGE(RyanJsonIsKey(elem), "数组元素不应携带 key");
-		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsNumber(elem), "数组元素应为 number");
+		TEST_ASSERT_FALSE_MESSAGE(RyanJsonIsKey(elem), "Array 元素不应携带 key");
+		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsNumber(elem), "Array 元素应为 number");
 		arrayLast = elem;
 		elem = RyanJsonGetNext(elem);
 	}
-	TEST_ASSERT_EQUAL_UINT32_MESSAGE(RyanJsonGetArraySize(arr), arrayCount, "数组链表遍历计数与 GetArraySize 不一致");
+	TEST_ASSERT_EQUAL_UINT32_MESSAGE(RyanJsonGetArraySize(arr), arrayCount, "Array 链表遍历计数与 GetArraySize 不一致");
 	TEST_ASSERT_NOT_NULL(arrayLast);
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(arrayLast), "数组尾元素的 GetNext 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(arrayLast), "Array 尾元素的 GetNext 应返回 NULL");
 
 	// 标量节点只做类型边界校验，不直接调用容器入口取值 API。
 	RyanJson_t strNode = RyanJsonGetObjectToKey(root, "str");
@@ -104,8 +104,8 @@ static void testAccessorVarargsLookupSuccessAndFailure(void)
 static void testAccessorVarargsMacrosOnConstructedTree(void)
 {
 	// 覆盖手工构造树上的便捷宏路径查询：
-	// 1) 不依赖 Parse，直接验证 Create/Add 后多级路径可达；
-	// 2) 缺失 key 与越界 index 仍返回 NULL。
+	// - 不依赖 Parse，直接验证 Create/Add 后多级路径可达；
+	// - 缺失 key 与越界 index 仍返回 NULL。
 	RyanJson_t root = RyanJsonCreateObject();
 	RyanJson_t objA = RyanJsonCreateObject();
 	RyanJson_t objB = RyanJsonCreateObject();
@@ -142,27 +142,27 @@ static void testAccessorVarargsMacrosOnConstructedTree(void)
 static void testAccessorVarargsStopOnScalar(void)
 {
 	// 覆盖路径查询在“经过标量节点”时应返回 NULL 而非崩溃：
-	// 1) GetObjectByKeys 在标量处继续下钻应失败；
-	// 2) GetObjectByIndexs 在标量处继续下钻应失败。
+	// - GetObjectByKeys 在标量处继续下钻应失败；
+	// - GetObjectByIndexs 在标量处继续下钻应失败。
 	const char *jsonText = "{\"obj\":{\"name\":\"str\",\"num\":1},\"arr\":[1,2]}";
 	RyanJson_t root = RyanJsonParse(jsonText);
 	TEST_ASSERT_NOT_NULL_MESSAGE(root, "标量路径样本解析失败");
 
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByKeys(root, "obj", "name", "x", NULL), "标量 string 下钻应返回 NULL");
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByKeys(root, "obj", "num", "x", NULL), "标量 number 下钻应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByKeys(root, "obj", "name", "x", NULL), "标量 String 下钻应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByKeys(root, "obj", "num", "x", NULL), "标量 Number 下钻应返回 NULL");
 
 	RyanJson_t arr = RyanJsonGetObjectByKey(root, "arr");
 	TEST_ASSERT_NOT_NULL(arr);
 	TEST_ASSERT_TRUE(RyanJsonIsArray(arr));
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByIndexs(arr, 0, 0, UINT32_MAX), "标量数组元素下钻应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByIndexs(arr, 0, 0, UINT32_MAX), "标量 Array 元素下钻应返回 NULL");
 
 	RyanJsonDelete(root);
 }
 
 static void testAccessorTypePredicateMatrix(void)
 {
-	// 覆盖类型判定矩阵，重点验证 RyanJsonIsNumber 在 int/double 上为真，
-	// 且不会误判到 bool/string/null/object/array。
+	// 覆盖类型判定矩阵，重点验证 RyanJsonIsNumber 在 Int/Double 上为真，
+	// 且不会误判到 Bool/String/Null/Object/Array。
 	RyanJson_t root = RyanJsonParse("[null,true,1,1.5,\"1\",{},[]]");
 	TEST_ASSERT_NOT_NULL_MESSAGE(root, "类型矩阵解析失败");
 	TEST_ASSERT_TRUE(RyanJsonIsArray(root));
@@ -241,11 +241,11 @@ static void testAccessorTypedArrayCreateAndRoundtrip(void)
 	TEST_ASSERT_TRUE(RyanJsonIsString(RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(root, "strings"), 0)));
 
 	char *printed = RyanJsonPrint(root, 256, RyanJsonFalse, NULL);
-	TEST_ASSERT_NOT_NULL_MESSAGE(printed, "构造型数组样本打印失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(printed, "构造型 Array 样本打印失败");
 
 	RyanJson_t roundtrip = RyanJsonParse(printed);
-	TEST_ASSERT_NOT_NULL_MESSAGE(roundtrip, "构造型数组样本往返解析失败");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(root, roundtrip), "构造型数组样本往返 Compare 应相等");
+	TEST_ASSERT_NOT_NULL_MESSAGE(roundtrip, "构造型 Array 样本往返解析失败");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompare(root, roundtrip), "构造型 Array 样本往返 Compare 应相等");
 
 	RyanJsonDelete(roundtrip);
 	RyanJsonFree(printed);
@@ -291,10 +291,10 @@ static void testAccessorHasMacrosCoverage(void)
 
 static void testAccessorNullVsMissingSemantics(void)
 {
-	// 覆盖 null 字段与缺失字段的语义区别：
-	// 1) HasObjectByKey 对显式 null 应返回 true；
-	// 2) 缺失 key 应返回 false；
-	// 3) GetObjectByKey 对 null 节点返回非 NULL 指针。
+	// 覆盖 Null 字段与缺失字段的语义区别：
+	// - HasObjectByKey 对显式 Null 应返回 true；
+	// - 缺失 key 应返回 false；
+	// - GetObjectByKey 对 Null 节点返回非 NULL 指针。
 	RyanJson_t root = RyanJsonParse("{\"k\":null,\"v\":1}");
 	TEST_ASSERT_NOT_NULL_MESSAGE(root, "null 语义样本解析失败");
 
@@ -311,9 +311,9 @@ static void testAccessorNullVsMissingSemantics(void)
 
 static void testAccessorNullLeafInNestedObject(void)
 {
-	// 覆盖嵌套路径上的 null 叶子语义：
-	// 1) HasObjectToKey 对 null 叶子应返回 true；
-	// 2) GetObjectByKeys 返回的节点非 NULL 且类型为 null。
+	// 覆盖嵌套路径上的 Null 叶子语义：
+	// - HasObjectToKey 对 Null 叶子应返回 true；
+	// - GetObjectByKeys 返回的节点非 NULL 且类型为 Null。
 	RyanJson_t root = RyanJsonParse("{\"obj\":{\"n\":null,\"v\":1}}");
 	TEST_ASSERT_NOT_NULL_MESSAGE(root, "嵌套 null 样本解析失败");
 
@@ -328,9 +328,9 @@ static void testAccessorNullLeafInNestedObject(void)
 
 static void testAccessorHasObjectByIndexForNullElement(void)
 {
-	// 覆盖数组元素为 null 时 HasObjectByIndex 的语义。
+	// 覆盖 Array 元素为 Null 时 HasObjectByIndex 的语义。
 	RyanJson_t root = RyanJsonParse("[null,1]");
-	TEST_ASSERT_NOT_NULL_MESSAGE(root, "null 数组样本解析失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(root, "null Array 样本解析失败");
 
 	TEST_ASSERT_TRUE(RyanJsonHasObjectByIndex(root, 0));
 	TEST_ASSERT_TRUE(RyanJsonIsNull(RyanJsonGetObjectByIndex(root, 0)));
@@ -344,8 +344,8 @@ static void testAccessorHasObjectByIndexForNullElement(void)
 static void testAccessorVarargsRootTypeMismatch(void)
 {
 	// 覆盖变参路径在根类型不匹配时返回 NULL：
-	// 1) GetObjectByKeys 应拒绝数组根/标量根；
-	// 2) GetObjectByIndexs 应拒绝标量根。
+	// - GetObjectByKeys 应拒绝 Array 根/标量根；
+	// - GetObjectByIndexs 应拒绝标量根。
 	RyanJson_t arr = RyanJsonParse("[{\"a\":1}]");
 	RyanJson_t scalar = RyanJsonParse("1");
 	TEST_ASSERT_NOT_NULL(arr);
@@ -361,13 +361,13 @@ static void testAccessorVarargsRootTypeMismatch(void)
 
 static void testAccessorObjectIndexTraversalCoverage(void)
 {
-	// 覆盖对象按索引获取的边界与一致性：
-	// 1) [0, size-1] 必须可达；
-	// 2) size 与超大索引必须返回 NULL；
-	// 3) 索引遍历计数应与链表遍历计数一致。
+	// 覆盖 Object 按索引获取的边界与一致性：
+	// - [0, size-1] 必须可达；
+	// - size 与超大索引必须返回 NULL；
+	// - 索引遍历计数应与链表遍历计数一致。
 	const char *jsonText = "{\"a\":1,\"b\":2,\"c\":3,\"d\":4}";
 	RyanJson_t root = RyanJsonParse(jsonText);
-	TEST_ASSERT_NOT_NULL_MESSAGE(root, "对象索引遍历样本解析失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(root, "Object 索引遍历样本解析失败");
 	TEST_ASSERT_TRUE(RyanJsonIsObject(root));
 	TEST_ASSERT_EQUAL_UINT32(4U, RyanJsonGetSize(root));
 
@@ -375,13 +375,13 @@ static void testAccessorObjectIndexTraversalCoverage(void)
 	for (uint32_t i = 0; i < RyanJsonGetSize(root); i++)
 	{
 		RyanJson_t node = RyanJsonGetObjectByIndex(root, i);
-		TEST_ASSERT_NOT_NULL_MESSAGE(node, "对象索引范围内节点不应为空");
+		TEST_ASSERT_NOT_NULL_MESSAGE(node, "Object 索引范围内节点不应为空");
 		TEST_ASSERT_TRUE(RyanJsonIsKey(node));
 		TEST_ASSERT_TRUE(RyanJsonIsNumber(node));
 		indexCount++;
 	}
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByIndex(root, RyanJsonGetSize(root)), "对象 index==size 应返回 NULL");
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByIndex(root, UINT32_MAX), "对象超大索引应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByIndex(root, RyanJsonGetSize(root)), "Object index==size 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByIndex(root, UINT32_MAX), "Object 超大索引应返回 NULL");
 
 	uint32_t siblingCount = 0;
 	RyanJson_t node = RyanJsonGetObjectValue(root);
@@ -390,7 +390,7 @@ static void testAccessorObjectIndexTraversalCoverage(void)
 		siblingCount++;
 		node = RyanJsonGetNext(node);
 	}
-	TEST_ASSERT_EQUAL_UINT32_MESSAGE(indexCount, siblingCount, "对象 index 遍历与兄弟链表遍历计数不一致");
+	TEST_ASSERT_EQUAL_UINT32_MESSAGE(indexCount, siblingCount, "Object index 遍历与兄弟链表遍历计数不一致");
 
 	RyanJsonDelete(root);
 }
@@ -398,18 +398,18 @@ static void testAccessorObjectIndexTraversalCoverage(void)
 static void testAccessorEmptyContainerEntryValue(void)
 {
 	// 覆盖空容器在入口访问 API 上的语义：
-	// 空 object/array 的首元素入口都应为 NULL，且挂载后语义不变。
+	// 空 Object/Array 的首元素入口都应为 NULL，且挂载后语义不变。
 	RyanJson_t obj = RyanJsonCreateObject();
 	RyanJson_t arr = RyanJsonCreateArray();
 	TEST_ASSERT_NOT_NULL(obj);
 	TEST_ASSERT_NOT_NULL(arr);
 
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectValue(obj), "空对象 GetObjectValue 应返回 NULL");
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetArrayValue(arr), "空数组 GetArrayValue 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectValue(obj), "空 Object GetObjectValue 应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetArrayValue(arr), "空 Array GetArrayValue 应返回 NULL");
 
 	TEST_ASSERT_TRUE(RyanJsonAddItemToObject(obj, "arr", arr));
 	TEST_ASSERT_TRUE(RyanJsonIsArray(RyanJsonGetObjectToKey(obj, "arr")));
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetArrayValue(RyanJsonGetObjectToKey(obj, "arr")), "挂载后的空数组入口仍应为 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetArrayValue(RyanJsonGetObjectToKey(obj, "arr")), "挂载后的空 Array 入口仍应为 NULL");
 
 	RyanJsonDelete(obj);
 }
@@ -427,9 +427,9 @@ static void testAccessorGetSizeNullAndScalarRoot(void)
 
 static void testAccessorNullMidPathStopsTraversal(void)
 {
-	// 覆盖路径查询在中途遇到 null 时的行为：
-	// 1) GetObjectByKeys 不应继续下钻；
-	// 2) GetObjectByIndexs 不应继续下钻。
+	// 覆盖路径查询在中途遇到 Null 时的行为：
+	// - GetObjectByKeys 不应继续下钻；
+	// - GetObjectByIndexs 不应继续下钻。
 	RyanJson_t root = RyanJsonParse("{\"obj\":{\"n\":null},\"arr\":[null,{\"k\":1}]}");
 	TEST_ASSERT_NOT_NULL_MESSAGE(root, "null 中途样本解析失败");
 
@@ -438,18 +438,18 @@ static void testAccessorNullMidPathStopsTraversal(void)
 	RyanJson_t arr = RyanJsonGetObjectByKey(root, "arr");
 	TEST_ASSERT_NOT_NULL(arr);
 	TEST_ASSERT_TRUE(RyanJsonIsArray(arr));
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByIndexs(arr, 0, 0, UINT32_MAX), "null 数组元素下钻应返回 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetObjectByIndexs(arr, 0, 0, UINT32_MAX), "null Array 元素下钻应返回 NULL");
 
 	RyanJsonDelete(root);
 }
 
 static void testAccessorGetNextAfterDetachAndInsert(void)
 {
-	// 覆盖数组在 Detach/Insert 后的兄弟链表一致性：
-	// 1) 分离中间元素后，前后元素应直接相邻；
-	// 2) 重新按索引插入后，顺序与链表遍历应恢复预期。
+	// 覆盖 Array 在 Detach/Insert 后的兄弟链表一致性：
+	// - 分离中间元素后，前后元素应直接相邻；
+	// - 重新按索引插入后，顺序与链表遍历应恢复预期。
 	RyanJson_t arr = RyanJsonParse("[1,2,3]");
-	TEST_ASSERT_NOT_NULL_MESSAGE(arr, "数组样本解析失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(arr, "Array 样本解析失败");
 	TEST_ASSERT_EQUAL_UINT32(3U, RyanJsonGetArraySize(arr));
 
 	RyanJson_t first = RyanJsonGetObjectByIndex(arr, 0);
@@ -486,17 +486,17 @@ static void testAccessorGetNextAfterDetachAndInsert(void)
 
 static void testAccessorObjectHeadUpdateAfterInsert(void)
 {
-	// 覆盖对象头插后的入口更新：
+	// 覆盖 Object 头插后的入口更新：
 	// Insert(0) 后，GetObjectValue 应始终指向新的首子节点。
 	RyanJson_t obj = RyanJsonCreateObject();
-	TEST_ASSERT_NOT_NULL_MESSAGE(obj, "对象头插样本创建失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(obj, "Object 头插样本创建失败");
 	TEST_ASSERT_TRUE(RyanJsonIsObject(obj));
 
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(obj, 0, RyanJsonCreateInt("a", 1)), "首次对象头插失败");
-	TEST_ASSERT_EQUAL_PTR_MESSAGE(RyanJsonGetObjectByKey(obj, "a"), RyanJsonGetObjectValue(obj), "首个对象子节点入口不正确");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(obj, 0, RyanJsonCreateInt("a", 1)), "首次 Object 头插失败");
+	TEST_ASSERT_EQUAL_PTR_MESSAGE(RyanJsonGetObjectByKey(obj, "a"), RyanJsonGetObjectValue(obj), "首个 Object 子节点入口不正确");
 
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(obj, 0, RyanJsonCreateInt("b", 2)), "第二次对象头插失败");
-	TEST_ASSERT_EQUAL_PTR_MESSAGE(RyanJsonGetObjectByKey(obj, "b"), RyanJsonGetObjectValue(obj), "对象头插后入口未更新到新头节点");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(obj, 0, RyanJsonCreateInt("b", 2)), "第二次 Object 头插失败");
+	TEST_ASSERT_EQUAL_PTR_MESSAGE(RyanJsonGetObjectByKey(obj, "b"), RyanJsonGetObjectValue(obj), "Object 头插后入口未更新到新头节点");
 	TEST_ASSERT_EQUAL_STRING("b", RyanJsonGetKey(RyanJsonGetObjectByIndex(obj, 0)));
 	TEST_ASSERT_EQUAL_STRING("a", RyanJsonGetKey(RyanJsonGetObjectByIndex(obj, 1)));
 
@@ -505,17 +505,17 @@ static void testAccessorObjectHeadUpdateAfterInsert(void)
 
 static void testAccessorArrayHeadUpdateAfterInsert(void)
 {
-	// 覆盖数组头插后的入口更新：
+	// 覆盖 Array 头插后的入口更新：
 	// Insert(0) 后，GetArrayValue 应始终指向新的首元素。
 	RyanJson_t arr = RyanJsonCreateArray();
-	TEST_ASSERT_NOT_NULL_MESSAGE(arr, "数组头插样本创建失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(arr, "Array 头插样本创建失败");
 	TEST_ASSERT_TRUE(RyanJsonIsArray(arr));
 
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(arr, 0, RyanJsonCreateInt(NULL, 1)), "首次数组头插失败");
-	TEST_ASSERT_EQUAL_PTR_MESSAGE(RyanJsonGetObjectByIndex(arr, 0), RyanJsonGetArrayValue(arr), "首个数组元素入口不正确");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(arr, 0, RyanJsonCreateInt(NULL, 1)), "首次 Array 头插失败");
+	TEST_ASSERT_EQUAL_PTR_MESSAGE(RyanJsonGetObjectByIndex(arr, 0), RyanJsonGetArrayValue(arr), "首个 Array 元素入口不正确");
 
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(arr, 0, RyanJsonCreateInt(NULL, 2)), "第二次数组头插失败");
-	TEST_ASSERT_EQUAL_PTR_MESSAGE(RyanJsonGetObjectByIndex(arr, 0), RyanJsonGetArrayValue(arr), "数组头插后入口未更新到新头元素");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonInsert(arr, 0, RyanJsonCreateInt(NULL, 2)), "第二次 Array 头插失败");
+	TEST_ASSERT_EQUAL_PTR_MESSAGE(RyanJsonGetObjectByIndex(arr, 0), RyanJsonGetArrayValue(arr), "Array 头插后入口未更新到新头元素");
 	TEST_ASSERT_EQUAL_INT(2, RyanJsonGetIntValue(RyanJsonGetObjectByIndex(arr, 0)));
 	TEST_ASSERT_EQUAL_INT(1, RyanJsonGetIntValue(RyanJsonGetObjectByIndex(arr, 1)));
 
@@ -524,23 +524,23 @@ static void testAccessorArrayHeadUpdateAfterInsert(void)
 
 static void testAccessorObjectHeadUpdateAfterDetach(void)
 {
-	// 覆盖对象头节点分离后的入口更新：
+	// 覆盖 Object 头节点分离后的入口更新：
 	// DetachByKey(头节点) 后，GetObjectValue 应指向新的首子节点。
 	RyanJson_t obj = RyanJsonParse("{\"a\":1,\"b\":2}");
-	TEST_ASSERT_NOT_NULL_MESSAGE(obj, "对象头更新样本解析失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(obj, "Object 头更新样本解析失败");
 	TEST_ASSERT_TRUE(RyanJsonIsObject(obj));
 	TEST_ASSERT_EQUAL_UINT32(2U, RyanJsonGetSize(obj));
 
 	RyanJson_t detached = RyanJsonDetachByKey(obj, "a");
-	TEST_ASSERT_NOT_NULL_MESSAGE(detached, "对象头节点分离失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(detached, "Object 头节点分离失败");
 	TEST_ASSERT_EQUAL_INT(1, RyanJsonGetIntValue(detached));
 	TEST_ASSERT_EQUAL_UINT32(1U, RyanJsonGetSize(obj));
 
 	RyanJson_t newHead = RyanJsonGetObjectValue(obj);
-	TEST_ASSERT_NOT_NULL_MESSAGE(newHead, "对象头节点分离后入口不应为空");
-	TEST_ASSERT_EQUAL_PTR_MESSAGE(RyanJsonGetObjectByKey(obj, "b"), newHead, "Detach 后对象头入口应与 key=b 节点一致");
+	TEST_ASSERT_NOT_NULL_MESSAGE(newHead, "Object 头节点分离后入口不应为空");
+	TEST_ASSERT_EQUAL_PTR_MESSAGE(RyanJsonGetObjectByKey(obj, "b"), newHead, "Detach 后 Object 头入口应与 key=b 节点一致");
 	TEST_ASSERT_EQUAL_STRING("b", RyanJsonGetKey(newHead));
-	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(newHead), "仅剩单个对象子节点时 GetNext 应为 NULL");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonGetNext(newHead), "仅剩单个 Object 子节点时 GetNext 应为 NULL");
 
 	RyanJsonDelete(detached);
 	RyanJsonDelete(obj);
@@ -549,8 +549,8 @@ static void testAccessorObjectHeadUpdateAfterDetach(void)
 static void testAccessorVarargsSentinelBehavior(void)
 {
 	// 覆盖变参查询函数在“立即终止哨兵”场景下的行为：
-	// 1) Keys 路径传入 NULL 哨兵时应返回首层命中节点；
-	// 2) Indexs 路径传入 UINT32_MAX 哨兵时应返回首层命中节点。
+	// - Keys 路径传入 NULL 哨兵时应返回首层命中节点；
+	// - Indexs 路径传入 UINT32_MAX 哨兵时应返回首层命中节点。
 	const char *jsonText = "{\"meta\":{\"arr\":[10,20],\"obj\":{\"k\":\"v\"}}}";
 	RyanJson_t root = RyanJsonParse(jsonText);
 	TEST_ASSERT_NOT_NULL_MESSAGE(root, "哨兵行为样本解析失败");
@@ -575,10 +575,10 @@ static void testAccessorVarargsSentinelBehavior(void)
 
 static void testAccessorArrayHeadUpdateAfterDetach(void)
 {
-	// 覆盖数组头元素分离后的入口更新：
+	// 覆盖 Array 头元素分离后的入口更新：
 	// DetachByIndex(0) 后，GetArrayValue 应指向新的头元素。
 	RyanJson_t arr = RyanJsonParse("[5,6,7]");
-	TEST_ASSERT_NOT_NULL_MESSAGE(arr, "数组头更新样本解析失败");
+	TEST_ASSERT_NOT_NULL_MESSAGE(arr, "Array 头更新样本解析失败");
 	TEST_ASSERT_TRUE(RyanJsonIsArray(arr));
 	TEST_ASSERT_EQUAL_UINT32(3U, RyanJsonGetArraySize(arr));
 
@@ -594,7 +594,7 @@ static void testAccessorArrayHeadUpdateAfterDetach(void)
 	RyanJson_t newHead = RyanJsonGetArrayValue(arr);
 	TEST_ASSERT_NOT_NULL(newHead);
 	TEST_ASSERT_EQUAL_INT(6, RyanJsonGetIntValue(newHead));
-	TEST_ASSERT_EQUAL_PTR_MESSAGE(RyanJsonGetObjectByIndex(arr, 0), newHead, "Detach 后数组头入口应与 index=0 一致");
+	TEST_ASSERT_EQUAL_PTR_MESSAGE(RyanJsonGetObjectByIndex(arr, 0), newHead, "Detach 后 Array 头入口应与 index=0 一致");
 
 	RyanJsonDelete(detached);
 	RyanJsonDelete(arr);
@@ -606,9 +606,9 @@ static void testAccessorPathConsistencyAfterSequentialMutations(void)
 	// Parse -> GetObjectByKeys/GetObjectByIndexs 读取 -> DetachByIndex -> AddItemToObject
 	// -> ReplaceByIndex -> HasObjectToKey/ToIndex 二次校验 -> Compare(期望文档)。
 	// 目标：
-	// 1) 验证路径访问 API 在“跨容器迁移 + 局部替换”后仍返回正确节点；
-	// 2) 验证 Has 宏与实际可达路径保持一致；
-	// 3) 验证复杂变更后语义可与期望文档稳定对齐。
+	// - 验证路径访问 API 在“跨容器迁移 + 局部替换”后仍返回正确节点；
+	// - 验证 Has 宏与实际可达路径保持一致；
+	// - 验证复杂变更后语义可与期望文档稳定对齐。
 	const char *source = "{\"src\":[{\"id\":\"a\",\"n\":{\"v\":1}},{\"id\":\"b\",\"n\":{\"v\":2}}],\"map\":{\"hold\":{\"id\":\"x\"}}}";
 	const char *expectText =
 		"{\"src\":[{\"id\":\"a2\",\"n\":{\"v\":10}}],\"map\":{\"hold\":{\"id\":\"x\"},\"moved\":{\"id\":\"b\",\"n\":{\"v\":2}}}}";
