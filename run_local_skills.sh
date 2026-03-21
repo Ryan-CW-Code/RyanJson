@@ -4,8 +4,9 @@ set -euo pipefail
 # 本地一键 skills 同步与规范校验。
 # 默认行为：
 #   1) 同步各技能的 references/terminology.md 到统一占位模板
-#   2) 使用 skill-creator 的 quick_validate.py 校验每个技能
-#   3) 校验 agents/openai.yaml 关键字段与默认 prompt 的技能名引用
+#   2) 使用仓库内 validator 校验每个技能的 frontmatter 与 agents/openai.yaml
+#   3) 校验 skills 文档中的明确路径引用与 AGENTS 路由
+#   4) 校验 skills 路由评测样本（deterministic eval cases）
 #
 # 可选参数：
 #   --sync-only      仅执行同步
@@ -19,7 +20,8 @@ cd "${repoRoot}"
 
 doSync=1
 doValidate=1
-validator="/root/.codex/skills/.system/skill-creator/scripts/quick_validate.py"
+validator="${repoRoot}/scripts/tools/validate_skills.py"
+casesValidator="${repoRoot}/scripts/tools/validate_skill_cases.py"
 
 declare -a skillDirs=()
 
@@ -48,8 +50,8 @@ parse_args() {
 }
 
 load_skills() {
-	# 收集 skills 目录（排除 shared）
-	mapfile -t skillDirs < <(find skills -mindepth 1 -maxdepth 1 -type d ! -name shared | sort)
+	# 收集真正的 skill 目录（要求存在 SKILL.md，排除 shared 与非技能辅助目录）
+	mapfile -t skillDirs < <(find skills -mindepth 1 -maxdepth 1 -type d -exec test -f '{}/SKILL.md' ';' -print | sort)
 	if [[ ${#skillDirs[@]} -eq 0 ]]; then
 		ryanjson_log_info "未发现可处理的技能目录（skills/*，排除 skills/shared）"
 		exit 0
@@ -90,60 +92,24 @@ INNER_EOF
 }
 
 validate_skills() {
-	ryanjson_log_phase "校验技能结构与 agents 元数据..."
+	ryanjson_log_phase "校验技能结构、agents 元数据、Markdown 路径与评测样本..."
 	for skillDir in "${skillDirs[@]}"; do
-		skillFile="${skillDir}/SKILL.md"
-		openaiFile="${skillDir}/agents/openai.yaml"
-
-		python3 "${validator}" "${skillDir}" >/dev/null
-
-		if [[ ! -f "${openaiFile}" ]]; then
-			ryanjson_log_error "缺少 agents/openai.yaml: ${openaiFile}"
-			exit 1
-		fi
-
-		if ! grep -Eq '^[[:space:]]*display_name:' "${openaiFile}"; then
-			ryanjson_log_error "缺少 interface.display_name: ${openaiFile}"
-			exit 1
-		fi
-		if ! grep -Eq '^[[:space:]]*short_description:' "${openaiFile}"; then
-			ryanjson_log_error "缺少 interface.short_description: ${openaiFile}"
-			exit 1
-		fi
-		if ! grep -Eq '^[[:space:]]*default_prompt:' "${openaiFile}"; then
-			ryanjson_log_error "缺少 interface.default_prompt: ${openaiFile}"
-			exit 1
-		fi
-
-		skillName="$(awk '
-			BEGIN { inFm=0 }
-			/^---[[:space:]]*$/ { if (inFm==0) { inFm=1; next } else { exit } }
-			inFm==1 && /^name:[[:space:]]*/ {
-				sub(/^name:[[:space:]]*/, "", $0)
-				print $0
-				exit
-			}
-		' "${skillFile}")"
-
-		if [[ -z "${skillName}" ]]; then
-			ryanjson_log_error "未能从 ${skillFile} 读取 name"
-			exit 1
-		fi
-
-		if ! grep -Fq "\$${skillName}" "${openaiFile}"; then
-			ryanjson_log_error "default_prompt 未引用 \$${skillName}: ${openaiFile}"
-			exit 1
-		fi
-
-		ryanjson_log_info "valid ${skillDir}"
+		ryanjson_log_info "queued ${skillDir}"
 	done
+
+	python3 "${validator}"
+	python3 "${casesValidator}"
 }
 
 main() {
 	parse_args "$@"
 
 	if [[ ! -f "${validator}" ]]; then
-		ryanjson_log_error "未找到技能校验脚本: ${validator}"
+		ryanjson_log_error "未找到仓库内技能校验脚本: ${validator}"
+		exit 1
+	fi
+	if [[ ! -f "${casesValidator}" ]]; then
+		ryanjson_log_error "未找到仓库内评测样本校验脚本: ${casesValidator}"
 		exit 1
 	fi
 

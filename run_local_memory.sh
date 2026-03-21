@@ -166,7 +166,7 @@ print_banner() {
 }
 
 run_host_memory() {
-	local markdownPath="${repoRoot}/memoryUsageCompareHost.md"
+	local markdownPath="${repoRoot}/reports/memory/host.md"
 	local rc=0
 	local caseRc=0
 	local entry=""
@@ -224,7 +224,7 @@ run_host_memory() {
 }
 
 run_qemu_memory() {
-	local markdownPath="${repoRoot}/memoryUsageCompareQemu.md"
+	local markdownPath="${repoRoot}/reports/memory/qemu.md"
 	local rc=0
 	local caseRc=0
 	local entry=""

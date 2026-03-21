@@ -238,7 +238,7 @@ print_banner() {
 }
 
 run_host_rfc8259() {
-	local markdownPath="${repoRoot}/rfc8259ReportHost.md"
+	local markdownPath="${repoRoot}/reports/rfc8259/host.md"
 	local streamPath="${repoRoot}/localLogs/_tmp/rfc8259_stream_host.$$"
 	local rc=0
 	local caseRc=0
@@ -286,7 +286,7 @@ run_host_rfc8259() {
 }
 
 run_qemu_rfc8259() {
-	local markdownPath="${repoRoot}/rfc8259ReportQemu.md"
+	local markdownPath="${repoRoot}/reports/rfc8259/qemu.md"
 	local streamPath="${repoRoot}/localLogs/_tmp/rfc8259_stream_qemu.$$"
 	local rc=0
 	local caseRc=0

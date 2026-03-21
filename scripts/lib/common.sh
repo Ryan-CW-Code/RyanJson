@@ -25,6 +25,7 @@ ryanjson_init_utf8_locale
 ryanjson_init_utf8_log() {
   # Initialize a UTF-8 log file (no BOM).
   local path="$1"
+  mkdir -p "$(dirname "${path}")"
   : > "${path}"
 }
 

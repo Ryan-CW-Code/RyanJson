@@ -37,18 +37,18 @@
     - header=8 align=4
     - header=4 align=4
   - 结构化输出 `[MEM][COMPARE]`
-  - 仅输出 Markdown 汇总（项目根目录）：
-    - `memoryUsageCompareHost.md`
-    - `memoryUsageCompareQemu.md`
+  - 仅输出 Markdown 汇总（`reports/memory/`）：
+    - `reports/memory/host.md`
+    - `reports/memory/qemu.md`
 - `run_local_rfc8259.sh`
   - 本地一键生成 RFC8259 报告（仅 RFC runner），支持 host / qemu
   - 默认仅跑单配置（`RFC_SINGLE_CASE=1`），默认语义：`RFC_DEFAULT_CASE="false false true"`
   - 默认同时生成 host + qemu 两份报告（`RFC_PLATFORM=both`）
   - 默认清理 ANSI 颜色：`RFC_STRIP_ANSI_LOG=1`（如需保留颜色设为 0）
   - Host/QEMU 均使用内嵌 RFC8259 数据集（避免依赖文件系统）
-  - 仅输出 Markdown 汇总（项目根目录）：
-    - `rfc8259ReportHost.md`
-    - `rfc8259ReportQemu.md`
+  - 仅输出 Markdown 汇总（`reports/rfc8259/`）：
+    - `reports/rfc8259/host.md`
+    - `reports/rfc8259/qemu.md`
 - `scripts/tools/gen_rfc8259_embedded.py`
   - 生成 RFC8259 内嵌数据文件（`test/unityTest/cases/RFC8259/rfc8259Embedded.*`）
   - 当 `test/data/rfc8259` 更新时需要重新生成
@@ -58,3 +58,8 @@
   - 日志目录默认 `localLogs/qemu`（已在 `.gitignore` 中忽略）
 - `run_local_skills.sh`
   - 本地同步并校验 `skills/*`
+  - 同时校验 `skills/evals/cases/*.json` 路由评测样本
+- `scripts/tools/validate_skills.py`
+  - 校验 skills frontmatter、agents/openai.yaml、AGENTS 路由与 Markdown 明确路径引用
+- `scripts/tools/validate_skill_cases.py`
+  - 校验 `skills/evals/cases/*.json` 的格式、路由目标、引用路径与覆盖分布

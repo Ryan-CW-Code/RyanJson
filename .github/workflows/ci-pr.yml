@@ -13,6 +13,19 @@ permissions:
   contents: read
 
 jobs:
+  skillsLint:
+    name: skills-lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 校验 skills、agents 与路由评测样本
+        run: |
+          bash ./run_local_skills.sh --validate-only
+
   unitFull:
     name: unit-full
     runs-on: ubuntu-latest
