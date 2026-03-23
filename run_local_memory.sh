@@ -15,6 +15,7 @@ memDefaultCase="${MEM_DEFAULT_CASE:-false false true}"
 memStripAnsiLog="${MEM_STRIP_ANSI_LOG:-1}"
 
 readonly memCases=(
+	"header=12 align=8"
 	"header=12 align=4"
 	"header=8 align=8"
 	"header=8 align=4"
