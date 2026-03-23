@@ -1,4 +1,4 @@
 interface:
   display_name: "RyanJson 测试工程"
   short_description: "回答、审查或实现零重复单元测试补强与归属治理"
-  default_prompt: "使用 $ryanjson-test-engineering 回答、审查或实现 RyanJson 单元测试相关需求；严格零重复，优先纯契约与失败语义，必要时更新 test-map 与用例归属，并给出完整验证证据，且遵循共享基线。"
+  default_prompt: "使用 $ryanjson-test-engineering 回答、审查或实现 RyanJson 单元测试相关需求；若问题更像 API 用法、内部实现优化或仓库导航，先分流到对应 skill。严格零重复，优先纯契约与失败语义，必要时更新 test-map 与用例归属，显式区分已验证事实与推断，并给出完整验证证据，遵循共享基线。"

@@ -18,14 +18,16 @@
 ## 新人最短阅读路径
 1. `README.md`
 2. `AGENTS.md`
-3. `example/`
-4. 与当前问题匹配的 `run_local_*.sh` 或 skill
+3. `skills/shared/questionRouter.md`
+4. `example/`
+5. 与当前问题匹配的 `run_local_*.sh` 或 skill
 
 ## 常见入口选择
 - 想看对外 API：`RyanJson/RyanJson.h`
 - 想看构建入口：`xmake.lua`
 - 想看脚本职责：`scripts/README.md`
 - 想看 AI 路由：`AGENTS.md`
+- 想先判断当前问题该走哪个 skill：`skills/shared/questionRouter.md`、`skills/shared/routingExamples.md`
 - 想看项目能力与报告链接：`README.md`
 
 ## 依据（仓库内）

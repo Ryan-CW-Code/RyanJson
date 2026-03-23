@@ -35,3 +35,4 @@
 - 按场景选 API：`apiPatterns.md`
 - 释放责任细节：`ownershipAndErrors.md`
 - 平台集成模板：`integrationTemplate.md`
+- 不确定当前问题该走哪个 skill：`../../shared/questionRouter.md`

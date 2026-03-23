@@ -1,5 +1,12 @@
 # RyanJson 共性规则
 
+## 0. 快速分流
+- 第一次接触仓库、问题还很模糊：先看 `questionRouter.md`，默认进入 `../ryanjson-project-guide/SKILL.md`
+- 遇到跨 skill 或边界模糊的问题：补看 `routingExamples.md`
+- 重点是“怎么用 API / 怎么集成 / 失败谁释放”：进入 `../ryanjson-api-usage/SKILL.md`
+- 重点是“为什么这样实现 / 怎么优化 / crash 根因是什么”：进入 `../ryanjson-optimization/SKILL.md`
+- 重点是“测试该补在哪 / 是否重复 / 回归怎么收敛”：进入 `../ryanjson-test-engineering/SKILL.md`
+
 ## 1. 范围
 - 本文件是以下四个技能的共性约束基线：
   - `skills/ryanjson-project-guide`
@@ -7,6 +14,8 @@
   - `skills/ryanjson-optimization`
   - `skills/ryanjson-test-engineering`
 - 各技能的领域细节仍以各自 `references/` 文档为准。
+- 问题分流参考：`questionRouter.md`。
+- 边界样例参考：`routingExamples.md`。
 - 统一术语字典：`terminology.md`。
 - 架构与数据结构参考：`architecture.md`。
 

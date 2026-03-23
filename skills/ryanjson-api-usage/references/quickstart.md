@@ -6,9 +6,23 @@
 - 平台差异实现见 `rt-thread-examples.md`。
 - 失败所有权细则见 `ownershipAndErrors.md`。
 
+## 先选你的目标
+- 只想先跑通 Parse + Get：直接看“示例 2”。
+- 想创建对象并输出紧凑 JSON：直接看“示例 3”。
+- 想做跨类型替换或子树迁移：直接看“示例 4 / 示例 5”。
+- 如果你还不确定自己是不是该看这页：先看 `../../shared/questionRouter.md`。
+
 ## 新手提示
 - 不懂 RTOS 也没关系：先用 `malloc/free/realloc` 跑通，再做平台适配。
 - 不熟 JSON 术语：先读 `beginnerPrimer.md`。
+- 第一次接触仓库：先补看 `../../ryanjson-project-guide/references/entryScenarios.md`。
+
+## 30 秒心智模型
+- `InitHooks`：先把分配器接进去。
+- `Parse/Create`：得到一棵 Json 树。
+- `Get/Add/Replace/Detach`：在树上读取或改结构。
+- `Print`：需要输出时再转成字符串。
+- `Delete`：事务结束统一释放 root。
 
 ## 入口条件（必须）
 1. 任何 Json API 前先完成 `RyanJsonInitHooks`。
@@ -16,6 +30,27 @@
    - `RyanJsonStrictObjectKeyCheck`
    - `RyanJsonDefaultAddAtHead`
 3. 每条失败分支都要显式释放（`RyanJsonDelete` / `RyanJsonFree`）。
+
+## 三条最短路径
+### 路径 A：读取字段
+1. `RyanJsonInitHooks`
+2. `RyanJsonParse`
+3. `RyanJsonGetObjectByKey`
+4. `RyanJsonIsXXX` + `RyanJsonGetXXXValue`
+5. `RyanJsonDelete(root)`
+
+### 路径 B：创建并输出
+1. `RyanJsonInitHooks`
+2. `RyanJsonCreateObject`
+3. `RyanJsonAdd*ToObject`
+4. `RyanJsonPrintPreallocated(..., RyanJsonFalse, ...)`
+5. `RyanJsonDelete(root)`
+
+### 路径 C：替换或迁移子树
+1. 先创建新节点或先 `Detach`
+2. `RyanJsonReplaceByKey/ByIndex` 或 `RyanJsonAddItem*`
+3. 明确失败分支的所有权
+4. 结束时释放仍归调用方的节点
 
 ## 示例 1：初始化 hooks（一次性）
 ```c
@@ -160,6 +195,12 @@ static RyanJsonBool_e movePayload(RyanJson_t src, RyanJson_t dst)
 3. Replace 失败后是否由调用方处理 `newItem`。
 4. 动态打印返回值是否配对 `RyanJsonFree`。
 5. 退出分支是否都做了 `RyanJsonDelete`。
+
+## 遇到这些情况时不要停在本页
+- 想看平台接入模板：转 `integrationTemplate.md`
+- 想看 RT-Thread 差异：转 `rt-thread-examples.md`
+- 想确认失败谁释放：转 `ownershipAndErrors.md`
+- 想排查 crash、性能或内部实现风险：转 `../../shared/questionRouter.md`，通常进入 `../../ryanjson-optimization/SKILL.md`
 
 ## 依据（仓库内）
 - `RyanJson/RyanJson.c`：`RyanJsonInitHooks`、`RyanJsonDelete`

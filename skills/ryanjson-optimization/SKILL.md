@@ -16,10 +16,11 @@ description: RyanJson 核心实现优化与审查。用于 Parse/Print/Item/Comp
 
 ## 核心流程
 1. 先读 `../shared/ryanJsonCommon.md`，锁定宏与语义边界。
-2. 建立基线：正确性、耗时、内存峰值、崩溃样本、覆盖率。
-3. 设计最小改动：只改目标路径，避免顺手重构。
-4. 增量验证：先定向回归，再扩到全量门禁。
-5. 输出结论：收益、代价、兼容影响、剩余风险与回滚条件。
+2. 若问题只是公开 API 使用、仓库导航或测试归属，先按 `../shared/questionRouter.md` 分流到对应 skill。
+3. 建立基线：正确性、耗时、内存峰值、崩溃样本、覆盖率。
+4. 设计最小改动：只改目标路径，避免顺手重构。
+5. 增量验证：先定向回归，再扩到全量门禁。
+6. 输出结论：收益、代价、兼容影响、剩余风险与回滚条件。
 
 ## 约束（必须遵守）
 - 未授权不得改变公开 API 语义或默认行为。
@@ -37,10 +38,14 @@ description: RyanJson 核心实现优化与审查。用于 Parse/Print/Item/Comp
 ## 示例
 - 用户问“解析性能慢，不改 API 前提下怎么优化？”：走本技能，给出最小改动与验证门禁。
 - 用户问“内存峰值过高，允许新增宏开关”：走本技能，评估兼容影响与回归链路。
+- 用户第一次进入优化问题，不确定该先看热点、门禁还是架构：先看 `references/entryScenarios.md`。
 
 ## 参考导航
 - 共享基线：`../shared/ryanJsonCommon.md`
+- 快速分流：`../shared/questionRouter.md`
+- 路由样例：`../shared/routingExamples.md`
 - 架构与数据结构：`../shared/architecture.md`
+- 首屏入口：`references/entryScenarios.md`
 - 注释规范：统一用 Doxygen 风格，类型名/字段语义/API 名保持英文（见共享基线第 9 节）
 - 工作流：`references/coreWorkflow.md`
 - 门禁：`references/regressionGates.md`
@@ -50,4 +55,4 @@ description: RyanJson 核心实现优化与审查。用于 Parse/Print/Item/Comp
 - 配置开关：`references/configSwitches.md`
 - 优化配方：`references/optimizationRecipes.md`
 - 术语：`references/terminology.md`
-- 本地压缩文档：`architecture.md`、`pitfalls.md`、`sop.md`
+- 本地压缩文档：`context.md`、`architecture.md`、`pitfalls.md`、`sop.md`

@@ -1,4 +1,4 @@
 interface:
   display_name: "RyanJson 核心优化"
   short_description: "回答、审查或实现不改公开 API 语义的核心优化"
-  default_prompt: "使用 $ryanjson-optimization 回答、审查或实现 RyanJson 核心优化相关需求；在不改公开 API 语义前提下给出最小改动方案、风险判断与可复现回归证据，并遵循共享基线。"
+  default_prompt: "使用 $ryanjson-optimization 回答、审查或实现 RyanJson 核心优化相关需求；若问题只是 API 用法、仓库导航或测试归属，先分流到对应 skill。用户第一次进入优化问题时优先给首屏入口，再在不改公开 API 语义前提下给出最小改动方案，显式区分已验证事实与推断，并给出风险判断、回滚条件与可复现回归证据，遵循共享基线。"

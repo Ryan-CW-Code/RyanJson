@@ -16,10 +16,14 @@
 
 ## 共享基线与术语
 - 共享基线：`skills/shared/ryanJsonCommon.md`
+- 快速分流：`skills/shared/questionRouter.md`
+- 路由样例：`skills/shared/routingExamples.md`
 - 术语表：`skills/shared/terminology.md`
 - 架构与数据结构：`skills/shared/architecture.md`
 
 ## 技能路由
+- 用户问题不清晰、第一次接触仓库时：先看 `skills/shared/questionRouter.md`
+- 用户问题跨越多个 skill、边界不清晰时：补看 `skills/shared/routingExamples.md`
 - 项目概览、目录结构、构建脚本、CI 与报告路径：`skills/ryanjson-project-guide/SKILL.md`
 - 涉及内部实现/数据结构：先读 `skills/shared/architecture.md`，再进入对应技能。
 - API 使用、集成、所有权与示例：`skills/ryanjson-api-usage/SKILL.md`

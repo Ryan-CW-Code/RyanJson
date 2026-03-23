@@ -13,6 +13,8 @@
 ## AI 入口
 - `AGENTS.md`：总入口与技能路由。
 - `skills/shared/ryanJsonCommon.md`：共享基线。
+- `skills/shared/questionRouter.md`：模糊问题先分流。
+- `skills/shared/routingExamples.md`：边界问题与真实提问路由样例。
 - `skills/shared/architecture.md`：内部结构与实现事实。
 - `skills/shared/terminology.md`：统一术语。
 
