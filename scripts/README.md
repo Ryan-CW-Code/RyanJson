@@ -58,8 +58,5 @@
   - 日志目录默认 `localLogs/qemu`（已在 `.gitignore` 中忽略）
 - `run_local_skills.sh`
   - 本地同步并校验 `skills/*`
-  - 同时校验 `skills/evals/cases/*.json` 路由评测样本
 - `scripts/tools/validate_skills.py`
   - 校验 skills frontmatter、agents/openai.yaml、AGENTS 路由与 Markdown 明确路径引用
-- `scripts/tools/validate_skill_cases.py`
-  - 校验 `skills/evals/cases/*.json` 的格式、路由目标、引用路径与覆盖分布

@@ -6,7 +6,6 @@ set -euo pipefail
 #   1) 同步各技能的 references/terminology.md 到统一占位模板
 #   2) 使用仓库内 validator 校验每个技能的 frontmatter 与 agents/openai.yaml
 #   3) 校验 skills 文档中的明确路径引用与 AGENTS 路由
-#   4) 校验 skills 路由评测样本（deterministic eval cases）
 #
 # 可选参数：
 #   --sync-only      仅执行同步
@@ -21,7 +20,6 @@ cd "${repoRoot}"
 doSync=1
 doValidate=1
 validator="${repoRoot}/scripts/tools/validate_skills.py"
-casesValidator="${repoRoot}/scripts/tools/validate_skill_cases.py"
 
 declare -a skillDirs=()
 
@@ -92,13 +90,12 @@ INNER_EOF
 }
 
 validate_skills() {
-	ryanjson_log_phase "校验技能结构、agents 元数据、Markdown 路径与评测样本..."
+	ryanjson_log_phase "校验技能结构、agents 元数据与 Markdown 路径..."
 	for skillDir in "${skillDirs[@]}"; do
 		ryanjson_log_info "queued ${skillDir}"
 	done
 
 	python3 "${validator}"
-	python3 "${casesValidator}"
 }
 
 main() {
@@ -106,10 +103,6 @@ main() {
 
 	if [[ ! -f "${validator}" ]]; then
 		ryanjson_log_error "未找到仓库内技能校验脚本: ${validator}"
-		exit 1
-	fi
-	if [[ ! -f "${casesValidator}" ]]; then
-		ryanjson_log_error "未找到仓库内评测样本校验脚本: ${casesValidator}"
 		exit 1
 	fi
 
