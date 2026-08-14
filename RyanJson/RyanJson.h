@@ -223,9 +223,8 @@ extern RyanJson_t RyanJsonGetNext(RyanJson_t pJson);
  * @brief Json 对外接口
  */
 extern RyanJsonBool_e RyanJsonInitHooks(RyanJsonMalloc_t userMalloc, RyanJsonFree_t userFree, RyanJsonRealloc_t userRealloc);
-extern RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool_e requireNullTerminator,
-				       const char **parseEndPtr); // 需用户释放内存
-extern RyanJson_t RyanJsonParse(const char *text);                // 需用户释放内存
+extern RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool_e requireOnlyWhitespaceTail, const char **parseEndPtr);
+extern RyanJson_t RyanJsonParse(const char *text); // 需用户释放内存
 
 extern void RyanJsonDelete(RyanJson_t pJson);
 extern void RyanJsonFree(void *block);

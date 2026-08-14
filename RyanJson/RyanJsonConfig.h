@@ -109,6 +109,15 @@ extern "C" {
 #endif
 
 /**
+ * @brief RyanJsonParseUseLibmPow: Number 指数缩放是否调用 libm pow。
+ * @note false（默认）使用库内实现，避免链接 pow 及其依赖以减小 ROM。
+ * @note true 使用 pow(10.0, exponent)，用于与旧实现进行兼容性或固件大小对比。
+ */
+#ifndef RyanJsonParseUseLibmPow
+#define RyanJsonParseUseLibmPow false
+#endif
+
+/**
  * @brief RyanJsonDoubleBufferSize: Double 序列化临时缓冲区大小。
  * @note 若支持科学计数法：默认 32（建议 >= 32）。
  * @note 若不支持科学计数法：默认 64（理论上完整输出可到 330+，可按需求增大）。
@@ -158,6 +167,10 @@ extern "C" {
 
 #if true != RyanJsonDefaultAddAtHead && false != RyanJsonDefaultAddAtHead
 #error "RyanJsonDefaultAddAtHead 必须是 true 或 false"
+#endif
+
+#if true != RyanJsonParseUseLibmPow && false != RyanJsonParseUseLibmPow
+#error "RyanJsonParseUseLibmPow 必须是 true 或 false"
 #endif
 
 /**

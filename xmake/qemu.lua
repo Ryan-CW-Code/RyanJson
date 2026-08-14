@@ -25,12 +25,14 @@ local function setupRyanJsonQemuTarget(options)
     local strictObjectKeyCheck = getBooleanEnvDefineValue("RYANJSON_STRICT_OBJECT_KEY_CHECK", "false")
     local defaultAddAtHead = getBooleanEnvDefineValue("RYANJSON_DEFAULT_ADD_AT_HEAD", "false")
     local snprintfSupportScientific = getBooleanEnvDefineValue("RYANJSON_SNPRINTF_SUPPORT_SCIENTIFIC", "true")
+    local parseUseLibmPow = getBooleanEnvDefineValue("RYANJSON_PARSE_USE_LIBM_POW", "false")
     local unitOnlyMemory = getBooleanEnvDefineValue("RYANJSON_UNIT_ONLY_MEMORY", "false")
     local unitOnlyRfc8259 = getBooleanEnvDefineValue("RYANJSON_UNIT_ONLY_RFC8259", "false")
 
     add_defines("RyanJsonStrictObjectKeyCheck=" .. strictObjectKeyCheck)
     add_defines("RyanJsonDefaultAddAtHead=" .. defaultAddAtHead)
     add_defines("RyanJsonSnprintfSupportScientific=" .. snprintfSupportScientific)
+    add_defines("RyanJsonParseUseLibmPow=" .. parseUseLibmPow)
     if "true" == unitOnlyMemory then
         add_defines("RyanJsonUnitOnlyMemory")
     end

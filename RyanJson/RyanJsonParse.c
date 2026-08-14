@@ -114,6 +114,48 @@ static RyanJsonBool_e RyanJsonParseHex(const uint8_t *text, uint32_t *value)
 	return RyanJsonTrue;
 }
 
+#if false == RyanJsonParseUseLibmPow
+/**
+ * @brief 应用十进制指数缩放，不依赖 libm pow。
+ * @pre exponent 的范围为 [-323, 308]。
+ */
+static double RyanJsonInternalApplyDecimalExponent(double number, int32_t exponent)
+{
+	static const double decimalPositivePowers[] = {1.0e1, 1.0e2, 1.0e4, 1.0e8, 1.0e16, 1.0e32, 1.0e64, 1.0e128, 1.0e256};
+	static const double decimalNegativePowers[] = {1.0e-1, 1.0e-2, 1.0e-4, 1.0e-8, 1.0e-16, 1.0e-32, 1.0e-64, 1.0e-128, 1.0e-256};
+	static const double decimalLargePositivePowers[] = {1.0e292, 1.0e293};
+	const int64_t decimalLargePositivePowerMin = 292;
+
+	double exponentFactor = 1.0;
+	if (exponent >= decimalLargePositivePowerMin && exponent <= decimalLargePositivePowerMin + 1)
+	{
+		exponentFactor = decimalLargePositivePowers[exponent - decimalLargePositivePowerMin];
+	}
+	else
+	{
+		RyanJsonBool_e isNegativeExponent = RyanJsonMakeBool(exponent < 0);
+		uint32_t exponentMagnitude = isNegativeExponent ? -exponent : exponent;
+		const double *decimalPowers = RyanJsonTrue == isNegativeExponent ? decimalNegativePowers : decimalPositivePowers;
+
+		if (exponent > decimalLargePositivePowerMin)
+		{
+			exponentFactor = decimalLargePositivePowers[0];
+			exponentMagnitude = exponent - decimalLargePositivePowerMin;
+			decimalPowers = decimalPositivePowers;
+		}
+
+		while (0U != exponentMagnitude)
+		{
+			if (0U != (exponentMagnitude & 1U)) { exponentFactor *= *decimalPowers; }
+			exponentMagnitude >>= 1;
+			decimalPowers++;
+		}
+	}
+
+	return number * exponentFactor;
+}
+#endif
+
 /**
  * @brief 解析 Number（含符号/小数/指数）
  *
@@ -210,10 +252,18 @@ static RyanJsonBool_e RyanJsonInternalParseDouble(RyanJsonParseBuffer *parseBuf,
 	{
 		// 使用更宽位数拼接指数，避免中间表达式溢出
 		int64_t exponent = (int64_t)scale + (int64_t)e_sign * (int64_t)e_scale;
-		double expFactor = pow(10.0, (double)exponent);
-		number *= expFactor;
-		RyanJsonCheckReturnFalse(isfinite(number));
+#if true == RyanJsonParseUseLibmPow
+		number *= pow(10.0, (double)exponent);
+#else
+		if (exponent > 308) { return RyanJsonFalse; }
+		if (exponent <= -324) { number *= 0.0; }
+		else
+		{
+			number = RyanJsonInternalApplyDecimalExponent(number, (int32_t)exponent);
+		}
+#endif
 	}
+	RyanJsonCheckReturnFalse(isfinite(number));
 
 	*numberValuePtr = number;
 	*isIntPtr = isInt;
@@ -718,14 +768,14 @@ error__:
  * @brief 校验解析结束位置是否合法
  *
  * @param parseBuf 解析缓冲区
- * @param requireNullTerminator RyanJsonTrue 时要求仅剩空白
+ * @param requireOnlyWhitespaceTail RyanJsonTrue 时要求 size 范围内仅剩空白。
  * @return RyanJsonBool_e 校验是否成功
  */
-static RyanJsonBool_e RyanJsonParseCheckNullTerminator(RyanJsonParseBuffer *parseBuf, RyanJsonBool_e requireNullTerminator)
+static RyanJsonBool_e RyanJsonParseCheckOnlyWhitespaceTail(RyanJsonParseBuffer *parseBuf, RyanJsonBool_e requireOnlyWhitespaceTail)
 {
 	RyanJsonCheckAssert(NULL != parseBuf);
 
-	if (requireNullTerminator)
+	if (requireOnlyWhitespaceTail)
 	{
 		// 故意不检查，允许空白
 		(void)RyanJsonParseBufSkipWhitespace(parseBuf);
@@ -742,12 +792,12 @@ static RyanJsonBool_e RyanJsonParseCheckNullTerminator(RyanJsonParseBuffer *pars
  *
  * @param text 输入文本
  * @param size 文本长度
- * @param requireNullTerminator 是否要求解析后仅剩空白
+ * @param requireOnlyWhitespaceTail RyanJsonTrue 时要求 size 范围内解析后仅剩空白；不要求输入包含 '\\0'。
  * @param parseEndPtr 输出第一个未消费字符位置，可为 NULL
  * @return RyanJson_t 解析成功返回根节点，失败返回 NULL
  * @note parseEndPtr 仅在解析成功时写入。
  */
-RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool_e requireNullTerminator, const char **parseEndPtr)
+RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool_e requireOnlyWhitespaceTail, const char **parseEndPtr)
 {
 	RyanJsonCheckReturnNull(NULL != text);
 
@@ -758,7 +808,7 @@ RyanJson_t RyanJsonParseOptions(const char *text, uint32_t size, RyanJsonBool_e 
 	RyanJsonCheckReturnNull(RyanJsonTrue == RyanJsonParseIterative(&parseBuf, &pJson));
 
 	// 检查解析后的文本后面是否有无意义的字符
-	RyanJsonCheckCode(RyanJsonTrue == RyanJsonParseCheckNullTerminator(&parseBuf, requireNullTerminator), {
+	RyanJsonCheckCode(RyanJsonTrue == RyanJsonParseCheckOnlyWhitespaceTail(&parseBuf, requireOnlyWhitespaceTail), {
 		RyanJsonDelete(pJson);
 		return NULL;
 	});
