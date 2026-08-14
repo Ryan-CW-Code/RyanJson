@@ -49,14 +49,10 @@
   - 仅输出 Markdown 汇总（`reports/rfc8259/`）：
     - `reports/rfc8259/host.md`
     - `reports/rfc8259/qemu.md`
-- `scripts/tools/gen_rfc8259_embedded.py`
+- `scripts/generators/gen_rfc8259_embedded.py`
   - 生成 RFC8259 内嵌数据文件（`test/unityTest/cases/RFC8259/rfc8259Embedded.*`）
   - 当 `test/data/rfc8259` 更新时需要重新生成
 - `run_local_qemu.sh`
   - 本地一键跑 QEMU 硬件语义校验（完整 localbase 单测 + 非对齐 fault）
   - 默认 `QEMU_MEMORY=64M`，可按需通过环境变量覆盖
   - 日志目录默认 `localLogs/qemu`（已在 `.gitignore` 中忽略）
-- `run_local_skills.sh`
-  - 本地同步并校验 `skills/*`
-- `scripts/tools/validate_skills.py`
-  - 校验 skills frontmatter、agents/openai.yaml、AGENTS 路由与 Markdown 明确路径引用

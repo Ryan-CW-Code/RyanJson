@@ -79,16 +79,9 @@ static void printfJsonCompare(const char *id, const char *title, const char *jso
 		      (unsigned long)strlen(jsonstr), (unsigned long)RyanJsonTestAllocHeaderSize, (unsigned long)RyanJsonTestAllocAlignSize,
 		      (long)ryanJsonCount, (long)cJSONCount, (long)yyjsonCount);
 	(void)testLog("[MEM][COMPARE] id=%s strict=%d head=%d sci=%d len=%lu header=%lu align=%lu ryanjson=%ld cjson=%ld yyjson=%ld\r\n",
-		      (NULL != id) ? id : "unknown",
-		      (int)RyanJsonStrictObjectKeyCheck,
-		      (int)RyanJsonDefaultAddAtHead,
-		      (int)RyanJsonSnprintfSupportScientific,
-		      (unsigned long)strlen(jsonstr),
-		      (unsigned long)RyanJsonTestAllocHeaderSize,
-		      (unsigned long)RyanJsonTestAllocAlignSize,
-		      (long)ryanJsonCount,
-		      (long)cJSONCount,
-		      (long)yyjsonCount);
+		      (NULL != id) ? id : "unknown", (int)RyanJsonStrictObjectKeyCheck, (int)RyanJsonDefaultAddAtHead,
+		      (int)RyanJsonSnprintfSupportScientific, (unsigned long)strlen(jsonstr), (unsigned long)RyanJsonTestAllocHeaderSize,
+		      (unsigned long)RyanJsonTestAllocAlignSize, (long)ryanJsonCount, (long)cJSONCount, (long)yyjsonCount);
 
 	TEST_ASSERT_TRUE_MESSAGE(ryanJsonCount > 0 && cJSONCount > 0 && yyjsonCount > 0, "内存统计值必须大于 0");
 	TEST_ASSERT_TRUE_MESSAGE(ryanJsonCount < cJSONCount, "RyanJson 内存占用应低于 cJSON");

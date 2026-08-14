@@ -180,7 +180,6 @@ typedef struct RyanJsonNode *RyanJson_t;
 | `./run_local_qemu.sh`           | QEMU 语义验证      | 嵌入式语义/对齐相关改动 |
 | `./run_local_ci.sh`             | 完整 CI 验证       | 提交前对齐              |
 | `./run_local_format.sh --check` | 格式检查           | 代码风格调整            |
-| `./run_local_skills.sh`         | skills 同步与校验  | 更新文档后 |
 
 ### 专项功能单元测试覆盖域
 
@@ -313,10 +312,10 @@ RFC_PLATFORM=qemu bash run_local_rfc8259.sh   	# 仅 QEMU
 - 使用方式：先阅读 `AGENTS.md`，按问题类型进入对应技能文档，即可快速获得可落地方案。
 - 提问建议：说明平台、宏前提、目标场景与是否需要代码示例，AI 会据此给出最短路径与稳妥的失败语义说明。
 - 总入口与路由：`AGENTS.md`
-- 项目导航、构建脚本与报告路径：`skills/ryanjson-project-guide/SKILL.md`
+- 模糊问题、项目导航、构建脚本与报告路径：`skills/ryanjson-workflow/SKILL.md`
 - 架构与数据结构：`skills/shared/architecture.md`
 - API 使用与所有权：`skills/ryanjson-api-usage/SKILL.md`
-- 内部优化与语义边界：`skills/ryanjson-optimization/SKILL.md`
+- 内核实现、性能与语义边界：`skills/ryanjson-core-engineering/SKILL.md`
 - 单元测试工程：`skills/ryanjson-test-engineering/SKILL.md`
 
 ## 9、贡献与验证
@@ -337,4 +336,3 @@ RFC_PLATFORM=qemu bash run_local_rfc8259.sh   	# 仅 QEMU
 | 涉及嵌入式语义路径或对齐相关 | `./run_local_qemu.sh` |
 | 提交前对齐 CI | `./run_local_ci.sh` |
 | 格式或风格调整 | `./run_local_format.sh --check` |
-| 更新 skills/agent 文档 | `./run_local_skills.sh` |

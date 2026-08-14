@@ -49,13 +49,14 @@ static void testLoadFailureHugeNumberOverflow(void)
 static void testLoadFailureExponentAccumulatorOverflow(void)
 {
 	TEST_ASSERT_NULL_MESSAGE(RyanJsonParse("1e2147483647"), "指数过大应触发 isfinite 防御");
+	TEST_ASSERT_NULL_MESSAGE(RyanJsonParse("1e309"), "超出 Double 十进制指数上界应解析失败");
 	TEST_ASSERT_NULL_MESSAGE(RyanJsonParse("1e2147483648"), "指数累积溢出应解析失败");
 	TEST_ASSERT_NULL_MESSAGE(RyanJsonParse("1e-2147483648"), "负指数累积溢出应解析失败");
 }
 
 static void testLoadParseOptionsFailure(void)
 {
-	// 禁止尾部垃圾：requireNullTerminator = true
+	// 禁止尾部垃圾：requireOnlyWhitespaceTail = true
 	const char *text = " {\"a\":1} trailing";
 	RyanJson_t json = RyanJsonParseOptions(text, (uint32_t)strlen(text), RyanJsonTrue, NULL);
 	TEST_ASSERT_NULL_MESSAGE(json, "ParseOptions(require null terminator) 应失败");

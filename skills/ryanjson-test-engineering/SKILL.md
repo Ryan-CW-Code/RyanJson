@@ -1,69 +1,45 @@
 ---
 name: ryanjson-test-engineering
-description: RyanJson 单元测试工程与审查。用于补单测、去重审查、用例归属调整、test-map 更新与回归策略；用户问“这类契约该测在哪/现有测试是否重复/如何补最小回归”时使用。仅在明确要求时处理 fuzz 回归或崩溃复现。接口选型转 ryanjson-api-usage，内部优化转 ryanjson-optimization。
+description: 设计、审查、实现并验证 RyanJson 的确定性 unit 测试、去重治理、用例归属、test-map、fuzz 回归和验证矩阵。用于“该测什么、放在哪里、是否重复、怎样把缺陷变成最小回归”等测试工程问题。
 ---
 
-# RyanJson 测试工程技能
+# RyanJson 测试工程
 
-## 目标
-- 构建确定性 unit 测试，覆盖特殊条件下的纯契约与失败语义。
-- 避免矩阵式重复与“换字面量”堆叠。
+用最小、确定且不重复的证据固定契约。测试的职责是证明独立行为，不是堆叠相似输入或替代根因分析。
 
-## 必要输入
-- 目标 API 或契约（Parse/Print/Item/Compare/Utils 等）。
-- 期望行为或已知回归。
-- 若是 fuzz 回归：最小复现样本与日志。
+## 阅读顺序
 
-## 核心流程
-1. 先读 `../shared/ryanJsonCommon.md`，确认宏与失败语义基线。
-2. 若问题更像公开 API 用法、内部实现优化或仓库导航，先按 `../shared/questionRouter.md` 分流到对应 skill。
-3. 查 `references/test-map.md` 定位归属，先做去重扫描。
-4. 选唯一契约写最小确定性测试；复杂链路优先 `Parse` 固化结构。
-5. 变更职责或文件归属时同步更新 `references/test-map.md`。
-6. 仅在用户明确要求时进入 fuzz 流程（见 `references/fuzzerPlaybook.md`）。
-7. 回归脚本入口按共享基线执行。
+1. 阅读 [行为契约](../shared/behavior-contracts.md)。
+2. 阅读 [测试设计](references/test-design.md) 和 [用例地图](references/test-map.md)。
+3. 根据任务加载 [回归与覆盖](references/regression-and-coverage.md) 或 [fuzz 回归](references/fuzz-regression.md)。
+4. 内部结构敏感问题再读 [内部架构](../shared/architecture.md)。
 
-## 去重检查清单
-- 在目标目录与全树用 `rg -n` 搜索 API/字面量，确认无同语义覆盖。
-- RFC8259 与 `cases/equality/*` 作为基线套件，不做去重。
-- 若冲突，合并到正确归属或删除重复。
+## 补测循环
 
-## 约束（必须遵守）
-- 最高准则：新增/改动单元测试绝对不允许与现有测试形成功能语义重复；即使断言写法不同、字面量不同、链路长短不同，只要证明的是同一契约，就必须合并、搬运到正确归属文件，或直接删除。
-- unit 与 fuzz 必须隔离，fuzz 仅在明确要求时介入。
-- 不新建零散文件，单文件不超过 1000 行。
-- 测试注释用中文，类型名/API 名保持英文。
-- 复杂链路优先用 `Parse` 固定初始结构。
-- `RyanJsonAddItemToObject` 成功后若继续操作子容器，需从 root 重新 `GetObjectToKey` 取回指针再用。
-- `RyanJsonDefaultAddAtHead` 影响插入顺序，断言优先用 key/size。
-- 非严格模式允许重复 key，`CompareOnlyKey` 必须校验重复次数。
-- `test/unityTest/runner/test_list.inc` 由 `run_local_base.sh` 自动生成，禁止手改；新增/删除 runner 后运行脚本或 `./run_local_base.sh`。
+1. 写明要证明的一条契约和触发它的最小前置状态。
+2. 在目标目录与全树搜索 API、关键输入、断言和同类失败路径，判断现有覆盖是否已证明同一契约。
+3. 按 test-map 选择唯一归属文件。发现重复时合并、搬运或删除，不能并存。
+4. 为成功、失败、边界和所有权分别选择必要的最小断言；复杂初始树优先用 Parse 固化。
+5. 检查宏敏感性、runner 注册和资源清理，运行最窄 runner。
+6. 根据行为影响扩大 unit、QEMU、fuzz 或覆盖验证，并记录确切证据。
 
-## 输出格式
-1. 目标与契约：明确测试证明的行为。
-2. 改动清单：文件、用例函数、场景意图。
-3. 验证证据：执行模式与结果。
-4. 风险与下一步：仍缺失的独立契约。
+## 强制规则
 
-## 示例
-- 用户问“Add/Insert 失败语义缺少单测”：走本技能，补最小确定性测试并去重。
-- 用户问“fuzz 崩溃想转为 unit 回归”：走本技能，按复现样本收敛成单测（仅在明确要求时）。
-- 用户第一次进入测试问题，不确定该先看归属、补测方法还是回归门禁：先看 `references/entryScenarios.md`。
+- 新增或改动的 unit 测试不得与现有测试证明同一功能语义；字面量、断言写法或链路长短不同不构成独立契约。
+- unit 证明确定性行为；fuzz 只在任务明确涉及异常输入、历史 crash 或稳定性时进入。
+- 优先扩展既有归属文件，不能为单一断言新建零散文件；单个测试文件不超过 1000 行。
+- `test/unityTest/runner/test_list.inc` 由 `run_local_base.sh` 生成，禁止手改。
+- `RyanJsonDefaultAddAtHead` 会影响顺序；断言优先使用 key、size 或显式插入语义。
+- `Add/Insert` 与 `Replace` 的失败所有权必须用不同断言证明。
 
-## 参考导航
-- 共享基线：`../shared/ryanJsonCommon.md`
-- 快速分流：`../shared/questionRouter.md`
-- 路由样例：`../shared/routingExamples.md`
-- 架构与数据结构：`../shared/architecture.md`
-- 首屏入口：`references/entryScenarios.md`
-- 注释规范：公共文档注释按共享基线执行；测试内部注释优先用中文说明场景/契约，类型名与 API 名保持英文（见共享基线第 9 节）
-- 断言与分层：`references/unityPlaybook.md`
-- 覆盖率分诊：`references/coverageTriage.md`
-- fuzz 补测：`references/fuzzerPlaybook.md`
-- 分诊与回归：`references/regressionMatrix.md`
-- 输出模板：`references/testcaseTemplate.md`
-- 架构检查点：`references/coreArchitectureCheckpoints.md`
-- 断言策略：`references/assertPolicy.md`
-- 术语：`references/terminology.md`
-- 用例地图：`references/test-map.md`
-- 本地压缩文档：`testArchitecture.md`、`context.md`、`sop.md`
+## 参考资料
+
+- [测试设计](references/test-design.md)
+- [用例地图](references/test-map.md)
+- [回归与覆盖](references/regression-and-coverage.md)
+- [fuzz 回归](references/fuzz-regression.md)
+
+## 交接
+
+- API 契约未明确时，先进入 [API 使用](../ryanjson-api-usage/SKILL.md)。
+- crash 根因、内部不变量、性能或布局风险未明确时，先进入 [核心工程](../ryanjson-core-engineering/SKILL.md)。

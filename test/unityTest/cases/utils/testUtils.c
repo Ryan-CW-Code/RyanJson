@@ -67,13 +67,16 @@ void arrayNodeCheckTest(RyanJson_t json, RyanJsonBool_e isReversed)
 		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsNull(RyanJsonGetObjectByIndex(array, 0)), "混合 Array[0]不是 Null");
 
 		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(RyanJsonGetObjectByIndex(array, 1)), "混合 Array[1]不是 Bool 值");
-		TEST_ASSERT_EQUAL_INT_MESSAGE(RyanJsonFalse, RyanJsonGetBoolValue(RyanJsonGetObjectByIndex(array, 1)), "混合 Array[1]值错误");
+		TEST_ASSERT_EQUAL_INT_MESSAGE(RyanJsonFalse, RyanJsonGetBoolValue(RyanJsonGetObjectByIndex(array, 1)),
+					      "混合 Array[1]值错误");
 
 		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(RyanJsonGetObjectByIndex(array, 2)), "混合 Array[2]不是 Bool 值");
-		TEST_ASSERT_EQUAL_INT_MESSAGE(RyanJsonTrue, RyanJsonGetBoolValue(RyanJsonGetObjectByIndex(array, 2)), "混合 Array[2]值错误");
+		TEST_ASSERT_EQUAL_INT_MESSAGE(RyanJsonTrue, RyanJsonGetBoolValue(RyanJsonGetObjectByIndex(array, 2)),
+					      "混合 Array[2]值错误");
 
 		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(RyanJsonGetObjectByIndex(array, 3)), "混合 Array[3]不是 String");
-		TEST_ASSERT_EQUAL_STRING_MESSAGE("hello", RyanJsonGetStringValue(RyanJsonGetObjectByIndex(array, 3)), "混合 Array[3]值错误");
+		TEST_ASSERT_EQUAL_STRING_MESSAGE("hello", RyanJsonGetStringValue(RyanJsonGetObjectByIndex(array, 3)),
+						 "混合 Array[3]值错误");
 
 		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDouble(RyanJsonGetObjectByIndex(array, 4)), "混合 Array[4]不是 Double");
 		TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareDouble(RyanJsonGetDoubleValue(RyanJsonGetObjectByIndex(array, 4)), 16.89),
@@ -92,13 +95,16 @@ void arrayNodeCheckTest(RyanJson_t json, RyanJsonBool_e isReversed)
 					 "混合 Array[1]值错误");
 
 		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsString(RyanJsonGetObjectByIndex(array, 2)), "混合 Array[2]不是 String");
-		TEST_ASSERT_EQUAL_STRING_MESSAGE("hello", RyanJsonGetStringValue(RyanJsonGetObjectByIndex(array, 2)), "混合 Array[2]值错误");
+		TEST_ASSERT_EQUAL_STRING_MESSAGE("hello", RyanJsonGetStringValue(RyanJsonGetObjectByIndex(array, 2)),
+						 "混合 Array[2]值错误");
 
 		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(RyanJsonGetObjectByIndex(array, 3)), "混合 Array[3]不是 Bool 值");
-		TEST_ASSERT_EQUAL_INT_MESSAGE(RyanJsonTrue, RyanJsonGetBoolValue(RyanJsonGetObjectByIndex(array, 3)), "混合 Array[3]值错误");
+		TEST_ASSERT_EQUAL_INT_MESSAGE(RyanJsonTrue, RyanJsonGetBoolValue(RyanJsonGetObjectByIndex(array, 3)),
+					      "混合 Array[3]值错误");
 
 		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsBool(RyanJsonGetObjectByIndex(array, 4)), "混合 Array[4]不是 Bool 值");
-		TEST_ASSERT_EQUAL_INT_MESSAGE(RyanJsonFalse, RyanJsonGetBoolValue(RyanJsonGetObjectByIndex(array, 4)), "混合 Array[4]值错误");
+		TEST_ASSERT_EQUAL_INT_MESSAGE(RyanJsonFalse, RyanJsonGetBoolValue(RyanJsonGetObjectByIndex(array, 4)),
+					      "混合 Array[4]值错误");
 
 		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsNull(RyanJsonGetObjectByIndex(array, 5)), "混合 Array[5]不是 Null");
 	}

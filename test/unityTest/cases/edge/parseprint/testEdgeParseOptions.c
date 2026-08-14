@@ -3,7 +3,7 @@
 static void testEdgeParsePrintRequireTerminatorRejectTail(void)
 {
 	// 复杂链路：
-	// ParseOptions(requireNullTerminator=true, 尾部垃圾) -> 失败。
+	// ParseOptions(requireOnlyWhitespaceTail=true, 尾部垃圾) -> 失败。
 	// 目标：验证严格尾部校验会拒绝非空白尾部。
 	const char *text = "{\"a\":1}x";
 	const uint32_t len = (uint32_t)strlen(text);
@@ -18,7 +18,7 @@ static void testEdgeParsePrintRequireTerminatorRejectTail(void)
 static void testEdgeParsePrintRequireTerminatorAcceptWhitespace(void)
 {
 	// 复杂链路：
-	// ParseOptions(requireNullTerminator=true, 尾部空白) -> 成功。
+	// ParseOptions(requireOnlyWhitespaceTail=true, 尾部空白) -> 成功。
 	// 目标：验证严格模式允许尾部空白。
 	const char *text = "{\"a\":1}\n\t  ";
 	const uint32_t len = (uint32_t)strlen(text);
@@ -371,7 +371,7 @@ static void testEdgeParsePrintParseOptionsGarbageAfterArray(void)
 static void testEdgeParsePrintStrictTailCommentReject(void)
 {
 	// 复杂链路：
-	// ParseOptions(requireNullTerminator=true, 尾部注释) -> 失败。
+	// ParseOptions(requireOnlyWhitespaceTail=true, 尾部注释) -> 失败。
 	// 目标：验证严格模式拒绝非空白尾部。
 	const char *text = "{\"a\":1}/*x*/";
 	const uint32_t len = (uint32_t)strlen(text);
@@ -386,7 +386,7 @@ static void testEdgeParsePrintStrictTailCommentReject(void)
 static void testEdgeParsePrintParseEndPtrTrailingWhitespace(void)
 {
 	// 复杂链路：
-	// ParseOptions(requireNullTerminator=false, 尾部空白) -> end 指向空白。
+	// ParseOptions(requireOnlyWhitespaceTail=false, 尾部空白) -> end 指向空白。
 	// 目标：验证 parseEndPtr 停留在空白起始位置。
 	const char *text = "{\"a\":1}   ";
 	const uint32_t len = (uint32_t)strlen(text);

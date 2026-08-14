@@ -179,7 +179,7 @@ static void testLoadParseOptionsSuccess(void)
 {
 	const char *end = NULL;
 
-	// 允许尾部内容：requireNullTerminator = false
+	// 允许尾部内容：requireOnlyWhitespaceTail = false
 	const char *text = " {\"a\":1} trailing";
 	RyanJson_t json = RyanJsonParseOptions(text, (uint32_t)strlen(text), RyanJsonFalse, &end);
 	TEST_ASSERT_NOT_NULL_MESSAGE(json, "ParseOptions(允许尾部) 失败");
@@ -220,7 +220,7 @@ static void testLoadParseOptionsBinaryTail(void)
 	TEST_ASSERT_EQUAL_INT(1, RyanJsonGetIntValue(RyanJsonGetObjectToKey(json, "a")));
 	RyanJsonDelete(json);
 
-	// requireNullTerminator=true 时，内嵌 '\0' 后仍有剩余数据，应失败
+	// requireOnlyWhitespaceTail=true 时，内嵌 '\0' 后仍有剩余数据，应失败
 	json = RyanJsonParseOptions(rawText, (uint32_t)(sizeof(rawText) - 1U), RyanJsonTrue, &end);
 	TEST_ASSERT_NULL_MESSAGE(json, "ParseOptions(含二进制尾部, 强制结尾) 应失败");
 }
@@ -228,7 +228,7 @@ static void testLoadParseOptionsBinaryTail(void)
 static void testLoadParseOptionsStrictSliceStopsBeforeTailGarbage(void)
 {
 	// 复杂链路：
-	// ParseOptions(requireNullTerminator=true, size 截断尾部垃圾) -> end 指针校验。
+	// ParseOptions(requireOnlyWhitespaceTail=true, size 截断尾部垃圾) -> end 指针校验。
 	// 目标：验证 strict 解析仅关注切片范围内的内容。
 	const char text[] = "{\"a\":1} \t\r\nX";
 	const uint32_t sliceLen = (uint32_t)(sizeof(text) - 2U); // 排除尾部 'X' 与 '\0'
@@ -269,6 +269,16 @@ static void testLoadNumberBoundaries(void)
 		TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDouble(json), "1e-2147483647 应解析为 double");
 		RyanJsonDelete(json);
 	}
+
+	json = RyanJsonParse("1e308");
+	TEST_ASSERT_NOT_NULL_MESSAGE(json, "Double 最大十进制指数边界应解析成功");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonIsDouble(json), "1e308 应解析为 double");
+	RyanJsonDelete(json);
+
+	json = RyanJsonParse("1e-323");
+	TEST_ASSERT_NOT_NULL_MESSAGE(json, "最小非零十进制指数附近应解析成功");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonGetDoubleValue(json) > 0.0, "1e-323 不应提前下溢为零");
+	RyanJsonDelete(json);
 }
 
 static void testLoadScientificNumberRoundtrip(void)

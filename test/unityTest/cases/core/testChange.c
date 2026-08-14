@@ -262,7 +262,8 @@ static void testChangeScalarAndStorageMode(void)
 	 */
 	RyanJson_t arrayItem0 = RyanJsonGetObjectToIndex(RyanJsonGetObjectToKey(jsonRoot, "arrayItem"), 0);
 	RyanJsonChangeIntValue(RyanJsonGetObjectToKey(arrayItem0, "inter"), 123);
-	TEST_ASSERT_EQUAL_INT_MESSAGE(123, RyanJsonGetIntValue(RyanJsonGetObjectToKey(arrayItem0, "inter")), "Array 中 Object 的字段修改失败");
+	TEST_ASSERT_EQUAL_INT_MESSAGE(123, RyanJsonGetIntValue(RyanJsonGetObjectToKey(arrayItem0, "inter")),
+				      "Array 中 Object 的字段修改失败");
 
 	char *str = RyanJsonPrint(jsonRoot, 1024, RyanJsonTrue, NULL);
 	RyanJsonFree(str);

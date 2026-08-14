@@ -336,7 +336,8 @@ static void testCompareArrayWithObjects(void)
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompareOnlyKey(arrLeft, arrOrderSwapped), "Array 元素顺序变化 CompareOnlyKey 应返回 False");
 
 	TEST_ASSERT_FALSE_MESSAGE(RyanJsonCompare(arrLeft, arrValueDiff), "Array 内 Object 值变化 Compare 应返回 False");
-	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(arrLeft, arrValueDiff), "Array 内 Object 值变化但键结构一致 CompareOnlyKey 应返回 True");
+	TEST_ASSERT_TRUE_MESSAGE(RyanJsonCompareOnlyKey(arrLeft, arrValueDiff),
+				 "Array 内 Object 值变化但键结构一致 CompareOnlyKey 应返回 True");
 
 	RyanJsonDelete(arrLeft);
 	RyanJsonDelete(arrObjectUnordered);

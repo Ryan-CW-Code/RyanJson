@@ -21,8 +21,7 @@ static uint32_t resolveMinifiedLen(const char *data, uint32_t len)
 }
 
 /* Parse, render back, compare semantics, etc. */
-static void testFile(rfc8259ParseFn_t parseFn, const char *libName, uint32_t *passCountOut,
-		     uint32_t *totalCountOut)
+static void testFile(rfc8259ParseFn_t parseFn, const char *libName, uint32_t *passCountOut, uint32_t *totalCountOut)
 {
 	uint32_t passCount = 0U;
 	uint32_t usedCount = 0U;
@@ -85,10 +84,7 @@ static void testFile(rfc8259ParseFn_t parseFn, const char *libName, uint32_t *pa
 				(void)testLog("[RFC8259][FAIL] lib=%s file=%s expect=fail actual=success\n", libName, name);
 			}
 		}
-		else if (0 == strncmp("i_", name, 2))
-		{
-			passCount++;
-		}
+		else if (0 == strncmp("i_", name, 2)) { passCount++; }
 
 		// 内存泄漏检查
 		if (leakScope.baseline != unityTestGetUse())
@@ -111,8 +107,8 @@ static void testFile(rfc8259ParseFn_t parseFn, const char *libName, uint32_t *pa
 
 #include "testRfc8259Util.h"
 
-static void checkJsonSemanticEquality(const char *libName, const char *fileName, char *data, uint32_t len, char *str,
-				      uint32_t strLen, uint32_t *errorCount)
+static void checkJsonSemanticEquality(const char *libName, const char *fileName, char *data, uint32_t len, char *str, uint32_t strLen,
+				      uint32_t *errorCount)
 {
 	if (0 != strcmp(data, str))
 	{
@@ -218,8 +214,7 @@ static void testRfc8259RyanJson(void)
 	uint32_t expectedPassCount =
 		(true == RyanJsonStrictObjectKeyCheck) ? RFC8259RyanJsonPassCountStrict : RFC8259RyanJsonPassCountNonStrict;
 	char expectedMsg[128] = {0};
-	(void)snprintf(expectedMsg, sizeof(expectedMsg),
-		       "RyanJson RFC8259 通过数不符合预期（非严格=%u，严格=%u）",
+	(void)snprintf(expectedMsg, sizeof(expectedMsg), "RyanJson RFC8259 通过数不符合预期（非严格=%u，严格=%u）",
 		       (unsigned)RFC8259RyanJsonPassCountNonStrict, (unsigned)RFC8259RyanJsonPassCountStrict);
 	TEST_ASSERT_EQUAL_UINT32_MESSAGE(expectedPassCount, passCount, expectedMsg);
 }

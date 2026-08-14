@@ -1,38 +1,42 @@
-# RyanJson 智能体入口
+# RyanJson AI Skills
 
 ## 目的
-- 本文件只做导航，不复述 skills 内的规则与流程。
-- 处理任务前先阅读共享基线，随后进入对应技能文档。
 
-## Claude Skills 规范要点
-- 每个 skill 必须有 `SKILL.md`，并以 YAML frontmatter 开头。
-- frontmatter 必填 `name`、`description`。
-- `name` 规则：仅小写字母/数字/连字符，最多 64 字符，不含 XML 标签，不含保留字 anthropic/claude。
-- `description` 规则：非空，最多 1024 字符，不含 XML 标签；需同时说明“做什么”和“何时用”。
-- 目录名必须与 `name` 一致。
-- `SKILL.md` 正文建议包含“步骤说明 + 示例”，并保持精简（建议不超过 500 行）。
-- 本仓库不采用 `.claude/skills` 路径，但上述结构与字段要求必须满足。
-- 若需兼容 Claude.ai，`description` 建议控制在 200 字符以内。
+- 本文件是仓库内 AI 工作的唯一总入口。
+- 本文件只负责路由与共性纪律，不重复 API、内部实现、测试或构建事实。
+- 所有技能均使用带 YAML frontmatter 的通用 `SKILL.md`；禁止新增平台专有 agent 配置。
 
-## 共享基线与术语
-- 共享基线：`skills/shared/ryanJsonCommon.md`
-- 快速分流：`skills/shared/questionRouter.md`
-- 路由样例：`skills/shared/routingExamples.md`
-- 术语表：`skills/shared/terminology.md`
-- 架构与数据结构：`skills/shared/architecture.md`
+## 工作入口
 
-## 技能路由
-- 用户问题不清晰、第一次接触仓库时：先看 `skills/shared/questionRouter.md`
-- 用户问题跨越多个 skill、边界不清晰时：补看 `skills/shared/routingExamples.md`
-- 项目概览、目录结构、构建脚本、CI 与报告路径：`skills/ryanjson-project-guide/SKILL.md`
-- 涉及内部实现/数据结构：先读 `skills/shared/architecture.md`，再进入对应技能。
-- API 使用、集成、所有权与示例：`skills/ryanjson-api-usage/SKILL.md`
-- 核心优化、性能、内存与语义边界：`skills/ryanjson-optimization/SKILL.md`
-- 单元测试工程、用例归属与覆盖策略：`skills/ryanjson-test-engineering/SKILL.md`
+1. 先按 [任务路由](skills/shared/routing.md) 判断所有者。
+2. 行动前完整阅读选中的 `SKILL.md`。
+3. 只加载该 skill 指定的共享事实和参考资料。
+4. 对实现语义先查当前源码和测试，再下结论。
+5. 完成请求后按风险运行相应验证。
 
-## Agent 入口
-- 技能内的 agent 模板：`skills/*/agents/openai.yaml`
+| 请求目标 | 主 skill |
+| --- | --- |
+| 问题模糊、仓库导航、构建/CI/报告，或跨多个领域的任务 | [ryanjson-workflow](skills/ryanjson-workflow/SKILL.md) |
+| 公开 API 选型、接入、生命周期、所有权或应用侧代码 | [ryanjson-api-usage](skills/ryanjson-api-usage/SKILL.md) |
+| 内核实现、性能、内存、宏、crash 根因或代码审查 | [ryanjson-core-engineering](skills/ryanjson-core-engineering/SKILL.md) |
+| 单测归属、重复覆盖、fuzz 回归或验证矩阵 | [ryanjson-test-engineering](skills/ryanjson-test-engineering/SKILL.md) |
 
-## 本地校验
-- skills/agents 文档校验入口：`run_local_skills.sh`
-- 仓库内 validator：`scripts/tools/validate_skills.py`
+## 共享事实
+
+- [任务路由与跨域编排](skills/shared/routing.md)
+- [仓库事实与验证入口](skills/shared/repository-facts.md)
+- [行为契约](skills/shared/behavior-contracts.md)
+- [内部架构](skills/shared/architecture.md)
+
+## 工程纪律
+
+- 以公开头文件、实现、unit 测试、fuzz 测试为证据链；没有直接证据的结论必须标为推断。
+- `Add/Insert` 与 `Replace` 的失败所有权必须分开处理。
+- unit、QEMU、fuzz 的前提和验证结论不得混写。
+- 新增 C 代码使用 `stdint` 类型和小驼峰命名；改动公开接口、配置宏或关键内部逻辑时使用 Doxygen 注释。
+- `test/unityTest/runner/test_list.inc` 由脚本生成，禁止手改；通过 `run_local_base.sh` 更新。
+
+## 知识维护
+
+- 公开 API、核心表示、配置语义、构建/测试脚本或测试归属变动时，同一次修改更新对应的权威 skill 文档。
+- 每条领域事实只允许一个权威文档。其他位置只链接，不复制为摘要、SOP、context 或 prompt。
